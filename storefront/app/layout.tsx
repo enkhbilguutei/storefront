@@ -1,21 +1,32 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import { Providers } from "@/components/providers";
+import { Inter, Roboto_Mono, Playfair_Display } from "next/font/google";
+import { Providers } from "@/components/Providers";
+import { CartNotification } from "@/components/cart/CartNotification";
+import { CartInitializer } from "@/components/cart/CartInitializer";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const robotoMono = Roboto_Mono({
+  variable: "--font-roboto-mono",
   subsets: ["latin"],
+});
+
+const playfair = Playfair_Display({
+  variable: "--font-playfair",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
   title: "Алимхан Дэлгүүр",
-  description: "Монголын шилдэг онлайн худалдааны платформ",
+  description: "Технологийн сүүлийн үеийн бүтээгдэхүүнүүдийг баталгаат хугацаатай хэрэглэгчдэд нийлүүлж байна",
+  icons: {
+    icon: "/icon.jpg",
+  },
 };
 
 export default function RootLayout({
@@ -26,9 +37,13 @@ export default function RootLayout({
   return (
     <html lang="mn">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${inter.variable} ${robotoMono.variable} ${playfair.variable} antialiased`}
       >
-        <Providers>{children}</Providers>
+        <Providers>
+          <CartInitializer />
+          {children}
+          <CartNotification />
+        </Providers>
       </body>
     </html>
   );

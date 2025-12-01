@@ -1,0 +1,171 @@
+import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/Footer";
+import { ProductCard } from "@/components/products/ProductCard";
+import { SortSelect } from "@/components/categories/SortSelect";
+import { getCategoryByHandle, getProductsByCategory } from "@/lib/data/categories";
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { ChevronRight, Package } from "lucide-react";
+
+interface ProductOption {
+  id: string;
+  title: string;
+  values: string[];
+}
+
+interface ProductVariant {
+  id: string;
+  title: string;
+  options: {
+    option_id: string;
+    value: string;
+  }[];
+  prices?: Array<{
+    amount: number;
+    currency_code: string;
+  }>;
+}
+
+interface Product {
+  id: string;
+  title: string;
+  handle: string;
+  thumbnail?: string;
+  options?: ProductOption[];
+  variants?: ProductVariant[];
+}
+
+export default async function CategoryPage({ 
+  params,
+  searchParams 
+}: { 
+  params: Promise<{ handle: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const { handle } = await params;
+  const query = await searchParams;
+  
+  const category = await getCategoryByHandle(handle);
+  
+  if (!category) {
+    notFound();
+  }
+  
+  const products = await getProductsByCategory(category.id) as Product[];
+  
+  // Sort products based on query params
+  const sortedProducts = [...products];
+  const sortOrder = query.sort as string;
+  
+  if (sortOrder === 'price_asc') {
+    sortedProducts.sort((a: Product, b: Product) => {
+      const priceA = a.variants?.[0]?.prices?.[0]?.amount || 0;
+      const priceB = b.variants?.[0]?.prices?.[0]?.amount || 0;
+      return priceA - priceB;
+    });
+  } else if (sortOrder === 'price_desc') {
+    sortedProducts.sort((a: Product, b: Product) => {
+      const priceA = a.variants?.[0]?.prices?.[0]?.amount || 0;
+      const priceB = b.variants?.[0]?.prices?.[0]?.amount || 0;
+      return priceB - priceA;
+    });
+  } else if (sortOrder === 'newest') {
+    sortedProducts.reverse();
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <Header />
+      
+      <main className="flex-1">
+        {/* Hero Section */}
+        <div className="bg-white border-b border-gray-100">
+          <div className="container mx-auto px-4 py-12">
+            {/* Breadcrumb */}
+            <nav className="flex items-center gap-2 text-sm text-secondary mb-6">
+              <Link href="/" className="hover:text-foreground transition-colors">
+                Нүүр
+              </Link>
+              <ChevronRight className="h-4 w-4" />
+              <Link href="/products" className="hover:text-foreground transition-colors">
+                Бүтээгдэхүүн
+              </Link>
+              <ChevronRight className="h-4 w-4" />
+              <span className="text-foreground font-medium">{category.name}</span>
+            </nav>
+            
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-foreground/5 flex items-center justify-center">
+                <Package className="h-8 w-8 text-foreground" strokeWidth={1.5} />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-foreground">{category.name}</h1>
+                <p className="text-secondary mt-1">
+                  {category.description || `${category.name} бүтээгдэхүүнүүд`}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="container mx-auto px-4 py-8">
+          {/* Filter Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+            <p className="text-secondary">
+              {sortedProducts.length} бүтээгдэхүүн олдлоо
+            </p>
+            
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-secondary">Эрэмбэлэх:</span>
+              <SortSelect currentSort={sortOrder} />
+            </div>
+          </div>
+
+          {/* Product Grid */}
+          {sortedProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {sortedProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  id={product.id}
+                  title={product.title}
+                  handle={product.handle}
+                  thumbnail={product.thumbnail}
+                  options={product.options}
+                  variants={product.variants}
+                  price={
+                    product.variants?.[0]?.prices?.[0]
+                      ? {
+                          amount: product.variants[0].prices[0].amount,
+                          currencyCode: product.variants[0].prices[0].currency_code,
+                        }
+                      : undefined
+                  }
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
+              <Package className="h-16 w-16 text-secondary mx-auto mb-4" strokeWidth={1} />
+              <p className="text-foreground text-lg font-medium mb-2">
+                Бүтээгдэхүүн олдсонгүй
+              </p>
+              <p className="text-secondary mb-6">
+                Энэ ангилалд одоогоор бүтээгдэхүүн байхгүй байна.
+              </p>
+              <Link 
+                href="/products"
+                className="inline-flex items-center gap-2 bg-foreground text-background px-6 py-3 rounded-full font-medium hover:bg-foreground/90 transition-colors"
+              >
+                Бүх бүтээгдэхүүн үзэх
+                <ChevronRight className="h-4 w-4" />
+              </Link>
+            </div>
+          )}
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  );
+}

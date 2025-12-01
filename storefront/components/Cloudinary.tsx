@@ -1,6 +1,7 @@
 "use client";
 
 import { CldImage, CldUploadWidget } from "next-cloudinary";
+import Image from "next/image";
 
 interface CloudinaryImageProps {
   src: string;
@@ -21,6 +22,7 @@ export function CloudinaryImage({
 }: CloudinaryImageProps) {
   // Check if the src is a Cloudinary URL or a regular URL
   const isCloudinaryUrl = src?.includes("cloudinary.com") || src?.includes("res.cloudinary.com");
+  const isPublicId = !src?.includes("/") && !src?.startsWith("http");
   
   if (!src) {
     return (
@@ -33,13 +35,23 @@ export function CloudinaryImage({
     );
   }
 
-  if (isCloudinaryUrl) {
-    // Extract the public ID from the Cloudinary URL
-    const publicId = src.split("/").slice(-1)[0].split(".")[0];
-    
+  if (isPublicId) {
     return (
       <CldImage
-        src={publicId}
+        src={src}
+        alt={alt}
+        width={width}
+        height={height}
+        className={className}
+        priority={priority}
+      />
+    );
+  }
+
+  if (isCloudinaryUrl) {
+    return (
+      <Image
+        src={src}
         alt={alt}
         width={width}
         height={height}

@@ -61,6 +61,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
   const fulfillmentModuleService = container.resolve(Modules.FULFILLMENT);
   const salesChannelModuleService = container.resolve(Modules.SALES_CHANNEL);
   const storeModuleService = container.resolve(Modules.STORE);
+  const regionModuleService = container.resolve(Modules.REGION);
+  const taxModuleService = container.resolve(Modules.TAX);
+  const stockLocationModuleService = container.resolve(Modules.STOCK_LOCATION);
+  const productModuleService = container.resolve(Modules.PRODUCT);
+  const inventoryModuleService = container.resolve(Modules.INVENTORY);
 
   const countries = ["mn"];
 
@@ -107,48 +112,56 @@ export default async function seedDemoData({ container }: ExecArgs) {
     },
   });
   logger.info("Seeding region data...");
-  const { result: regionResult } = await createRegionsWorkflow(container).run({
-    input: {
-      regions: [
-        {
-          name: "Монгол",
-          currency_code: "mnt",
-          countries,
-          payment_providers: ["pp_system_default"],
-        },
-      ],
-    },
-  });
-  const region = regionResult[0];
+  const existingRegions = await regionModuleService.listRegions(
+    {},
+    { relations: ["countries"] }
+  );
+  let region = existingRegions.find((r) =>
+    r.countries?.some((c) => countries.includes(c.iso_2))
+  );
+
+  if (!region) {
+    const { result: regionResult } = await createRegionsWorkflow(container).run({
+      input: {
+        regions: [
+          {
+            name: "Монгол",
+            currency_code: "mnt",
+            countries,
+            payment_providers: ["pp_system_default"],
+          },
+        ],
+      },
+    });
+    region = regionResult[0];
+  }
   logger.info("Finished seeding regions.");
 
-  logger.info("Seeding tax regions...");
-  await createTaxRegionsWorkflow(container).run({
-    input: countries.map((country_code) => ({
-      country_code,
-      provider_id: "tp_system",
-    })),
-  });
-  logger.info("Finished seeding tax regions.");
-
   logger.info("Seeding stock location data...");
-  const { result: stockLocationResult } = await createStockLocationsWorkflow(
-    container
-  ).run({
-    input: {
-      locations: [
-        {
-          name: "Улаанбаатар агуулах",
-          address: {
-            city: "Улаанбаатар",
-            country_code: "MN",
-            address_1: "",
+  const existingStockLocations = await stockLocationModuleService.listStockLocations(
+    { name: "Улаанбаатар агуулах" }
+  );
+  let stockLocation = existingStockLocations[0];
+
+  if (!stockLocation) {
+    const { result: stockLocationResult } = await createStockLocationsWorkflow(
+      container
+    ).run({
+      input: {
+        locations: [
+          {
+            name: "Улаанбаатар агуулах",
+            address: {
+              city: "Улаанбаатар",
+              country_code: "MN",
+              address_1: "",
+            },
           },
-        },
-      ],
-    },
-  });
-  const stockLocation = stockLocationResult[0];
+        ],
+      },
+    });
+    stockLocation = stockLocationResult[0];
+  }
 
   await updateStoresWorkflow(container).run({
     input: {
@@ -189,21 +202,29 @@ export default async function seedDemoData({ container }: ExecArgs) {
     shippingProfile = shippingProfileResult[0];
   }
 
-  const fulfillmentSet = await fulfillmentModuleService.createFulfillmentSets({
-    name: "Монгол хүргэлт",
-    type: "shipping",
-    service_zones: [
-      {
-        name: "Монгол",
-        geo_zones: [
-          {
-            country_code: "mn",
-            type: "country",
-          },
-        ],
-      },
-    ],
-  });
+  const allFulfillmentSets = await fulfillmentModuleService.listFulfillmentSets(
+    { name: "Монгол хүргэлт" },
+    { relations: ["service_zones"] }
+  );
+  let fulfillmentSet: any = allFulfillmentSets[0];
+
+  if (!fulfillmentSet) {
+    fulfillmentSet = await fulfillmentModuleService.createFulfillmentSets({
+      name: "Монгол хүргэлт",
+      type: "shipping",
+      service_zones: [
+        {
+          name: "Монгол",
+          geo_zones: [
+            {
+              country_code: "mn",
+              type: "country",
+            },
+          ],
+        },
+      ],
+    });
+  }
 
   await link.create({
     [Modules.STOCK_LOCATION]: {
@@ -322,447 +343,452 @@ export default async function seedDemoData({ container }: ExecArgs) {
 
   logger.info("Seeding product data...");
 
-  const { result: categoryResult } = await createProductCategoriesWorkflow(
-    container
-  ).run({
-    input: {
-      product_categories: [
-        {
-          name: "Цамц",
-          is_active: true,
-        },
-        {
-          name: "Хүрэм",
-          is_active: true,
-        },
-        {
-          name: "Өмд",
-          is_active: true,
-        },
-        {
-          name: "Бусад",
-          is_active: true,
-        },
-      ],
-    },
-  });
+  const categoryNames = [
+    "iPhone",
+    "Macbook",
+    "iPad",
+    "Airpods",
+    "iMac",
+    "Apple Watch",
+    "Accessories",
+    "Drones",
+    "Smart Glasses",
+    "Toys",
+  ];
 
-  await createProductsWorkflow(container).run({
-    input: {
-      products: [
+  const existingCategories = await productModuleService.listProductCategories(
+    {},
+    { take: 1000, select: ["id", "name", "handle"] }
+  );
+  
+  const existingCategoryNames = new Set(existingCategories.map((c) => c.name?.toLowerCase() || ""));
+  const categoriesToCreate = categoryNames.filter(
+    (c) => !existingCategoryNames.has(c.toLowerCase())
+  );
+
+  let categoryResult = existingCategories;
+
+  if (categoriesToCreate.length > 0) {
+    const { result: newCategories } = await createProductCategoriesWorkflow(
+      container
+    ).run({
+      input: {
+        product_categories: categoriesToCreate.map((name) => ({
+          name,
+          is_active: true,
+        })),
+      },
+    });
+    categoryResult = [...categoryResult, ...newCategories];
+  }
+
+  const products = [
+    {
+      title: "iPhone 15 Pro",
+      category_ids: [categoryResult.find((cat) => cat.name === "iPhone")!.id],
+      description:
+        "The first iPhone to feature an aerospace-grade titanium design.",
+      handle: "iphone-15-pro",
+      weight: 187,
+      status: ProductStatus.PUBLISHED,
+      shipping_profile_id: shippingProfile.id,
+      images: [
         {
-          title: "Цамц",
-          category_ids: [
-            categoryResult.find((cat) => cat.name === "Цамц")!.id,
-          ],
-          description:
-            "Өдөр тутмын хэрэглээнд тохиромжтой чанартай цамц. Уламжлалт дизайн, дээд зэргийн материал.",
-          handle: "t-shirt",
-          weight: 400,
-          status: ProductStatus.PUBLISHED,
-          shipping_profile_id: shippingProfile.id,
-          images: [
-            {
-              url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/tee-black-front.png",
-            },
-            {
-              url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/tee-black-back.png",
-            },
-            {
-              url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/tee-white-front.png",
-            },
-            {
-              url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/tee-white-back.png",
-            },
-          ],
-          options: [
-            {
-              title: "Хэмжээ",
-              values: ["S", "M", "L", "XL"],
-            },
-            {
-              title: "Өнгө",
-              values: ["Хар", "Цагаан"],
-            },
-          ],
-          variants: [
-            {
-              title: "S / Хар",
-              sku: "SHIRT-S-BLACK",
-              options: {
-                "Хэмжээ": "S",
-                "Өнгө": "Хар",
-              },
-              prices: [
-                {
-                  amount: 45000,
-                  currency_code: "mnt",
-                },
-              ],
-            },
-            {
-              title: "S / Цагаан",
-              sku: "SHIRT-S-WHITE",
-              options: {
-                "Хэмжээ": "S",
-                "Өнгө": "Цагаан",
-              },
-              prices: [
-                {
-                  amount: 45000,
-                  currency_code: "mnt",
-                },
-              ],
-            },
-            {
-              title: "M / Хар",
-              sku: "SHIRT-M-BLACK",
-              options: {
-                "Хэмжээ": "M",
-                "Өнгө": "Хар",
-              },
-              prices: [
-                {
-                  amount: 45000,
-                  currency_code: "mnt",
-                },
-              ],
-            },
-            {
-              title: "M / Цагаан",
-              sku: "SHIRT-M-WHITE",
-              options: {
-                "Хэмжээ": "M",
-                "Өнгө": "Цагаан",
-              },
-              prices: [
-                {
-                  amount: 45000,
-                  currency_code: "mnt",
-                },
-              ],
-            },
-            {
-              title: "L / Хар",
-              sku: "SHIRT-L-BLACK",
-              options: {
-                "Хэмжээ": "L",
-                "Өнгө": "Хар",
-              },
-              prices: [
-                {
-                  amount: 45000,
-                  currency_code: "mnt",
-                },
-              ],
-            },
-            {
-              title: "L / Цагаан",
-              sku: "SHIRT-L-WHITE",
-              options: {
-                "Хэмжээ": "L",
-                "Өнгө": "Цагаан",
-              },
-              prices: [
-                {
-                  amount: 45000,
-                  currency_code: "mnt",
-                },
-              ],
-            },
-            {
-              title: "XL / Хар",
-              sku: "SHIRT-XL-BLACK",
-              options: {
-                "Хэмжээ": "XL",
-                "Өнгө": "Хар",
-              },
-              prices: [
-                {
-                  amount: 45000,
-                  currency_code: "mnt",
-                },
-              ],
-            },
-            {
-              title: "XL / Цагаан",
-              sku: "SHIRT-XL-WHITE",
-              options: {
-                "Хэмжээ": "XL",
-                "Өнгө": "Цагаан",
-              },
-              prices: [
-                {
-                  amount: 45000,
-                  currency_code: "mnt",
-                },
-              ],
-            },
-          ],
-          sales_channels: [
-            {
-              id: defaultSalesChannel[0].id,
-            },
-          ],
-        },
-        {
-          title: "Хүрэм",
-          category_ids: [
-            categoryResult.find((cat) => cat.name === "Хүрэм")!.id,
-          ],
-          description:
-            "Дулаахан, тав тухтай хүрэм. Өвлийн улиралд тохиромжтой.",
-          handle: "sweatshirt",
-          weight: 400,
-          status: ProductStatus.PUBLISHED,
-          shipping_profile_id: shippingProfile.id,
-          images: [
-            {
-              url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/sweatshirt-vintage-front.png",
-            },
-            {
-              url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/sweatshirt-vintage-back.png",
-            },
-          ],
-          options: [
-            {
-              title: "Хэмжээ",
-              values: ["S", "M", "L", "XL"],
-            },
-          ],
-          variants: [
-            {
-              title: "S",
-              sku: "SWEATSHIRT-S",
-              options: {
-                "Хэмжээ": "S",
-              },
-              prices: [
-                {
-                  amount: 75000,
-                  currency_code: "mnt",
-                },
-              ],
-            },
-            {
-              title: "M",
-              sku: "SWEATSHIRT-M",
-              options: {
-                "Хэмжээ": "M",
-              },
-              prices: [
-                {
-                  amount: 75000,
-                  currency_code: "mnt",
-                },
-              ],
-            },
-            {
-              title: "L",
-              sku: "SWEATSHIRT-L",
-              options: {
-                "Хэмжээ": "L",
-              },
-              prices: [
-                {
-                  amount: 75000,
-                  currency_code: "mnt",
-                },
-              ],
-            },
-            {
-              title: "XL",
-              sku: "SWEATSHIRT-XL",
-              options: {
-                "Хэмжээ": "XL",
-              },
-              prices: [
-                {
-                  amount: 75000,
-                  currency_code: "mnt",
-                },
-              ],
-            },
-          ],
-          sales_channels: [
-            {
-              id: defaultSalesChannel[0].id,
-            },
-          ],
-        },
-        {
-          title: "Чөлөөт өмд",
-          category_ids: [
-            categoryResult.find((cat) => cat.name === "Өмд")!.id,
-          ],
-          description:
-            "Тав тухтай чөлөөт өмд. Гэрт болон гадаа хэрэглэхэд тохиромжтой.",
-          handle: "sweatpants",
-          weight: 400,
-          status: ProductStatus.PUBLISHED,
-          shipping_profile_id: shippingProfile.id,
-          images: [
-            {
-              url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/sweatpants-gray-front.png",
-            },
-            {
-              url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/sweatpants-gray-back.png",
-            },
-          ],
-          options: [
-            {
-              title: "Хэмжээ",
-              values: ["S", "M", "L", "XL"],
-            },
-          ],
-          variants: [
-            {
-              title: "S",
-              sku: "SWEATPANTS-S",
-              options: {
-                "Хэмжээ": "S",
-              },
-              prices: [
-                {
-                  amount: 65000,
-                  currency_code: "mnt",
-                },
-              ],
-            },
-            {
-              title: "M",
-              sku: "SWEATPANTS-M",
-              options: {
-                "Хэмжээ": "M",
-              },
-              prices: [
-                {
-                  amount: 65000,
-                  currency_code: "mnt",
-                },
-              ],
-            },
-            {
-              title: "L",
-              sku: "SWEATPANTS-L",
-              options: {
-                "Хэмжээ": "L",
-              },
-              prices: [
-                {
-                  amount: 65000,
-                  currency_code: "mnt",
-                },
-              ],
-            },
-            {
-              title: "XL",
-              sku: "SWEATPANTS-XL",
-              options: {
-                "Хэмжээ": "XL",
-              },
-              prices: [
-                {
-                  amount: 65000,
-                  currency_code: "mnt",
-                },
-              ],
-            },
-          ],
-          sales_channels: [
-            {
-              id: defaultSalesChannel[0].id,
-            },
-          ],
-        },
-        {
-          title: "Богино өмд",
-          category_ids: [
-            categoryResult.find((cat) => cat.name === "Бусад")!.id,
-          ],
-          description:
-            "Зуны улиралд тохиромжтой богино өмд. Хөнгөн, тав тухтай.",
-          handle: "shorts",
-          weight: 400,
-          status: ProductStatus.PUBLISHED,
-          shipping_profile_id: shippingProfile.id,
-          images: [
-            {
-              url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/shorts-vintage-front.png",
-            },
-            {
-              url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/shorts-vintage-back.png",
-            },
-          ],
-          options: [
-            {
-              title: "Хэмжээ",
-              values: ["S", "M", "L", "XL"],
-            },
-          ],
-          variants: [
-            {
-              title: "S",
-              sku: "SHORTS-S",
-              options: {
-                "Хэмжээ": "S",
-              },
-              prices: [
-                {
-                  amount: 35000,
-                  currency_code: "mnt",
-                },
-              ],
-            },
-            {
-              title: "M",
-              sku: "SHORTS-M",
-              options: {
-                "Хэмжээ": "M",
-              },
-              prices: [
-                {
-                  amount: 35000,
-                  currency_code: "mnt",
-                },
-              ],
-            },
-            {
-              title: "L",
-              sku: "SHORTS-L",
-              options: {
-                "Хэмжээ": "L",
-              },
-              prices: [
-                {
-                  amount: 35000,
-                  currency_code: "mnt",
-                },
-              ],
-            },
-            {
-              title: "XL",
-              sku: "SHORTS-XL",
-              options: {
-                "Хэмжээ": "XL",
-              },
-              prices: [
-                {
-                  amount: 35000,
-                  currency_code: "mnt",
-                },
-              ],
-            },
-          ],
-          sales_channels: [
-            {
-              id: defaultSalesChannel[0].id,
-            },
-          ],
+          url: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-15-pro-finish-select-202309-6-1inch-naturaltitanium?wid=5120&hei=2880&fmt=p-jpg&qlt=80&.v=1692846363993",
         },
       ],
+      options: [
+        {
+          title: "Color",
+          values: [
+            "Natural Titanium",
+            "Blue Titanium",
+            "Black Titanium",
+            "White Titanium",
+          ],
+        },
+        { title: "Storage", values: ["128GB", "256GB", "512GB", "1TB"] },
+      ],
+      variants: [
+        {
+          title: "Natural Titanium / 128GB",
+          sku: "IP15P-NAT-128",
+          options: { Color: "Natural Titanium", Storage: "128GB" },
+          prices: [{ amount: 3500000, currency_code: "mnt" }],
+        },
+        {
+          title: "Natural Titanium / 256GB",
+          sku: "IP15P-NAT-256",
+          options: { Color: "Natural Titanium", Storage: "256GB" },
+          prices: [{ amount: 3900000, currency_code: "mnt" }],
+        },
+        {
+          title: "Blue Titanium / 128GB",
+          sku: "IP15P-BLU-128",
+          options: { Color: "Blue Titanium", Storage: "128GB" },
+          prices: [{ amount: 3500000, currency_code: "mnt" }],
+        },
+      ],
+      sales_channels: [{ id: defaultSalesChannel[0].id }],
     },
+    {
+      title: "MacBook Pro 14",
+      category_ids: [categoryResult.find((cat) => cat.name === "Macbook")!.id],
+      description: "Mind-blowing. Head-turning. With M3, M3 Pro, or M3 Max.",
+      handle: "macbook-pro-14",
+      weight: 1550,
+      status: ProductStatus.PUBLISHED,
+      shipping_profile_id: shippingProfile.id,
+      images: [
+        {
+          url: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mbp14-spacegray-select-202310?wid=904&hei=840&fmt=jpeg&qlt=90&.v=1697311054290",
+        },
+      ],
+      options: [
+        { title: "Color", values: ["Space Gray", "Silver"] },
+        { title: "Storage", values: ["512GB", "1TB"] },
+      ],
+      variants: [
+        {
+          title: "Space Gray / 512GB",
+          sku: "MBP14-SG-512",
+          options: { Color: "Space Gray", Storage: "512GB" },
+          prices: [{ amount: 5500000, currency_code: "mnt" }],
+        },
+        {
+          title: "Silver / 1TB",
+          sku: "MBP14-SL-1TB",
+          options: { Color: "Silver", Storage: "1TB" },
+          prices: [{ amount: 6500000, currency_code: "mnt" }],
+        },
+      ],
+      sales_channels: [{ id: defaultSalesChannel[0].id }],
+    },
+    {
+      title: "iPad Air",
+      category_ids: [categoryResult.find((cat) => cat.name === "iPad")!.id],
+      description: "Serious performance in a thin and light design.",
+      handle: "ipad-air",
+      weight: 461,
+      status: ProductStatus.PUBLISHED,
+      shipping_profile_id: shippingProfile.id,
+      images: [
+        {
+          url: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/ipad-air-storage-select-202207-blue-wifi?wid=5120&hei=2880&fmt=p-jpg&qlt=80&.v=1654902977555",
+        },
+      ],
+      options: [
+        { title: "Color", values: ["Blue", "Purple", "Space Gray"] },
+        { title: "Storage", values: ["64GB", "256GB"] },
+      ],
+      variants: [
+        {
+          title: "Blue / 64GB",
+          sku: "IPADAIR-BLU-64",
+          options: { Color: "Blue", Storage: "64GB" },
+          prices: [{ amount: 2000000, currency_code: "mnt" }],
+        },
+        {
+          title: "Purple / 256GB",
+          sku: "IPADAIR-PUR-256",
+          options: { Color: "Purple", Storage: "256GB" },
+          prices: [{ amount: 2500000, currency_code: "mnt" }],
+        },
+      ],
+      sales_channels: [{ id: defaultSalesChannel[0].id }],
+    },
+    {
+      title: "AirPods Pro (2nd Gen)",
+      category_ids: [categoryResult.find((cat) => cat.name === "Airpods")!.id],
+      description:
+        "Adaptive Audio. Active Noise Cancellation. Transparency mode.",
+      handle: "airpods-pro-2",
+      weight: 50,
+      status: ProductStatus.PUBLISHED,
+      shipping_profile_id: shippingProfile.id,
+      images: [
+        {
+          url: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/MTJV3?wid=1144&hei=1144&fmt=jpeg&qlt=90&.v=1694014871985",
+        },
+      ],
+      options: [{ title: "Color", values: ["White"] }],
+      variants: [
+        {
+          title: "White",
+          sku: "APP2-WHT",
+          options: { Color: "White" },
+          prices: [{ amount: 800000, currency_code: "mnt" }],
+        },
+      ],
+      sales_channels: [{ id: defaultSalesChannel[0].id }],
+    },
+    {
+      title: "Apple Watch Series 9",
+      category_ids: [
+        categoryResult.find((cat) => cat.name === "Apple Watch")!.id,
+      ],
+      description: "Smarter. Brighter. Mightier.",
+      handle: "apple-watch-s9",
+      weight: 32,
+      status: ProductStatus.PUBLISHED,
+      shipping_profile_id: shippingProfile.id,
+      images: [
+        {
+          url: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/watch-s9-aluminum-midnight-nc-sport-band-midnight-se-cell-202309?wid=1200&hei=630&fmt=jpeg&qlt=95&.v=1693550496566",
+        },
+      ],
+      options: [
+        { title: "Color", values: ["Midnight", "Starlight"] },
+        { title: "Size", values: ["41mm", "45mm"] },
+      ],
+      variants: [
+        {
+          title: "Midnight / 41mm",
+          sku: "AWS9-MID-41",
+          options: { Color: "Midnight", Size: "41mm" },
+          prices: [{ amount: 1500000, currency_code: "mnt" }],
+        },
+        {
+          title: "Starlight / 45mm",
+          sku: "AWS9-STA-45",
+          options: { Color: "Starlight", Size: "45mm" },
+          prices: [{ amount: 1600000, currency_code: "mnt" }],
+        },
+      ],
+      sales_channels: [{ id: defaultSalesChannel[0].id }],
+    },
+    {
+      title: "DJI Mini 4 Pro",
+      category_ids: [categoryResult.find((cat) => cat.name === "Drones")!.id],
+      description: "Mini to the Max. 4K/60fps HDR True Vertical Shooting.",
+      handle: "dji-mini-4-pro",
+      weight: 249,
+      status: ProductStatus.PUBLISHED,
+      shipping_profile_id: shippingProfile.id,
+      images: [
+        {
+          url: "https://dji-official-aps.djicdn.com/cms/uploads/0a6e0a600a600a600a600a600a600a60.jpg",
+        },
+      ],
+      options: [{ title: "Bundle", values: ["Standard", "Fly More Combo"] }],
+      variants: [
+        {
+          title: "Standard",
+          sku: "DJI-M4P-STD",
+          options: { Bundle: "Standard" },
+          prices: [{ amount: 2800000, currency_code: "mnt" }],
+        },
+        {
+          title: "Fly More Combo",
+          sku: "DJI-M4P-FMC",
+          options: { Bundle: "Fly More Combo" },
+          prices: [{ amount: 3500000, currency_code: "mnt" }],
+        },
+      ],
+      sales_channels: [{ id: defaultSalesChannel[0].id }],
+    },
+    {
+      title: "Ray-Ban Meta Wayfarer",
+      category_ids: [
+        categoryResult.find((cat) => cat.name === "Smart Glasses")!.id,
+      ],
+      description: "The next generation of smart glasses.",
+      handle: "ray-ban-meta",
+      weight: 50,
+      status: ProductStatus.PUBLISHED,
+      shipping_profile_id: shippingProfile.id,
+      images: [
+        {
+          url: "https://media.ray-ban.com/2023/Meta/Wayfarer/RW4006_601_71_1.png",
+        },
+      ],
+      options: [
+        { title: "Color", values: ["Shiny Black", "Matte Black"] },
+        { title: "Lens", values: ["G-15 Green", "Transitions"] },
+      ],
+      variants: [
+        {
+          title: "Shiny Black / G-15 Green",
+          sku: "RBM-SB-G15",
+          options: { Color: "Shiny Black", Lens: "G-15 Green" },
+          prices: [{ amount: 1200000, currency_code: "mnt" }],
+        },
+        {
+          title: "Matte Black / Transitions",
+          sku: "RBM-MB-TR",
+          options: { Color: "Matte Black", Lens: "Transitions" },
+          prices: [{ amount: 1400000, currency_code: "mnt" }],
+        },
+      ],
+      sales_channels: [{ id: defaultSalesChannel[0].id }],
+    },
+    {
+      title: "Pop Mart Skullpanda",
+      category_ids: [categoryResult.find((cat) => cat.name === "Toys")!.id],
+      description: "The Ink Plum Blossom Series.",
+      handle: "pop-mart-skullpanda",
+      weight: 100,
+      status: ProductStatus.PUBLISHED,
+      shipping_profile_id: shippingProfile.id,
+      images: [
+        {
+          url: "https://popmart.com/cdn/shop/files/Skullpanda_The_Ink_Plum_Blossom_Series_1.jpg",
+        },
+      ],
+      options: [{ title: "Style", values: ["Blind Box", "Whole Set"] }],
+      variants: [
+        {
+          title: "Blind Box",
+          sku: "PM-SP-BB",
+          options: { Style: "Blind Box" },
+          prices: [{ amount: 45000, currency_code: "mnt" }],
+        },
+        {
+          title: "Whole Set",
+          sku: "PM-SP-SET",
+          options: { Style: "Whole Set" },
+          prices: [{ amount: 540000, currency_code: "mnt" }],
+        },
+      ],
+      sales_channels: [{ id: defaultSalesChannel[0].id }],
+    },
+    {
+      title: "iMac 24-inch",
+      category_ids: [categoryResult.find((cat) => cat.name === "iMac")!.id],
+      description: "Packed with more juice. And more juice.",
+      handle: "imac-24",
+      weight: 4480,
+      status: ProductStatus.PUBLISHED,
+      shipping_profile_id: shippingProfile.id,
+      images: [
+        {
+          url: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/imac-24-blue-selection-hero-202310?wid=904&hei=840&fmt=jpeg&qlt=90&.v=1697303846093",
+        },
+      ],
+      options: [
+        { title: "Color", values: ["Blue", "Green", "Pink", "Silver"] },
+        { title: "Chip", values: ["M3 8-core GPU", "M3 10-core GPU"] },
+      ],
+      variants: [
+        {
+          title: "Blue / M3 8-core GPU",
+          sku: "IMAC24-BLU-8C",
+          options: { Color: "Blue", Chip: "M3 8-core GPU" },
+          prices: [{ amount: 5000000, currency_code: "mnt" }],
+        },
+        {
+          title: "Green / M3 10-core GPU",
+          sku: "IMAC24-GRN-10C",
+          options: { Color: "Green", Chip: "M3 10-core GPU" },
+          prices: [{ amount: 5800000, currency_code: "mnt" }],
+        },
+      ],
+      sales_channels: [{ id: defaultSalesChannel[0].id }],
+    },
+    {
+      title: "iPad Pro 13-inch (M4)",
+      category_ids: [categoryResult.find((cat) => cat.name === "iPad")!.id],
+      description: "The ultimate iPad experience with the new M4 chip.",
+      handle: "ipad-pro-13-m4",
+      weight: 579,
+      status: ProductStatus.PUBLISHED,
+      shipping_profile_id: shippingProfile.id,
+      images: [
+        {
+          url: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/ipad-pro-model-select-gallery-2-202405?wid=5120&hei=2880&fmt=p-jpg&qlt=80&.v=1713935742567",
+        },
+      ],
+      options: [
+        { title: "Color", values: ["Space Black", "Silver"] },
+        { title: "Storage", values: ["256GB", "512GB", "1TB"] },
+      ],
+      variants: [
+        {
+          title: "Space Black / 256GB",
+          sku: "IPP13-SB-256",
+          options: { Color: "Space Black", Storage: "256GB" },
+          prices: [{ amount: 4500000, currency_code: "mnt" }],
+        },
+        {
+          title: "Silver / 1TB",
+          sku: "IPP13-SL-1TB",
+          options: { Color: "Silver", Storage: "1TB" },
+          prices: [{ amount: 6500000, currency_code: "mnt" }],
+        },
+      ],
+      sales_channels: [{ id: defaultSalesChannel[0].id }],
+    },
+    {
+      title: "Apple Pencil (2nd Gen)",
+      category_ids: [categoryResult.find((cat) => cat.name === "Accessories")!.id],
+      description: "Pixel-perfect precision and industry-leading low latency.",
+      handle: "apple-pencil-2",
+      weight: 20,
+      status: ProductStatus.PUBLISHED,
+      shipping_profile_id: shippingProfile.id,
+      images: [
+        {
+          url: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/MU8F2?wid=1144&hei=1144&fmt=jpeg&qlt=95&.v=1540596407165",
+        },
+      ],
+      options: [{ title: "Color", values: ["White"] }],
+      variants: [
+        {
+          title: "White",
+          sku: "AP-PENCIL-2",
+          options: { Color: "White" },
+          prices: [{ amount: 450000, currency_code: "mnt" }],
+        },
+      ],
+      sales_channels: [{ id: defaultSalesChannel[0].id }],
+    },
+    {
+      title: "Magic Mouse",
+      category_ids: [categoryResult.find((cat) => cat.name === "Accessories")!.id],
+      description: "Wireless and rechargeable, with an optimized foot design.",
+      handle: "magic-mouse",
+      weight: 99,
+      status: ProductStatus.PUBLISHED,
+      shipping_profile_id: shippingProfile.id,
+      images: [
+        {
+          url: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/MMMQ3?wid=1144&hei=1144&fmt=jpeg&qlt=95&.v=1645138486301",
+        },
+      ],
+      options: [{ title: "Color", values: ["White", "Black"] }],
+      variants: [
+        {
+          title: "White",
+          sku: "MM-WHT",
+          options: { Color: "White" },
+          prices: [{ amount: 300000, currency_code: "mnt" }],
+        },
+        {
+          title: "Black",
+          sku: "MM-BLK",
+          options: { Color: "Black" },
+          prices: [{ amount: 350000, currency_code: "mnt" }],
+        },
+      ],
+      sales_channels: [{ id: defaultSalesChannel[0].id }],
+    },
+  ];
+
+  const existingProducts = await productModuleService.listProducts({
+    handle: products.map((p) => p.handle),
   });
+  const existingHandles = existingProducts.map((p) => p.handle);
+  const productsToCreate = products.filter(
+    (p) => !existingHandles.includes(p.handle)
+  );
+
+  if (productsToCreate.length > 0) {
+    await createProductsWorkflow(container).run({
+      input: {
+        products: productsToCreate,
+      },
+    });
+  }
   logger.info("Finished seeding product data.");
 
   logger.info("Seeding inventory levels.");
@@ -772,8 +798,19 @@ export default async function seedDemoData({ container }: ExecArgs) {
     fields: ["id"],
   });
 
+  const existingLevels = await inventoryModuleService.listInventoryLevels({
+    location_id: stockLocation.id,
+    inventory_item_id: inventoryItems.map((i) => i.id),
+  });
+
+  const existingLevelMap = new Set(existingLevels.map((l) => l.inventory_item_id));
+
   const inventoryLevels: CreateInventoryLevelInput[] = [];
   for (const inventoryItem of inventoryItems) {
+    if (existingLevelMap.has(inventoryItem.id)) {
+      continue;
+    }
+
     const inventoryLevel = {
       location_id: stockLocation.id,
       stocked_quantity: 1000000,
@@ -782,11 +819,13 @@ export default async function seedDemoData({ container }: ExecArgs) {
     inventoryLevels.push(inventoryLevel);
   }
 
-  await createInventoryLevelsWorkflow(container).run({
-    input: {
-      inventory_levels: inventoryLevels,
-    },
-  });
+  if (inventoryLevels.length > 0) {
+    await createInventoryLevelsWorkflow(container).run({
+      input: {
+        inventory_levels: inventoryLevels,
+      },
+    });
+  }
 
   logger.info("Finished seeding inventory levels data.");
 }

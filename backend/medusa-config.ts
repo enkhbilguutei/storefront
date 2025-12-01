@@ -17,4 +17,29 @@ module.exports = defineConfig({
       cookieSecret: process.env.COOKIE_SECRET || "supersecret",
     }
   },
+  modules: [
+    {
+      resolve: "@medusajs/medusa/file",
+      options: {
+        providers: [
+          {
+            resolve: "./src/modules/cloudinary",
+            id: "cloudinary",
+            options: {
+              cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+              api_key: process.env.CLOUDINARY_API_KEY,
+              api_secret: process.env.CLOUDINARY_API_SECRET,
+            },
+          },
+        ],
+      },
+    },
+    {
+      resolve: "./src/modules/meilisearch",
+      options: {
+        host: process.env.MEILISEARCH_HOST || "http://localhost:7700",
+        apiKey: process.env.MEILISEARCH_API_KEY,
+      },
+    },
+  ],
 })

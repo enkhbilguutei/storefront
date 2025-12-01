@@ -15,6 +15,7 @@
   "scripts": {
     "build": "medusa build",
     "seed": "medusa exec ./src/scripts/seed.ts",
+    "index-products": "medusa exec ./src/scripts/index-products.ts",
     "start": "medusa start",
     "dev": "medusa develop",
     "test:integration:http": "TEST_TYPE=integration:http NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit",
@@ -26,7 +27,8 @@
     "@medusajs/cli": "2.11.3",
     "@medusajs/framework": "2.11.3",
     "@medusajs/medusa": "2.11.3",
-    "medusa-file-cloudinary": "^1.0.2"
+    "cloudinary": "^2.8.0",
+    "meilisearch": "^0.54.0"
   },
   "devDependencies": {
     "@medusajs/test-utils": "2.11.3",
