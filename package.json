@@ -1,0 +1,19 @@
+{
+  "name": "alimhan",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Alimhan E-commerce - Medusa Backend + Next.js Storefront",
+  "scripts": {
+    "dev:admin": "cd backend && npm run dev",
+    "dev:client": "cd storefront && npm run dev",
+    "dev": "concurrently \"npm run dev:admin\" \"npm run dev:client\"",
+    "build:admin": "cd backend && npm run build",
+    "build:client": "cd storefront && npm run build",
+    "build": "npm run build:admin && npm run build:client",
+    "start:admin": "cd backend && npm run start",
+    "start:client": "cd storefront && npm run start"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
