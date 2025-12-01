@@ -3,18 +3,23 @@
   "version": "1.0.0",
   "private": true,
   "description": "Alimhan E-commerce - Medusa Backend + Next.js Storefront",
+  "packageManager": "pnpm@9.14.2",
+  "workspaces": [
+    "backend",
+    "storefront"
+  ],
   "scripts": {
-    "dev:admin": "cd backend && npm run dev",
-    "dev:client": "cd storefront && npm run dev",
-    "dev": "concurrently \"npm run dev:admin\" \"npm run dev:client\"",
-    "build:admin": "cd backend && npm run build",
-    "build:client": "cd storefront && npm run build",
-    "build": "npm run build:admin && npm run build:client",
-    "start:admin": "cd backend && npm run start",
-    "start:client": "cd storefront && npm run start"
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "start": "turbo run start",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "dev:admin": "pnpm --filter @alimhan/admin dev",
+    "dev:client": "pnpm --filter @alimhan/client dev",
+    "seed": "pnpm --filter @alimhan/admin seed"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "turbo": "^2.3.3"
   },
   "dependencies": {
     "swiper": "^12.0.3"

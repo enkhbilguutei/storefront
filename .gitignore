@@ -1,6 +1,13 @@
 # Dependencies
 node_modules/
 
+# Package manager lock files and stores
+pnpm-lock.yaml
+.pnpm-store/
+
+# Turborepo
+.turbo/
+
 # Environment files - NEVER commit these
 .env
 .env.local
@@ -13,7 +20,6 @@ Thumbs.db
 
 # IDE
 .idea/
-.vscode/
 *.swp
 *.swo
 
