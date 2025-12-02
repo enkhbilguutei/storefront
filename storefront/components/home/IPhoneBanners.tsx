@@ -4,24 +4,24 @@ import { iphoneBanners } from "@/lib/config/images";
 
 export function IPhoneBanners() {
   return (
-    <section className="py-8 container mx-auto px-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <section className="py-3 container mx-auto px-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {iphoneBanners.map((banner) => (
           <Link
             key={banner.id}
             href={banner.link}
-            className="relative rounded-2xl overflow-hidden block group"
+            className="relative rounded-3xl overflow-hidden block group bg-black"
           >
             <CloudinaryImage
               src={banner.image}
               alt={banner.alt}
               width={800}
-              height={400}
-              className="w-full h-[320px] md:h-[280px] object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+              height={500}
+              className="w-full h-[400px] md:h-[500px] object-cover transition-transform duration-500 group-hover:scale-[1.02]"
             />
-            <div className="absolute bottom-5 left-1/2 -translate-x-1/2">
-              <span className="px-6 py-2.5 bg-white text-black rounded-full font-medium text-sm hover:bg-gray-100 transition-colors shadow-lg">
-                Худалдаж авах
+            <div className="absolute inset-0 flex flex-col items-center justify-end pb-8">
+              <span className="text-lg font-normal text-blue-400 hover:underline transition-colors">
+                Худалдаж авах &gt;
               </span>
             </div>
           </Link>

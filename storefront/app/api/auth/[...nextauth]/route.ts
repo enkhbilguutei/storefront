@@ -1,8 +1,32 @@
-import NextAuth, { NextAuthOptions } from "next-auth";
+import NextAuth, { NextAuthOptions, Session, User } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
+import { JWT } from "next-auth/jwt";
+
+// Extend types for custom properties
+interface ExtendedUser extends User {
+  accessToken?: string;
+}
+
+interface ExtendedSession extends Session {
+  accessToken?: string;
+  user: Session["user"] & {
+    id?: string;
+    provider?: string;
+  };
+}
+
+interface ExtendedToken extends JWT {
+  accessToken?: string;
+  provider?: string;
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
     CredentialsProvider({
       name: "credentials",
       credentials: {
@@ -43,6 +67,7 @@ export const authOptions: NextAuthOptions = {
               {
                 headers: {
                   Authorization: `Bearer ${data.token}`,
+                  "x-publishable-api-key": process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "",
                 },
               }
             );
@@ -67,19 +92,45 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.accessToken = (user as any).accessToken;
+    async signIn({ user, account }) {
+      // For OAuth providers (Google), allow sign-in
+      // In a production app, you'd want to use Medusa's OAuth module to link accounts
+      if (account?.provider === "google" && user.email) {
+        // Google sign-in - user will be created/linked in Medusa separately if needed
+        return true;
       }
-      return token;
+      return true;
+    },
+    async jwt({ token, user, account }) {
+      const extendedToken = token as ExtendedToken;
+      if (user) {
+        const extendedUser = user as ExtendedUser;
+        extendedToken.id = user.id;
+        extendedToken.email = user.email;
+        extendedToken.name = user.name;
+        extendedToken.picture = user.image;
+        if (extendedUser.accessToken) {
+          extendedToken.accessToken = extendedUser.accessToken;
+        }
+      }
+      if (account) {
+        extendedToken.provider = account.provider;
+      }
+      return extendedToken;
     },
     async session({ session, token }) {
-      if (session.user) {
-        (session.user as any).id = token.id;
-        (session as any).accessToken = token.accessToken;
+      const extendedToken = token as ExtendedToken;
+      const extendedSession = session as ExtendedSession;
+      
+      if (extendedSession.user) {
+        extendedSession.user.id = extendedToken.id as string;
+        extendedSession.user.provider = extendedToken.provider;
+        extendedSession.user.image = extendedToken.picture as string | undefined;
       }
-      return session;
+      if (extendedToken.accessToken) {
+        extendedSession.accessToken = extendedToken.accessToken;
+      }
+      return extendedSession;
     },
   },
   pages: {

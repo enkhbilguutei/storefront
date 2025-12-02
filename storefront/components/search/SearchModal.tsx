@@ -180,56 +180,56 @@ export function SearchModal() {
 
   return (
     <div 
-      className="fixed inset-0 z-100 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-100 bg-black/50 backdrop-blur-xl animate-in fade-in duration-150"
       onClick={handleBackdropClick}
     >
-      <div className="flex items-start justify-center pt-[10vh] px-4">
+      <div className="flex items-start justify-center pt-[8vh] px-4">
         <div 
           ref={modalRef}
-          className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl animate-in slide-in-from-top-4 duration-300 overflow-hidden"
+          className="w-full max-w-[680px] bg-[rgba(251,251,253,0.98)] rounded-2xl shadow-2xl animate-in slide-in-from-top-2 duration-200 overflow-hidden"
         >
           {/* Search Input */}
-          <div className="relative border-b border-gray-100">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <div className="relative border-b border-gray-200/50">
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-foreground/40" />
             <input
               ref={inputRef}
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Бүтээгдэхүүн хайх..."
-              className="w-full pl-14 pr-14 py-5 text-lg bg-transparent focus:outline-none placeholder:text-gray-400"
+              placeholder="Хайх..."
+              className="w-full pl-14 pr-14 py-4 text-base bg-transparent focus:outline-none placeholder:text-foreground/40"
             />
             {isLoading ? (
-              <Loader2 className="absolute right-5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 animate-spin" />
+              <Loader2 className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/40 animate-spin" />
             ) : query ? (
               <button
                 onClick={() => setQuery("")}
-                className="absolute right-5 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+                className="absolute right-5 top-1/2 -translate-y-1/2 p-1 text-foreground/40 hover:text-foreground/60 rounded-full hover:bg-foreground/5 transition-colors"
               >
                 <X className="h-4 w-4" />
               </button>
             ) : (
-              <kbd className="absolute right-5 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-400 bg-gray-100 rounded border border-gray-200">
-                <span className="text-sm">⌘</span>K
+              <kbd className="absolute right-5 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-foreground/40 bg-foreground/5 rounded-md">
+                <span className="text-xs">⌘</span>K
               </kbd>
             )}
           </div>
 
           {/* Content */}
-          <div className="max-h-[60vh] overflow-y-auto">
+          <div className="max-h-[55vh] overflow-y-auto">
             {/* Search Results */}
             {results && results.hits.length > 0 && (
               <div className="p-2">
-                <div className="flex items-center justify-between px-3 py-2">
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <div className="flex items-center justify-between px-3 py-1.5">
+                  <p className="text-[10px] font-medium text-foreground/40 uppercase tracking-wider">
                     Илэрц ({results.estimatedTotalHits || results.hits.length})
                   </p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-[10px] text-foreground/30">
                     {results.processingTimeMs}ms
                   </p>
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   {results.hits.map((hit, index) => (
                     <Link
                       key={hit.id}
@@ -238,20 +238,20 @@ export function SearchModal() {
                         saveRecentSearch(query);
                         closeSearch();
                       }}
-                      className={`flex items-center gap-4 p-3 rounded-xl transition-all ${
+                      className={`flex items-center gap-3 p-2.5 rounded-xl transition-all ${
                         selectedIndex === index 
-                          ? "bg-gray-100" 
-                          : "hover:bg-gray-50"
+                          ? "bg-foreground/5" 
+                          : "hover:bg-foreground/[0.03]"
                       }`}
                     >
-                      <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gray-100 shrink-0">
+                      <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-[#f5f5f7] shrink-0">
                         {hit.thumbnail ? (
                           hit.thumbnail.includes("cloudinary") ? (
                             <CloudinaryImage
                               src={hit.thumbnail}
                               alt={hit.title}
-                              width={64}
-                              height={64}
+                              width={48}
+                              height={48}
                               className="w-full h-full object-cover"
                             />
                           ) : (
@@ -263,30 +263,30 @@ export function SearchModal() {
                             />
                           )
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-300">
-                            <Sparkles className="w-6 h-6" />
+                          <div className="w-full h-full flex items-center justify-center text-foreground/20">
+                            <Sparkles className="w-5 h-5" />
                           </div>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-gray-900 truncate">
+                        <h3 className="text-sm font-medium text-foreground truncate">
                           {hit.title}
                         </h3>
                         {hit.category_names && hit.category_names.length > 0 && (
-                          <p className="text-sm text-gray-500 truncate">
+                          <p className="text-xs text-foreground/50 truncate">
                             {hit.category_names.join(" • ")}
                           </p>
                         )}
                         {hit.min_price !== undefined && hit.min_price > 0 && (
-                          <p className="text-sm font-medium text-accent mt-0.5">
+                          <p className="text-xs font-medium text-foreground/70 mt-0.5">
                             {formatPrice(hit.min_price)}
                             {hit.max_price && hit.max_price !== hit.min_price && (
-                              <span className="text-gray-400"> - {formatPrice(hit.max_price)}</span>
+                              <span className="text-foreground/40"> - {formatPrice(hit.max_price)}</span>
                             )}
                           </p>
                         )}
                       </div>
-                      <ArrowRight className="w-4 h-4 text-gray-400 shrink-0" />
+                      <ArrowRight className="w-3.5 h-3.5 text-foreground/30 shrink-0" />
                     </Link>
                   ))}
                 </div>
@@ -297,10 +297,10 @@ export function SearchModal() {
                       saveRecentSearch(query);
                       closeSearch();
                     }}
-                    className="flex items-center justify-center gap-2 mt-2 py-3 text-sm font-medium text-accent hover:bg-gray-50 rounded-xl transition-colors"
+                    className="flex items-center justify-center gap-1.5 mt-1.5 py-2.5 text-xs font-medium text-blue-600 hover:bg-foreground/[0.03] rounded-xl transition-colors"
                   >
                     Бүх илэрц үзэх ({results.estimatedTotalHits})
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 )}
               </div>
@@ -309,13 +309,13 @@ export function SearchModal() {
             {/* No Results */}
             {results && results.hits.length === 0 && query && (
               <div className="p-8 text-center">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-                  <Search className="w-8 h-8 text-gray-300" />
+                <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-foreground/5 flex items-center justify-center">
+                  <Search className="w-6 h-6 text-foreground/20" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-1">
+                <h3 className="text-base font-medium text-foreground mb-1">
                   Илэрц олдсонгүй
                 </h3>
-                <p className="text-sm text-gray-500">
+                <p className="text-xs text-foreground/50">
                   &ldquo;{query}&rdquo; гэсэн хайлтаар илэрц олдсонгүй
                 </p>
               </div>
@@ -323,22 +323,22 @@ export function SearchModal() {
 
             {/* Initial State - Recent & Popular Searches */}
             {!results && !query && (
-              <div className="p-4 space-y-6">
+              <div className="p-3 space-y-4">
                 {/* Recent Searches */}
                 {recentSearches.length > 0 && (
                   <div>
-                    <div className="flex items-center gap-2 px-2 mb-3">
-                      <Clock className="w-4 h-4 text-gray-400" />
-                      <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <div className="flex items-center gap-1.5 px-2 mb-2">
+                      <Clock className="w-3.5 h-3.5 text-foreground/40" />
+                      <h3 className="text-[10px] font-medium text-foreground/40 uppercase tracking-wider">
                         Сүүлд хайсан
                       </h3>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1.5">
                       {recentSearches.map((search) => (
                         <button
                           key={search}
                           onClick={() => setQuery(search)}
-                          className="px-4 py-2 text-sm text-gray-600 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"
+                          className="px-3 py-1.5 text-xs text-foreground/70 bg-foreground/5 rounded-full hover:bg-foreground/10 transition-colors"
                         >
                           {search}
                         </button>
@@ -349,18 +349,18 @@ export function SearchModal() {
 
                 {/* Popular Searches */}
                 <div>
-                  <div className="flex items-center gap-2 px-2 mb-3">
-                    <TrendingUp className="w-4 h-4 text-gray-400" />
-                    <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <div className="flex items-center gap-1.5 px-2 mb-2">
+                    <TrendingUp className="w-3.5 h-3.5 text-foreground/40" />
+                    <h3 className="text-[10px] font-medium text-foreground/40 uppercase tracking-wider">
                       Түгээмэл хайлт
                     </h3>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5">
                     {POPULAR_SEARCHES.map((search) => (
                       <button
                         key={search}
                         onClick={() => setQuery(search)}
-                        className="px-4 py-2 text-sm text-gray-600 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"
+                        className="px-3 py-1.5 text-xs text-foreground/70 bg-foreground/5 rounded-full hover:bg-foreground/10 transition-colors"
                       >
                         {search}
                       </button>
@@ -369,35 +369,35 @@ export function SearchModal() {
                 </div>
 
                 {/* Quick Links */}
-                <div className="border-t border-gray-100 pt-4">
-                  <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider px-2 mb-3">
+                <div className="border-t border-gray-200/50 pt-3">
+                  <h3 className="text-[10px] font-medium text-foreground/40 uppercase tracking-wider px-2 mb-2">
                     Шууд холбоос
                   </h3>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-1.5">
                     <Link
                       href="/products"
                       onClick={closeSearch}
-                      className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors"
+                      className="flex items-center gap-2.5 p-2.5 rounded-xl bg-foreground/[0.03] hover:bg-foreground/5 transition-colors"
                     >
-                      <div className="w-10 h-10 rounded-lg bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                        <Sparkles className="w-5 h-5 text-white" />
+                      <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                        <Sparkles className="w-4 h-4 text-white" />
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900 text-sm">Бүх бүтээгдэхүүн</p>
-                        <p className="text-xs text-gray-500">Каталог үзэх</p>
+                        <p className="font-medium text-foreground text-xs">Бүх бүтээгдэхүүн</p>
+                        <p className="text-[10px] text-foreground/50">Каталог үзэх</p>
                       </div>
                     </Link>
                     <Link
                       href="/collections"
                       onClick={closeSearch}
-                      className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors"
+                      className="flex items-center gap-2.5 p-2.5 rounded-xl bg-foreground/[0.03] hover:bg-foreground/5 transition-colors"
                     >
-                      <div className="w-10 h-10 rounded-lg bg-linear-to-br from-purple-500 to-purple-600 flex items-center justify-center">
-                        <TrendingUp className="w-5 h-5 text-white" />
+                      <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
+                        <TrendingUp className="w-4 h-4 text-white" />
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900 text-sm">Цуглуулга</p>
-                        <p className="text-xs text-gray-500">Онцлох бүтээгдэхүүн</p>
+                        <p className="font-medium text-foreground text-xs">Цуглуулга</p>
+                        <p className="text-[10px] text-foreground/50">Онцлох бүтээгдэхүүн</p>
                       </div>
                     </Link>
                   </div>
@@ -407,22 +407,22 @@ export function SearchModal() {
           </div>
 
           {/* Footer */}
-          <div className="border-t border-gray-100 px-4 py-3 flex items-center justify-between text-xs text-gray-400">
-            <div className="flex items-center gap-4">
+          <div className="border-t border-gray-200/50 px-4 py-2.5 flex items-center justify-between text-[10px] text-foreground/40">
+            <div className="flex items-center gap-3">
               <span className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-[10px] font-medium">↑↓</kbd>
+                <kbd className="px-1.5 py-0.5 bg-foreground/5 rounded text-[9px] font-medium">↑↓</kbd>
                 Сонгох
               </span>
               <span className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-[10px] font-medium">↵</kbd>
+                <kbd className="px-1.5 py-0.5 bg-foreground/5 rounded text-[9px] font-medium">↵</kbd>
                 Нээх
               </span>
               <span className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-[10px] font-medium">esc</kbd>
+                <kbd className="px-1.5 py-0.5 bg-foreground/5 rounded text-[9px] font-medium">esc</kbd>
                 Хаах
               </span>
             </div>
-            <span className="hidden sm:inline">MeiliSearch ⚡️</span>
+            <span className="hidden sm:inline text-foreground/30">MeiliSearch</span>
           </div>
         </div>
       </div>

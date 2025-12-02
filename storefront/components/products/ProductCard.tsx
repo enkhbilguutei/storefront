@@ -2,21 +2,27 @@
 
 import Link from "next/link";
 import { CloudinaryImage } from "@/components/Cloudinary";
-import { ShoppingCart, Loader2, Eye } from "lucide-react";
-import { useState, useMemo } from "react";
+import { ShoppingCart, Loader2, X, Check } from "lucide-react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { medusa } from "@/lib/medusa";
 import { useCartStore, useUIStore } from "@/lib/store";
+
+interface ProductOptionValue {
+  id: string;
+  value: string;
+  option_id: string;
+}
 
 interface ProductOption {
   id: string;
   title: string;
-  values: string[];
+  values?: ProductOptionValue[] | string[];
 }
 
 interface ProductVariant {
   id: string;
   title: string;
-  options: {
+  options?: {
     option_id: string;
     value: string;
   }[];
@@ -52,47 +58,133 @@ const colorMap: Record<string, string> = {
   "pink": "#f472b6",
   "purple": "#a855f7",
   "orange": "#f97316",
+  "cosmic orange": "#f97316",
+  "mist blue": "#87ceeb",
+  "natural titanium": "#c0b0a0",
+  "desert titanium": "#d4c4b0",
+  "white titanium": "#f5f5f5",
+  "black titanium": "#2d2d2d",
 };
 
 export function ProductCard({ id, title, handle, thumbnail, price, options, variants }: ProductCardProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [showVariantModal, setShowVariantModal] = useState(false);
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
+  const modalRef = useRef<HTMLDivElement>(null);
   const { cartId, setCartId, addItem, syncCart } = useCartStore();
   const { openCartNotification } = useUIStore();
 
   const formatPrice = (amount: number, currencyCode: string) => {
-    // Use consistent formatting to avoid hydration mismatch
     const formatted = new Intl.NumberFormat("en-US", {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
     
-    // Use consistent currency symbol
     const symbol = currencyCode.toUpperCase() === "MNT" ? "₮" : currencyCode;
     return `${symbol} ${formatted}`;
   };
 
-  // Extract colors from options
-  const colorOptions = useMemo(() => {
-    if (!options || !variants) return [];
+  // Parse options with their values
+  const parsedOptions = useMemo(() => {
+    if (!options) return [];
     
-    const colorOption = options.find(opt => 
-      opt.title.toLowerCase() === "color" || 
-      opt.title.toLowerCase() === "colour" ||
-      opt.title.toLowerCase() === "өнгө"
-    );
-
-    if (!colorOption) return [];
-
-    // Get unique values
-    const uniqueColors = new Set<string>();
-    variants.forEach(variant => {
-      const optionValue = variant.options?.find(opt => opt.option_id === colorOption.id)?.value;
-      if (optionValue) uniqueColors.add(optionValue);
-    });
-
-    return Array.from(uniqueColors);
+    return options.map(opt => {
+      let values: string[] = [];
+      
+      if (opt.values && opt.values.length > 0) {
+        const firstValue = opt.values[0];
+        if (typeof firstValue === 'object' && 'value' in firstValue) {
+          values = (opt.values as ProductOptionValue[]).map(v => v.value);
+        } else {
+          values = opt.values as string[];
+        }
+      } else if (variants) {
+        const uniqueValues = new Set<string>();
+        variants.forEach(variant => {
+          const optionValue = variant.options?.find(o => o.option_id === opt.id)?.value;
+          if (optionValue) uniqueValues.add(optionValue);
+        });
+        values = Array.from(uniqueValues);
+      }
+      
+      return {
+        id: opt.id,
+        title: opt.title,
+        values
+      };
+    }).filter(opt => opt.values.length > 0);
   }, [options, variants]);
+
+  // Check if product has multiple variants that need selection
+  const needsVariantSelection = useMemo(() => {
+    return variants && variants.length > 1 && parsedOptions.length > 0;
+  }, [variants, parsedOptions]);
+
+  // Extract colors from options for display
+  const colorOptions = useMemo(() => {
+    const colorTitles = ["color", "colour", "өнгө"];
+    const colorOption = parsedOptions.find(opt => 
+      colorTitles.includes(opt.title.toLowerCase())
+    );
+    return colorOption?.values || [];
+  }, [parsedOptions]);
+
+  // Extract other variant options (storage, size, etc.) for display
+  const otherOptions = useMemo(() => {
+    const colorTitles = ["color", "colour", "өнгө"];
+    return parsedOptions.filter(opt => !colorTitles.includes(opt.title.toLowerCase()));
+  }, [parsedOptions]);
+
+  // Find matching variant based on selected options
+  const findMatchingVariant = (selections: Record<string, string>) => {
+    if (!variants || !options) return null;
+    
+    return variants.find(variant => {
+      return options.every(opt => {
+        const selectedValue = selections[opt.id];
+        if (!selectedValue) return false;
+        
+        const variantOptionValue = variant.options?.find(o => o.option_id === opt.id)?.value;
+        return variantOptionValue === selectedValue;
+      });
+    });
+  };
+
+  // Check if all options are selected
+  const allOptionsSelected = useMemo(() => {
+    return parsedOptions.every(opt => selectedOptions[opt.id]);
+  }, [parsedOptions, selectedOptions]);
+
+  // Get selected variant
+  const selectedVariant = useMemo(() => {
+    if (!allOptionsSelected) return null;
+    return findMatchingVariant(selectedOptions);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allOptionsSelected, selectedOptions]);
+
+  // Handle click outside modal
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+        setShowVariantModal(false);
+      }
+    };
+
+    if (showVariantModal) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showVariantModal]);
+
+  // Reset selections when modal opens
+  useEffect(() => {
+    if (showVariantModal) {
+      setSelectedOptions({});
+    }
+  }, [showVariantModal]);
 
   const handleQuickAdd = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -100,6 +192,23 @@ export function ProductCard({ id, title, handle, thumbnail, price, options, vari
 
     if (!variants || variants.length === 0) return;
 
+    // If product has multiple variants, show selection modal
+    if (needsVariantSelection) {
+      setShowVariantModal(true);
+      return;
+    }
+
+    // Single variant - add directly
+    await addVariantToCart(variants[0]);
+  };
+
+  const handleAddSelectedVariant = async () => {
+    if (!selectedVariant) return;
+    await addVariantToCart(selectedVariant);
+    setShowVariantModal(false);
+  };
+
+  const addVariantToCart = async (variant: ProductVariant) => {
     setIsAdding(true);
     try {
       let currentCartId = cartId;
@@ -110,13 +219,14 @@ export function ProductCard({ id, title, handle, thumbnail, price, options, vari
         setCartId(cart.id);
       }
 
-      const variantId = variants[0].id;
+      const variantId = variant.id;
 
       addItem({
         id: "temp-" + Date.now(),
         variantId: variantId,
         productId: id,
         title: title,
+        variantTitle: variant.title,
         quantity: 1,
         thumbnail: thumbnail,
         unitPrice: price?.amount || 0,
@@ -138,106 +248,285 @@ export function ProductCard({ id, title, handle, thumbnail, price, options, vari
     }
   };
 
+  const handleOptionSelect = (optionId: string, value: string) => {
+    setSelectedOptions(prev => ({
+      ...prev,
+      [optionId]: value
+    }));
+  };
+
+  const isColorOption = (optionTitle: string) => {
+    const colorTitles = ["color", "colour", "өнгө"];
+    return colorTitles.includes(optionTitle.toLowerCase());
+  };
+
   return (
-    <Link 
-      href={`/products/${handle}`} 
-      className="group block bg-white rounded-2xl transition-all duration-300 hover:shadow-2xl hover:shadow-black/5 hover:-translate-y-1 relative overflow-hidden"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      {/* Image Container */}
-      <div className="relative aspect-4/5 overflow-hidden bg-linear-to-br from-[#f5f5f7] to-[#e8e8ed]">
-        {thumbnail ? (
-          <CloudinaryImage
-            src={thumbnail}
-            alt={title}
-            width={400}
-            height={500}
-            className={`h-full w-full object-contain p-6 transition-all duration-700 ${
-              isHovered ? "scale-110" : "scale-100"
-            }`}
-          />
-        ) : (
-          <div className="h-full w-full flex items-center justify-center text-[#86868b]">
-            <span className="text-sm">No Image</span>
+    <>
+      <div className="group block bg-white rounded-3xl transition-all duration-300 hover:shadow-xl hover:shadow-black/[0.08] relative overflow-hidden">
+        <Link 
+          href={`/products/${handle}`} 
+          className="block"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          {/* Image Container - Clean white background */}
+          <div className="relative aspect-square overflow-hidden bg-[#fafafa] rounded-t-3xl">
+            {thumbnail ? (
+              <CloudinaryImage
+                src={thumbnail}
+                alt={title}
+                width={400}
+                height={400}
+                className={`h-full w-full object-contain p-8 transition-transform duration-500 ${
+                  isHovered ? "scale-105" : "scale-100"
+                }`}
+              />
+            ) : (
+              <div className="h-full w-full flex items-center justify-center text-[#86868b]">
+                <span className="text-sm">Зураг байхгүй</span>
+              </div>
+            )}
           </div>
-        )}
+          
+          {/* Product Info */}
+          <div className="p-5 space-y-3">
+            {/* Color Swatches */}
+            {colorOptions.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                {colorOptions.slice(0, 5).map((color, index) => {
+                  const bg = colorMap[color.toLowerCase()] || color;
+                  const isWhite = bg.toLowerCase() === "#ffffff" || bg.toLowerCase() === "#f3f4f6" || bg.toLowerCase() === "#f5f5f5";
+                  return (
+                    <div
+                      key={index}
+                      className={`w-3.5 h-3.5 rounded-full transition-transform hover:scale-125 ${
+                        isWhite ? "border border-gray-200" : ""
+                      }`}
+                      style={{ 
+                        backgroundColor: bg,
+                        boxShadow: "inset 0 1px 2px rgba(0,0,0,0.08)"
+                      }}
+                      title={color}
+                    />
+                  );
+                })}
+                {colorOptions.length > 5 && (
+                  <span className="text-[11px] text-[#86868b] ml-1">+{colorOptions.length - 5}</span>
+                )}
+              </div>
+            )}
 
-        {/* Overlay on hover */}
-        <div className={`absolute inset-0 bg-black/5 transition-opacity duration-300 ${
-          isHovered ? "opacity-100" : "opacity-0"
-        }`} />
+            {/* Other Variant Options (Storage, Size, etc.) */}
+            {otherOptions.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {otherOptions.map((opt, optIndex) => (
+                  <div key={optIndex} className="flex items-center gap-1">
+                    {opt.values.slice(0, 3).map((value, valueIndex) => (
+                      <span
+                        key={valueIndex}
+                        className="text-[10px] px-2 py-0.5 bg-[#f5f5f7] text-[#1d1d1f] rounded-full"
+                      >
+                        {value}
+                      </span>
+                    ))}
+                    {opt.values.length > 3 && (
+                      <span className="text-[10px] text-[#86868b]">+{opt.values.length - 3}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
 
-        {/* Action Buttons - Visible on Hover */}
-        <div className={`absolute bottom-4 left-4 right-4 flex gap-2 transition-all duration-300 ${
-          isHovered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-        }`}>
+            {/* Title */}
+            <h3 className="text-[15px] font-medium text-[#1d1d1f] leading-snug group-hover:text-[#0066cc] transition-colors line-clamp-2 min-h-[2.5em]">
+              {title}
+            </h3>
+            
+            {/* Price */}
+            {price ? (
+              <p className="text-[15px] font-semibold text-[#1d1d1f]">
+                {formatPrice(price.amount, price.currencyCode)}
+              </p>
+            ) : (
+              <p className="text-[14px] text-[#86868b]">
+                Үнэ тодорхойгүй
+              </p>
+            )}
+          </div>
+        </Link>
+
+        {/* Add to Cart Button - Always Visible */}
+        <div className="px-5 pb-5">
           <button
             onClick={handleQuickAdd}
             disabled={isAdding}
-            className="flex-1 h-11 bg-[#1d1d1f] text-white rounded-full flex items-center justify-center gap-2 text-sm font-medium hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all active:scale-95"
+            className="w-full h-11 bg-[#1d1d1f] text-white rounded-full flex items-center justify-center gap-2 text-sm font-medium hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
           >
             {isAdding ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <>
                 <ShoppingCart className="w-4 h-4" />
-                <span>Нэмэх</span>
+                <span>Сагсанд нэмэх</span>
               </>
             )}
           </button>
-          <div
-            className="w-11 h-11 bg-white text-[#1d1d1f] rounded-full flex items-center justify-center shadow-lg hover:bg-gray-50 transition-all"
-          >
-            <Eye className="w-4 h-4" />
-          </div>
         </div>
       </div>
-      
-      {/* Product Info */}
-      <div className="p-4 space-y-3">
-        {/* Color Swatches */}
-        {colorOptions.length > 0 && (
-          <div className="flex items-center gap-1.5">
-            {colorOptions.slice(0, 5).map((color, index) => {
-              const bg = colorMap[color.toLowerCase()] || color;
-              const isWhite = bg.toLowerCase() === "#ffffff" || bg.toLowerCase() === "#f3f4f6";
-              return (
-                <div
-                  key={index}
-                  className={`w-4 h-4 rounded-full transition-transform hover:scale-125 ${
-                    isWhite ? "border border-gray-200" : ""
-                  }`}
-                  style={{ 
-                    backgroundColor: bg,
-                    boxShadow: "inset 0 1px 2px rgba(0,0,0,0.1)"
-                  }}
-                  title={color}
-                />
-              );
-            })}
-            {colorOptions.length > 5 && (
-              <span className="text-[11px] text-[#86868b] ml-1">+{colorOptions.length - 5}</span>
-            )}
-          </div>
-        )}
 
-        {/* Title */}
-        <h3 className="text-[15px] font-medium text-[#1d1d1f] leading-snug group-hover:text-[#0066cc] transition-colors line-clamp-2 min-h-[2.5em]">
-          {title}
-        </h3>
-        
-        {/* Price */}
-        {price ? (
-          <p className="text-[15px] font-semibold text-[#1d1d1f]">
-            {formatPrice(price.amount, price.currencyCode)}
-          </p>
-        ) : (
-          <p className="text-[14px] text-[#86868b]">
-            Үнэ тодорхойгүй
-          </p>
-        )}
-      </div>
-    </Link>
+      {/* Variant Selection Modal */}
+      {showVariantModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div 
+            ref={modalRef}
+            className="bg-white rounded-3xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+          >
+            {/* Modal Header */}
+            <div className="relative p-6 border-b border-gray-100">
+              <button
+                onClick={() => setShowVariantModal(false)}
+                className="absolute right-4 top-4 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+              <h2 className="text-xl font-semibold text-[#1d1d1f] pr-8">
+                Хувилбар сонгох
+              </h2>
+              <p className="text-sm text-[#86868b] mt-1 line-clamp-1">{title}</p>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
+              {/* Product Preview */}
+              <div className="flex items-center gap-4 p-4 bg-[#f5f5f7] rounded-2xl">
+                {thumbnail && (
+                  <div className="w-20 h-20 bg-white rounded-xl overflow-hidden shrink-0">
+                    <CloudinaryImage
+                      src={thumbnail}
+                      alt={title}
+                      width={80}
+                      height={80}
+                      className="w-full h-full object-contain p-2"
+                    />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-[#1d1d1f] line-clamp-2">{title}</p>
+                  {price && (
+                    <p className="text-sm font-semibold text-[#1d1d1f] mt-1">
+                      {formatPrice(price.amount, price.currencyCode)}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Option Selectors */}
+              {parsedOptions.map((option) => (
+                <div key={option.id} className="space-y-3">
+                  <label className="text-sm font-medium text-[#1d1d1f]">
+                    {option.title}
+                    {selectedOptions[option.id] && (
+                      <span className="ml-2 text-[#86868b] font-normal">
+                        - {selectedOptions[option.id]}
+                      </span>
+                    )}
+                  </label>
+                  
+                  {isColorOption(option.title) ? (
+                    // Color swatches
+                    <div className="flex flex-wrap gap-2">
+                      {option.values.map((value) => {
+                        const bg = colorMap[value.toLowerCase()] || value;
+                        const isWhite = bg.toLowerCase() === "#ffffff" || bg.toLowerCase() === "#f3f4f6" || bg.toLowerCase() === "#f5f5f5";
+                        const isSelected = selectedOptions[option.id] === value;
+                        
+                        return (
+                          <button
+                            key={value}
+                            onClick={() => handleOptionSelect(option.id, value)}
+                            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                              isSelected 
+                                ? "ring-2 ring-offset-2 ring-[#0071e3]" 
+                                : "hover:scale-110"
+                            } ${isWhite ? "border border-gray-200" : ""}`}
+                            style={{ backgroundColor: bg }}
+                            title={value}
+                          >
+                            {isSelected && (
+                              <Check className={`w-5 h-5 ${
+                                isWhite || bg === "#fbbf24" || bg === "#eab308" 
+                                  ? "text-gray-800" 
+                                  : "text-white"
+                              }`} />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    // Text buttons for other options
+                    <div className="flex flex-wrap gap-2">
+                      {option.values.map((value) => {
+                        const isSelected = selectedOptions[option.id] === value;
+                        
+                        return (
+                          <button
+                            key={value}
+                            onClick={() => handleOptionSelect(option.id, value)}
+                            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                              isSelected
+                                ? "bg-[#1d1d1f] text-white"
+                                : "bg-[#f5f5f7] text-[#1d1d1f] hover:bg-[#e8e8ed]"
+                            }`}
+                          >
+                            {value}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* Selected Variant Display */}
+              {selectedVariant && (
+                <div className="p-3 bg-green-50 rounded-xl border border-green-200">
+                  <p className="text-sm text-green-800 font-medium flex items-center gap-2">
+                    <Check className="w-4 h-4" />
+                    Сонгосон: {selectedVariant.title}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-6 border-t border-gray-100">
+              <button
+                onClick={handleAddSelectedVariant}
+                disabled={!selectedVariant || isAdding}
+                className="w-full h-12 bg-[#0071e3] text-white rounded-full flex items-center justify-center gap-2 text-[15px] font-medium hover:bg-[#0077ed] disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
+              >
+                {isAdding ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>
+                    <ShoppingCart className="w-5 h-5" />
+                    <span>Сагсанд нэмэх</span>
+                  </>
+                )}
+              </button>
+              
+              <Link
+                href={`/products/${handle}`}
+                className="block mt-3 text-center text-[15px] text-[#0071e3] font-medium hover:underline"
+                onClick={() => setShowVariantModal(false)}
+              >
+                Дэлгэрэнгүй үзэх
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

@@ -10,7 +10,7 @@ async function getProducts(searchParams: { [key: string]: string | string[] | un
 
   const query: any = {
     limit: 20,
-    fields: "id,title,handle,thumbnail,options,variants.id,variants.title,variants.options,variants.prices.amount,variants.prices.currency_code",
+    fields: "id,title,handle,thumbnail,options.*,options.values.*,variants.id,variants.title,variants.options.*,variants.prices.amount,variants.prices.currency_code",
   };
 
   if (collectionId) {

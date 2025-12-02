@@ -1,12 +1,15 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { medusa } from "@/lib/medusa";
+import type { Session } from "next-auth";
+import type { AuthAction } from "@/lib/auth";
 
 interface CartItem {
   id: string;
   variantId: string;
   productId: string;
   title: string;
+  variantTitle?: string;
   quantity: number;
   thumbnail?: string;
   unitPrice: number;
@@ -65,7 +68,9 @@ export const useCartStore = create<CartStore>()(
             return;
         }
         try {
-          const { cart } = await medusa.store.cart.retrieve(cartId);
+          const { cart } = await medusa.store.cart.retrieve(cartId, {
+            fields: "+items.variant.product.handle,+items.variant.product.title,+items.variant.title",
+          });
           if (!cart || !cart.items) {
              set({ cartId: null, items: [], isLoading: false });
              return;
@@ -76,6 +81,7 @@ export const useCartStore = create<CartStore>()(
             variantId: item.variant_id,
             productId: item.variant?.product_id || item.product_id,
             title: item.title,
+            variantTitle: item.variant?.title,
             quantity: item.quantity,
             thumbnail: item.thumbnail,
             unitPrice: item.unit_price,
@@ -99,16 +105,24 @@ export const useCartStore = create<CartStore>()(
   )
 );
 
+interface User {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  name?: string;
+  image?: string;
+}
+
 interface UserStore {
-  user: {
-    id: string;
-    email: string;
-    firstName?: string;
-    lastName?: string;
-  } | null;
+  user: User | null;
   isAuthenticated: boolean;
-  setUser: (user: UserStore["user"]) => void;
+  isLoading: boolean;
+  accessToken: string | null;
+  setUser: (user: User | null) => void;
+  setAccessToken: (token: string | null) => void;
   clearUser: () => void;
+  syncWithSession: (session: Session | null) => void;
 }
 
 export const useUserStore = create<UserStore>()(
@@ -116,11 +130,44 @@ export const useUserStore = create<UserStore>()(
     (set) => ({
       user: null,
       isAuthenticated: false,
-      setUser: (user) => set({ user, isAuthenticated: !!user }),
-      clearUser: () => set({ user: null, isAuthenticated: false }),
+      isLoading: true,
+      accessToken: null,
+      setUser: (user) => set({ user, isAuthenticated: !!user, isLoading: false }),
+      setAccessToken: (token) => set({ accessToken: token }),
+      clearUser: () => set({ user: null, isAuthenticated: false, accessToken: null, isLoading: false }),
+      syncWithSession: (session) => {
+        if (session?.user) {
+          const nameParts = session.user.name?.split(" ") || [];
+          set({
+            user: {
+              id: (session.user as { id?: string }).id || "",
+              email: session.user.email || "",
+              name: session.user.name || undefined,
+              firstName: nameParts[0] || undefined,
+              lastName: nameParts.slice(1).join(" ") || undefined,
+              image: session.user.image || undefined,
+            },
+            isAuthenticated: true,
+            accessToken: (session as { accessToken?: string }).accessToken || null,
+            isLoading: false,
+          });
+        } else {
+          set({
+            user: null,
+            isAuthenticated: false,
+            accessToken: null,
+            isLoading: false,
+          });
+        }
+      },
     }),
     {
       name: "user-storage",
+      partialize: (state) => ({
+        // Only persist user data, not loading states
+        user: state.user,
+        isAuthenticated: state.isAuthenticated,
+      }),
     }
   )
 );
@@ -129,6 +176,9 @@ interface UIStore {
   isMobileMenuOpen: boolean;
   isSearchOpen: boolean;
   isCartNotificationOpen: boolean;
+  isAuthModalOpen: boolean;
+  authModalAction: AuthAction | null;
+  authModalView: "login" | "register";
   openMobileMenu: () => void;
   closeMobileMenu: () => void;
   toggleMobileMenu: () => void;
@@ -137,12 +187,18 @@ interface UIStore {
   toggleSearch: () => void;
   openCartNotification: () => void;
   closeCartNotification: () => void;
+  openAuthModal: (action?: AuthAction, view?: "login" | "register") => void;
+  closeAuthModal: () => void;
+  setAuthModalView: (view: "login" | "register") => void;
 }
 
 export const useUIStore = create<UIStore>((set) => ({
   isMobileMenuOpen: false,
   isSearchOpen: false,
   isCartNotificationOpen: false,
+  isAuthModalOpen: false,
+  authModalAction: null,
+  authModalView: "login",
   openMobileMenu: () => set({ isMobileMenuOpen: true }),
   closeMobileMenu: () => set({ isMobileMenuOpen: false }),
   toggleMobileMenu: () => set((state) => ({ isMobileMenuOpen: !state.isMobileMenuOpen })),
@@ -151,4 +207,14 @@ export const useUIStore = create<UIStore>((set) => ({
   toggleSearch: () => set((state) => ({ isSearchOpen: !state.isSearchOpen })),
   openCartNotification: () => set({ isCartNotificationOpen: true }),
   closeCartNotification: () => set({ isCartNotificationOpen: false }),
+  openAuthModal: (action = null, view = "login") => set({ 
+    isAuthModalOpen: true, 
+    authModalAction: action,
+    authModalView: view,
+  }),
+  closeAuthModal: () => set({ 
+    isAuthModalOpen: false, 
+    authModalAction: null,
+  }),
+  setAuthModalView: (view) => set({ authModalView: view }),
 }));

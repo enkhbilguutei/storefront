@@ -1,17 +1,14 @@
-import { Suspense } from "react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { LoginForm } from "./LoginForm";
+import { RegisterForm } from "./RegisterForm";
 
-export default function LoginPage() {
+export default function RegisterPage() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      
+
       <main className="flex-1 flex items-center justify-center py-12 px-4">
-        <Suspense fallback={<div className="w-full max-w-md animate-pulse" />}>
-          <LoginForm />
-        </Suspense>
+        <RegisterForm />
       </main>
 
       <Footer />

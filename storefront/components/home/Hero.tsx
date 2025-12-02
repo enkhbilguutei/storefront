@@ -11,23 +11,25 @@ import "swiper/css/navigation";
 
 export function Hero() {
   return (
-    <section className="w-full bg-background pt-4 pb-8">
+    <section className="w-full bg-white">
       <Swiper
-        spaceBetween={20}
+        spaceBetween={0}
         centeredSlides={true}
         autoplay={{
-          delay: 5000,
+          delay: 6000,
           disableOnInteraction: false,
         }}
         pagination={{
           clickable: true,
+          bulletClass: "swiper-pagination-bullet !bg-white/50 !opacity-100",
+          bulletActiveClass: "!bg-white !w-6 !rounded-full",
         }}
         navigation={false}
         modules={[Autoplay, Pagination]}
-        className="w-full max-w-[98%] md:max-w-[95%] h-[500px] md:h-[600px] rounded-2xl overflow-hidden shadow-sm"
+        className="w-full h-[580px] md:h-[680px]"
       >
         {heroSlides.map((slide) => (
-          <SwiperSlide key={slide.id} className="relative bg-gray-100">
+          <SwiperSlide key={slide.id} className="relative bg-black">
             <div className="absolute inset-0">
               <CloudinaryImage
                 src={slide.image}
@@ -38,33 +40,28 @@ export function Hero() {
                 priority={slide.id === 1}
               />
             </div>
-            <div className={`absolute inset-0 flex flex-col items-center justify-end pb-16 md:pb-24 text-center z-10 ${slide.darkText ? 'text-foreground' : 'text-white'}`}>
-              <h2 className="text-4xl md:text-6xl font-semibold tracking-tight mb-3 drop-shadow-sm">
+            {/* Subtle gradient overlay for text readability */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+            
+            <div className={`absolute inset-0 flex flex-col items-center justify-end pb-20 md:pb-28 text-center z-10 px-4 ${slide.darkText ? 'text-foreground' : 'text-white'}`}>
+              <h2 className="text-5xl md:text-7xl font-display font-semibold tracking-tight mb-2">
                 {slide.title}
               </h2>
-              <p className="text-xl md:text-2xl font-medium mb-8 opacity-90 drop-shadow-sm">
+              <p className="text-lg md:text-xl font-normal mb-6 opacity-90 max-w-xl">
                 {slide.subtitle}
               </p>
-              <div className="flex gap-4">
+              <div className="flex items-center gap-6">
                 <Link
                   href={slide.link}
-                  className={`px-8 py-2.5 rounded-full font-medium text-sm transition-all ${
-                    slide.darkText 
-                      ? 'bg-foreground text-background hover:opacity-90' 
-                      : 'bg-white text-black hover:bg-gray-100'
-                  }`}
+                  className="text-lg font-normal text-blue-400 hover:underline transition-all"
                 >
-                  Дэлгэрэнгүй
+                  Дэлгэрэнгүй &gt;
                 </Link>
                 <Link
                   href={`${slide.link}/buy`}
-                  className={`px-8 py-2.5 rounded-full font-medium text-sm transition-all border ${
-                    slide.darkText
-                      ? 'border-foreground text-foreground hover:bg-foreground/5'
-                      : 'border-white text-white hover:bg-white/10'
-                  }`}
+                  className="text-lg font-normal text-blue-400 hover:underline transition-all"
                 >
-                  Худалдаж авах
+                  Худалдаж авах &gt;
                 </Link>
               </div>
             </div>

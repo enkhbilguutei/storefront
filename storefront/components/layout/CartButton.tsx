@@ -17,18 +17,18 @@ export function CartButton() {
 
   if (!mounted) {
     return (
-      <Link href="/cart" className="text-foreground/80 hover:text-foreground hover:bg-foreground/5 transition-all p-2.5 rounded-full w-12 h-12 flex items-center justify-center relative">
-        <ShoppingCart className="h-6 w-6" strokeWidth={1.5} />
+      <Link href="/cart" className="text-foreground/80 hover:text-foreground transition-all p-2 rounded-full w-10 h-10 flex items-center justify-center relative">
+        <ShoppingCart className="h-5 w-5" strokeWidth={1.5} />
       </Link>
     );
   }
 
   return (
-    <Link href="/cart" className="text-foreground/80 hover:text-foreground hover:bg-foreground/5 transition-all p-2.5 rounded-full w-12 h-12 flex items-center justify-center relative">
-      <ShoppingCart className="h-6 w-6" strokeWidth={1.5} />
+    <Link href="/cart" className="text-foreground/80 hover:text-foreground transition-all p-2 rounded-full w-10 h-10 flex items-center justify-center relative">
+      <ShoppingCart className="h-5 w-5" strokeWidth={1.5} />
       {itemCount > 0 && (
-        <span className="absolute top-1 right-1 h-5 w-5 rounded-full bg-accent text-white text-xs flex items-center justify-center font-bold">
-          {itemCount}
+        <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-blue-600 text-white text-[10px] flex items-center justify-center font-semibold">
+          {itemCount > 9 ? "9+" : itemCount}
         </span>
       )}
     </Link>

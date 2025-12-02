@@ -7,7 +7,7 @@ import { CartItem } from "@/components/cart/CartItem";
 import { CartSummary } from "@/components/cart/CartSummary";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Loader2, Search, Smartphone, Laptop, Headphones, Watch, RefreshCw } from "lucide-react";
+import { ArrowRight, Loader2, Search, Smartphone, Laptop, Headphones, Watch, RefreshCw, ShoppingCart } from "lucide-react";
 
 // Define types based on Medusa response
 interface LineItem {
@@ -55,11 +55,10 @@ export function CartContent() {
     
     try {
       const { cart: fetchedCart } = await medusa.store.cart.retrieve(cartId, {
-        fields: "+items.variant.product.handle,+items.variant.product.title",
+        fields: "+items.variant.product.handle,+items.variant.product.title,+items.variant.title",
       });
       
       if (!fetchedCart) {
-        // Cart might be expired
         useCartStore.getState().clearCart();
         setCart(null);
       } else {
@@ -67,7 +66,6 @@ export function CartContent() {
       }
     } catch (err) {
       console.error("Error fetching cart:", err);
-      // If cart retrieval fails, it might be expired - clear it
       useCartStore.getState().clearCart();
       setCart(null);
       setError("Сагсыг ачаалахад алдаа гарлаа");
@@ -78,7 +76,6 @@ export function CartContent() {
 
   useEffect(() => {
     fetchCart();
-    // Also sync the cart store
     syncCart();
   }, [fetchCart, syncCart]);
 
@@ -90,10 +87,10 @@ export function CartContent() {
 
   if (isLoading) {
     return (
-      <main className="flex-1 flex items-center justify-center">
+      <main className="flex-1 flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-[#0071e3] mx-auto mb-4" />
-          <p className="text-[#86868b]">Сагсыг ачаалж байна...</p>
+          <p className="text-[#86868b] text-[15px]">Сагсыг ачаалж байна...</p>
         </div>
       </main>
     );
@@ -118,48 +115,40 @@ export function CartContent() {
 
   if (!cart || !cart.items?.length) {
     return (
-      <main className="flex-1 flex flex-col items-center justify-center py-20">
-        <div className="w-full max-w-2xl px-6 text-center">
-          {/* Visual */}
+      <main className="flex-1 flex flex-col items-center justify-center py-20 bg-white">
+        <div className="w-full max-w-xl px-6 text-center">
+          {/* Visual - Sad Apple */}
           <div className="mb-10 relative inline-block">
-            <div className="w-48 h-48 bg-gray-50 rounded-[2.5rem] flex items-center justify-center mx-auto relative z-10 rotate-3 transition-transform hover:rotate-0 duration-500 overflow-hidden">
-              <Image 
-                src="/pngtree-sad-cartoon-apple-vector-png-image_20975407.png"
-                alt="Empty Cart"
-                width={150}
-                height={150}
-                className="object-contain opacity-80 grayscale hover:grayscale-0 transition-all duration-500"
-              />
-            </div>
-            <div className="absolute -right-4 -bottom-4 w-20 h-20 bg-white rounded-2xl shadow-xl flex items-center justify-center z-20 animate-bounce-slow">
-              <Search className="w-8 h-8 text-[#0071e3]" strokeWidth={2} />
-            </div>
-            {/* Decorative elements */}
-            <div className="absolute top-0 left-0 w-full h-full bg-blue-500/5 rounded-[2.5rem] -rotate-6 -z-10 scale-105" />
+            <Image
+              src="/pngtree-sad-cartoon-apple-vector-png-image_20975407.png"
+              alt="Хоосон сагс"
+              width={160}
+              height={160}
+              className="mx-auto"
+            />
           </div>
           
-          <h1 className="text-4xl font-semibold text-[#1d1d1f] mb-4 tracking-tight">
+          <h1 className="text-[32px] font-semibold text-[#1d1d1f] mb-3 tracking-tight">
             Таны сагс хоосон байна
           </h1>
-          <p className="text-[#86868b] text-lg mb-12 leading-relaxed max-w-lg mx-auto">
-            Таны хайж буй технологийн шийдэл энд байна. <br className="hidden sm:block" />
-            Шинэ загварын iPhone, Mac болон бусад бүтээгдэхүүнтэй танилцаарай.
+          <p className="text-[#86868b] text-[17px] mb-10 leading-relaxed">
+            Дэлгүүр хэсэх үед хүссэн барааг сагсандаа нэмээрэй.
           </p>
           
           <Link
             href="/products"
-            className="inline-flex items-center justify-center bg-[#0071e3] text-white rounded-full py-4 px-12 text-[17px] font-medium hover:bg-[#0077ed] active:scale-[0.98] transition-all shadow-lg shadow-blue-500/20 group mb-16"
+            className="inline-flex items-center justify-center bg-[#0071e3] text-white rounded-full py-3.5 px-8 text-[17px] font-medium hover:bg-[#0077ed] active:scale-[0.98] transition-all group"
           >
             <span>Дэлгүүр хэсэх</span>
             <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
           </Link>
 
           {/* Quick Categories */}
-          <div className="border-t border-gray-100 pt-12">
-            <p className="text-sm font-medium text-[#86868b] mb-8 uppercase tracking-wide">
-              Санал болгох ангилал
+          <div className="border-t border-gray-100 pt-10 mt-12">
+            <p className="text-[13px] font-medium text-[#86868b] mb-6 uppercase tracking-wide">
+              Онцлох ангилал
             </p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
                 { name: "iPhone", href: "/collections/iphone", icon: Smartphone },
                 { name: "Mac", href: "/collections/mac", icon: Laptop },
@@ -169,10 +158,10 @@ export function CartContent() {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className="flex flex-col items-center justify-center p-6 rounded-2xl bg-gray-50 hover:bg-gray-100 transition-colors group"
+                  className="flex flex-col items-center justify-center p-5 rounded-[1.5rem] bg-[#f5f5f7] hover:bg-[#e8e8ed] transition-colors group"
                 >
-                  <item.icon className="w-8 h-8 text-[#1d1d1f] mb-3 group-hover:scale-110 transition-transform duration-300" strokeWidth={1.5} />
-                  <span className="text-sm font-medium text-[#1d1d1f]">{item.name}</span>
+                  <item.icon className="w-7 h-7 text-[#1d1d1f] mb-2.5 group-hover:scale-110 transition-transform duration-300" strokeWidth={1.5} />
+                  <span className="text-[13px] font-medium text-[#1d1d1f]">{item.name}</span>
                 </Link>
               ))}
             </div>
@@ -183,16 +172,22 @@ export function CartContent() {
   }
 
   return (
-    <main className="flex-1 pb-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <h1 className="text-3xl md:text-4xl font-semibold text-[#1d1d1f] mb-12">
-          Таны сагс ({cart.items.length})
-        </h1>
+    <main className="flex-1 pb-20 bg-white">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        {/* Header */}
+        <div className="mb-10">
+          <h1 className="text-[32px] md:text-[40px] font-semibold text-[#1d1d1f] tracking-tight">
+            Сагс
+          </h1>
+          <p className="text-[#86868b] text-[17px] mt-2">
+            {cart.items.length} бүтээгдэхүүн
+          </p>
+        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           {/* Cart Items */}
           <div className="lg:col-span-8">
-            <div className="border-t border-gray-100">
+            <div className="bg-[#fafafa] rounded-[1.5rem] p-6">
               {cart.items.map((item) => (
                 <CartItem
                   key={item.id}
@@ -202,11 +197,22 @@ export function CartContent() {
                 />
               ))}
             </div>
+            
+            {/* Continue Shopping Link */}
+            <Link 
+              href="/products"
+              className="inline-flex items-center gap-2 text-[#0071e3] text-[15px] font-medium mt-6 hover:underline"
+            >
+              <Search className="w-4 h-4" />
+              Дэлгүүр үргэлжлүүлэх
+            </Link>
           </div>
 
           {/* Summary */}
           <div className="lg:col-span-4">
-            <CartSummary cart={cart} />
+            <div className="lg:sticky lg:top-24">
+              <CartSummary cart={cart} />
+            </div>
           </div>
         </div>
       </div>
