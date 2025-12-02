@@ -23,6 +23,7 @@ module.exports = defineConfig({
       options: {
         providers: [
           {
+            // Cloudinary provider for product images
             resolve: "./src/modules/cloudinary",
             id: "cloudinary",
             options: {

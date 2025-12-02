@@ -1,12 +1,13 @@
 import { CloudinaryImage } from "@/components/Cloudinary";
 import Link from "next/link";
+import { promoImages } from "@/lib/config/images";
 
 export function PromoBanner() {
   return (
     <section className="py-12 container mx-auto px-4">
       <div className="relative w-full h-[300px] md:h-[400px] rounded-2xl overflow-hidden">
         <CloudinaryImage
-          src="https://res.cloudinary.com/do1xiqlxi/image/upload/v1764596586/alimhan-cover_zslzt8.jpg"
+          src={promoImages.mainBanner}
           alt="Alimhan Store Promo"
           width={1200}
           height={400}

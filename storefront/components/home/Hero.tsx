@@ -1,55 +1,13 @@
 "use client";
 
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay, Pagination, Navigation } from "swiper/modules";
+import { Autoplay, Pagination } from "swiper/modules";
 import Link from "next/link";
 import { CloudinaryImage } from "@/components/Cloudinary";
+import { heroSlides } from "@/lib/config/images";
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
-
-const slides = [
-  {
-    id: 1,
-    title: "MacBook Pro M4",
-    subtitle: "Гайхалтай хүч. Гайхамшигт загвар.",
-    image: "https://res.cloudinary.com/do1xiqlxi/image/upload/v1764596586/s_hs7sa7.jpg",
-    link: "/products/macbook-pro-m4",
-    darkText: false,
-  },
-  {
-    id: 2,
-    title: "iMac M4",
-    subtitle: "Хүч чадлаар дүүрэн.",
-    image: "https://res.cloudinary.com/do1xiqlxi/image/upload/v1764596586/imac_ugg6cz.jpg",
-    link: "/products/imac-m4",
-    darkText: true,
-  },
-  {
-    id: 3,
-    title: "Mac Mini",
-    subtitle: "Илүү хүчирхэг. Илүү хурдан.",
-    image: "https://res.cloudinary.com/do1xiqlxi/image/upload/v1764596585/2_s875jd.jpg",
-    link: "/products/mac-mini",
-    darkText: true,
-  },
-  {
-    id: 4,
-    title: "Powerbeats Pro 2",
-    subtitle: "Хөдөлгөөнд зориулагдсан.",
-    image: "https://res.cloudinary.com/do1xiqlxi/image/upload/v1764596584/1_txr8ku.jpg",
-    link: "/products/powerbeats-pro-2",
-    darkText: false,
-  },
-  {
-    id: 5,
-    title: "Transparent Tech",
-    subtitle: "Дууг мэдэр.",
-    image: "https://res.cloudinary.com/do1xiqlxi/image/upload/v1764596585/airpods3_dsghc4.jpg",
-    link: "/products/transparent-tech",
-    darkText: true,
-  },
-];
 
 export function Hero() {
   return (
@@ -68,7 +26,7 @@ export function Hero() {
         modules={[Autoplay, Pagination]}
         className="w-full max-w-[98%] md:max-w-[95%] h-[500px] md:h-[600px] rounded-2xl overflow-hidden shadow-sm"
       >
-        {slides.map((slide) => (
+        {heroSlides.map((slide) => (
           <SwiperSlide key={slide.id} className="relative bg-gray-100">
             <div className="absolute inset-0">
               <CloudinaryImage

@@ -1,30 +1,7 @@
 import { CloudinaryImage } from "@/components/Cloudinary";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-
-const djiBentoItems = [
-  {
-    id: 1,
-    image: "https://res.cloudinary.com/do1xiqlxi/image/upload/v1764617055/dji_mic3_yloyeh.jpg",
-    title: "DJI Mic 3",
-    description: "Мэргэжлийн түвшний wireless микрофон",
-    link: "/products/dji-mic-3",
-  },
-  {
-    id: 2,
-    image: "https://res.cloudinary.com/do1xiqlxi/image/upload/v1764617055/dji_ofypbr.jpg",
-    title: "DJI Drone",
-    description: "Агаараас бичлэг хийх шинэ боломж",
-    link: "/products/dji-drone",
-  },
-  {
-    id: 3,
-    image: "https://res.cloudinary.com/do1xiqlxi/image/upload/v1764617055/osmo_pocket3_ttg6ow.jpg",
-    title: "DJI Osmo Pocket 3",
-    description: "Компакт gimbal камер",
-    link: "/products/dji-osmo-pocket-3",
-  },
-];
+import { djiBentoItems } from "@/lib/config/images";
 
 export function DJIBento() {
   return (

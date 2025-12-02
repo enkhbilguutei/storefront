@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { medusa } from "@/lib/medusa";
 import { useCartStore, useUIStore } from "@/lib/store";
 import { CloudinaryImage } from "@/components/Cloudinary";
@@ -32,6 +32,8 @@ interface ProductVariant {
     option_id: string;
     value: string;
   }[];
+  thumbnail?: string | null;
+  images?: ProductImage[];
 }
 
 interface ProductOption {
@@ -63,33 +65,12 @@ interface ProductDetailsProps {
   product: Product;
 }
 
-// Color mapping for visual swatches
-const colorMap: Record<string, string> = {
-  "black": "#000000",
-  "white": "#ffffff",
-  "red": "#ef4444",
-  "blue": "#3b82f6",
-  "green": "#22c55e",
-  "yellow": "#eab308",
-  "gray": "#6b7280",
-  "grey": "#6b7280",
-  "silver": "#e5e7eb",
-  "gold": "#fbbf24",
-  "space gray": "#4b5563",
-  "midnight": "#1e3a8a",
-  "starlight": "#f3f4f6",
-  "pink": "#f472b6",
-  "purple": "#a855f7",
-  "orange": "#f97316",
-};
-
 export function ProductDetails({ product }: ProductDetailsProps) {
   const { cartId, setCartId, addItem, syncCart } = useCartStore();
   const { openCartNotification } = useUIStore();
   
   // Track selected option values
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(() => {
-    // Initialize with the first variant's options
     const initial: Record<string, string> = {};
     if (product.variants?.[0]?.options) {
       product.variants[0].options.forEach((opt) => {
@@ -116,45 +97,123 @@ export function ProductDetails({ product }: ProductDetailsProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  
-  // Get all images including thumbnail
+
+  // Check if an option is a color option by name only
+  const isColorOption = useCallback((optionTitle: string) => {
+    const colorKeywords = ["color", "colour", "өнгө", "өнг"];
+    const lowerTitle = optionTitle.toLowerCase();
+    return colorKeywords.some((kw) => lowerTitle.includes(kw));
+  }, []);
+
+  // Find the color option ID (only by name - not visual detection)
+  const colorOptionId = useMemo(() => {
+    const colorOption = product.options?.find((opt) => isColorOption(opt.title));
+    return colorOption?.id || null;
+  }, [product.options, isColorOption]);
+
+  // Get the currently selected color value
+  const selectedColor = colorOptionId ? selectedOptions[colorOptionId] : null;
+
+  // Get all images - prioritize color-based images, then variant images, then product images
   const allImages = useMemo(() => {
     const images: { id: string; url: string }[] = [];
-    if (product.thumbnail) {
-      images.push({ id: "thumbnail", url: product.thumbnail });
-    }
-    if (product.images) {
-      product.images.forEach((img) => {
-        if (img.url !== product.thumbnail) {
-          images.push(img);
+    const addedUrls = new Set<string>();
+    
+    const addImage = (id: string, url: string) => {
+      if (url && !addedUrls.has(url)) {
+        addedUrls.add(url);
+        images.push({ id, url });
+      }
+    };
+    
+    // If there's a selected color, show images for that color
+    if (colorOptionId && selectedColor) {
+      const colorVariants = product.variants?.filter((v) =>
+        v.options?.some((opt) => opt.option_id === colorOptionId && opt.value === selectedColor)
+      ) || [];
+      
+      colorVariants.forEach((variant) => {
+        variant.images?.forEach((img, idx) => {
+          addImage(`color-variant-img-${variant.id}-${idx}`, img.url);
+        });
+        if (variant.thumbnail) {
+          addImage(`color-variant-thumb-${variant.id}`, variant.thumbnail);
         }
       });
+      
+      if (images.length > 0) return images;
     }
+    
+    // Fallback to selected variant's images
+    if (selectedVariant?.images && selectedVariant.images.length > 0) {
+      selectedVariant.images.forEach((img, idx) => {
+        addImage(`variant-img-${selectedVariant.id}-${idx}`, img.url);
+      });
+    }
+    if (selectedVariant?.thumbnail) {
+      addImage(`variant-thumb-${selectedVariant.id}`, selectedVariant.thumbnail);
+    }
+    if (images.length > 0) return images;
+    
+    // Fallback to product images
+    product.images?.forEach((img) => addImage(img.id, img.url));
+    
+    // Last fallback to product thumbnail
+    if (images.length === 0 && product.thumbnail) {
+      addImage("thumbnail", product.thumbnail);
+    }
+    
     return images;
-  }, [product.images, product.thumbnail]);
+  }, [product.images, product.thumbnail, product.variants, selectedVariant, colorOptionId, selectedColor]);
 
-  // Format price
+  // Format price - use consistent formatting to avoid hydration mismatch
+  const formatPrice = (amount: number, currencyCode: string) => {
+    const formatted = new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+    
+    // Use consistent currency symbol
+    const symbol = currencyCode.toUpperCase() === "MNT" ? "₮" : currencyCode;
+    return `${symbol}${formatted}`;
+  };
+
   const price = useMemo(() => {
     if (!selectedVariant?.prices?.[0]) return null;
-    
-    return new Intl.NumberFormat("mn-MN", {
-      style: "currency",
-      currency: selectedVariant.prices[0].currency_code,
-    }).format(selectedVariant.prices[0].amount);
+    return formatPrice(
+      selectedVariant.prices[0].amount,
+      selectedVariant.prices[0].currency_code
+    );
   }, [selectedVariant]);
 
-  // Handle option selection
+  // Handle option selection - reset image index when variant changes
   const handleOptionSelect = (optionId: string, value: string) => {
     setSelectedOptions((prev) => ({
       ...prev,
       [optionId]: value,
     }));
+    setSelectedImageIndex(0);
   };
 
-  // Check if an option value is a color
-  const isColorOption = (optionTitle: string) => {
-    const colorKeywords = ["color", "colour", "өнгө"];
-    return colorKeywords.some((kw) => optionTitle.toLowerCase().includes(kw));
+  // Get thumbnail URL for a color option value
+  // This searches ALL variants with the given color and returns the first one with a thumbnail
+  // This way you only need to upload the color image once (e.g., to "Cosmic Orange / 256GB")
+  // and it will show for all storage options of that color
+  const getThumbnailForColorValue = (optionId: string, colorValue: string) => {
+    // Find any variant with this color that has a thumbnail
+    const variantWithThumbnail = product.variants?.find((v) => {
+      const hasColor = v.options?.some(
+        (opt) => opt.option_id === optionId && opt.value === colorValue
+      );
+      return hasColor && v.thumbnail;
+    });
+    
+    if (variantWithThumbnail?.thumbnail) {
+      return variantWithThumbnail.thumbnail;
+    }
+    
+    // Fallback to product thumbnail
+    return product.thumbnail;
   };
 
   const handleAddToCart = async () => {
@@ -237,10 +296,11 @@ export function ProductDetails({ product }: ProductDetailsProps) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 xl:gap-24">
         {/* Image Gallery - Sticky on Desktop */}
-        <div className="space-y-4 lg:sticky lg:top-24 h-fit">
+        <div className="space-y-4 lg:sticky lg:top-24 h-fit" key={`gallery-${selectedColor || 'default'}`}>
           {/* Main Image */}
           <div className="aspect-square relative bg-linear-to-br from-[#f5f5f7] to-[#e8e8ed] rounded-3xl overflow-hidden group">
             <CloudinaryImage
+              key={`main-${selectedColor || 'default'}-${selectedImageIndex}`}
               src={allImages[selectedImageIndex]?.url || product.thumbnail}
               alt={product.title}
               width={1000}
@@ -282,7 +342,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
             <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
               {allImages.map((image, index) => (
                 <button
-                  key={image.id}
+                  key={`${image.id}-${index}`}
                   onClick={() => setSelectedImageIndex(index)}
                   className={`shrink-0 w-20 h-20 relative bg-[#f5f5f7] rounded-xl overflow-hidden transition-all duration-200 ${
                     selectedImageIndex === index 
@@ -350,29 +410,35 @@ export function ProductDetails({ product }: ProductDetailsProps) {
                   </div>
                   
                   {isColorOption(option.title) ? (
-                    // Color swatches
+                    // Variant thumbnail selector - uses variant's own image
+                    // Shows the color image from ANY variant with that color (not storage-specific)
                     <div className="flex flex-wrap gap-3">
                       {option.values.map((value) => {
-                        const colorCode = colorMap[value.value.toLowerCase()] || "#ccc";
                         const isSelected = selectedOptions[option.id] === value.value;
-                        const isWhite = colorCode.toLowerCase() === "#ffffff" || colorCode.toLowerCase() === "#f3f4f6";
+                        const thumbnailUrl = getThumbnailForColorValue(option.id, value.value);
                         
                         return (
                           <button
                             key={value.id}
                             onClick={() => handleOptionSelect(option.id, value.value)}
-                            className={`w-10 h-10 rounded-full transition-all duration-200 relative ${
+                            className={`relative w-16 h-16 rounded-xl overflow-hidden transition-all duration-200 bg-[#f5f5f7] ${
                               isSelected 
                                 ? "ring-2 ring-offset-2 ring-[#0071e3]" 
-                                : "hover:scale-110"
-                            } ${isWhite ? "border border-gray-200" : ""}`}
-                            style={{ backgroundColor: colorCode }}
+                                : "hover:ring-2 hover:ring-gray-300 hover:ring-offset-1"
+                            }`}
                             title={value.value}
                           >
+                            <CloudinaryImage
+                              src={thumbnailUrl}
+                              alt={value.value}
+                              width={128}
+                              height={128}
+                              className="w-full h-full object-contain p-1"
+                            />
                             {isSelected && (
-                              <Check className={`w-4 h-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${
-                                isWhite ? "text-[#1d1d1f]" : "text-white"
-                              }`} />
+                              <div className="absolute inset-0 bg-[#0071e3]/10 flex items-center justify-center">
+                                <Check className="w-5 h-5 text-[#0071e3]" />
+                              </div>
                             )}
                           </button>
                         );

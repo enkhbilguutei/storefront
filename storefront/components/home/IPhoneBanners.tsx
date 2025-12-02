@@ -1,26 +1,12 @@
 import { CloudinaryImage } from "@/components/Cloudinary";
 import Link from "next/link";
-
-const banners = [
-  {
-    id: 1,
-    image: "https://res.cloudinary.com/do1xiqlxi/image/upload/v1764616599/banner1_dsbxka.jpg",
-    alt: "iPhone 17 Pro",
-    link: "/products/iphone-17-pro",
-  },
-  {
-    id: 2,
-    image: "https://res.cloudinary.com/do1xiqlxi/image/upload/v1764616599/banner2_zbryc4.jpg",
-    alt: "iPhone 17 Pro Max",
-    link: "/products/iphone-17-pro-max",
-  },
-];
+import { iphoneBanners } from "@/lib/config/images";
 
 export function IPhoneBanners() {
   return (
     <section className="py-8 container mx-auto px-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {banners.map((banner) => (
+        {iphoneBanners.map((banner) => (
           <Link
             key={banner.id}
             href={banner.link}

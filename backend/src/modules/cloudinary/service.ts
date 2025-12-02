@@ -1,11 +1,13 @@
-import { AbstractFileProviderService, MedusaError } from "@medusajs/framework/utils"
+import { AbstractFileProviderService } from "@medusajs/framework/utils"
 import { Logger } from "@medusajs/framework/types"
 import { v2 as cloudinary, UploadApiResponse } from "cloudinary"
+import { Readable } from "stream"
 
 type Options = {
   cloud_name: string
   api_key: string
   api_secret: string
+  upload_preset?: string
 }
 
 type InjectedDependencies = {
@@ -35,9 +37,12 @@ class CloudinaryProviderService extends AbstractFileProviderService {
     content: string
   }): Promise<{ url: string; key: string }> {
     return new Promise((resolve, reject) => {
+      // Clean filename - remove extension for public_id
+      const publicId = `medusa-uploads/${file.filename.replace(/\.[^/.]+$/, "")}_${Date.now()}`
+      
       const uploadStream = cloudinary.uploader.upload_stream(
         {
-          public_id: file.filename,
+          public_id: publicId,
           resource_type: "auto",
         },
         (error: any, result: UploadApiResponse | undefined) => {
@@ -69,11 +74,81 @@ class CloudinaryProviderService extends AbstractFileProviderService {
     })
   }
 
-  async getPresignedUploadUrl(fileData: any): Promise<string> {
-    throw new MedusaError(
-      MedusaError.Types.NOT_ALLOWED,
-      "Presigned upload URLs are not supported by the Cloudinary provider"
+  async getPresignedUploadUrl(fileData: {
+    filename: string
+    mimeType?: string
+    access?: string
+  }): Promise<{ url: string; key: string }> {
+    const timestamp = Math.round(Date.now() / 1000)
+    const publicId = `medusa-uploads/${fileData.filename.replace(/\.[^/.]+$/, "")}_${timestamp}`
+    
+    // Generate signature for authenticated upload
+    const paramsToSign = {
+      timestamp,
+      public_id: publicId,
+    }
+    
+    const signature = cloudinary.utils.api_sign_request(
+      paramsToSign,
+      this.options_.api_secret
     )
+
+    // Build the presigned URL with all required parameters
+    const params = new URLSearchParams({
+      api_key: this.options_.api_key,
+      timestamp: timestamp.toString(),
+      signature,
+      public_id: publicId,
+    })
+
+    const uploadUrl = `https://api.cloudinary.com/v1_1/${this.options_.cloud_name}/auto/upload?${params.toString()}`
+
+    return {
+      url: uploadUrl,
+      key: publicId,
+    }
+  }
+
+  async getDownloadStream(fileData: any): Promise<Readable> {
+    const url = cloudinary.url(fileData.fileKey || fileData.key, {
+      secure: true,
+    })
+    
+    const response = await fetch(url)
+    if (!response.ok) {
+      throw new Error(`Failed to fetch file: ${response.statusText}`)
+    }
+    
+    // Convert web ReadableStream to Node.js Readable
+    const reader = response.body?.getReader()
+    if (!reader) {
+      throw new Error("No response body")
+    }
+
+    return new Readable({
+      async read() {
+        const { done, value } = await reader.read()
+        if (done) {
+          this.push(null)
+        } else {
+          this.push(Buffer.from(value))
+        }
+      }
+    })
+  }
+
+  async getAsBuffer(fileData: any): Promise<Buffer> {
+    const url = cloudinary.url(fileData.fileKey || fileData.key, {
+      secure: true,
+    })
+    
+    const response = await fetch(url)
+    if (!response.ok) {
+      throw new Error(`Failed to fetch file: ${response.statusText}`)
+    }
+    
+    const arrayBuffer = await response.arrayBuffer()
+    return Buffer.from(arrayBuffer)
   }
 }
 

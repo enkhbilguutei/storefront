@@ -1,5 +1,10 @@
 # Alimhan E-commerce Project Instructions
 
+## ⚠️ Important Rules for Copilot
+
+- **NEVER restart or interrupt the dev server** - The user manages their own dev servers manually, and **always watch errors through terminal output**
+- Do not run `npm run dev` or similar commands that would restart running services
+
 ## Architecture Overview
 
 This is a **Mongolian e-commerce platform** with a monorepo structure:

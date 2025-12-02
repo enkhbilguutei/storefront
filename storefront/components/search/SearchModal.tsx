@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Search, X, ArrowRight, Loader2, Clock, TrendingUp, Sparkles } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 import { useUIStore } from "@/lib/store";
 import { CloudinaryImage } from "@/components/Cloudinary";
 
@@ -256,12 +255,11 @@ export function SearchModal() {
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <Image
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
                               src={hit.thumbnail}
                               alt={hit.title}
-                              fill
-                              sizes="64px"
-                              className="object-cover"
+                              className="w-full h-full object-cover"
                             />
                           )
                         ) : (
