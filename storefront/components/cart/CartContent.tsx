@@ -173,21 +173,21 @@ export function CartContent() {
 
   return (
     <main className="flex-1 pb-20 bg-white">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10">
         {/* Header */}
-        <div className="mb-10">
-          <h1 className="text-[32px] md:text-[40px] font-semibold text-[#1d1d1f] tracking-tight">
+        <div className="mb-6 sm:mb-8 lg:mb-10">
+          <h1 className="text-[28px] sm:text-[32px] md:text-[40px] font-semibold text-[#1d1d1f] tracking-tight">
             Сагс
           </h1>
-          <p className="text-[#86868b] text-[17px] mt-2">
+          <p className="text-[#86868b] text-[15px] sm:text-[17px] mt-1 sm:mt-2">
             {cart.items.length} бүтээгдэхүүн
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-10">
           {/* Cart Items */}
-          <div className="lg:col-span-8">
-            <div className="bg-[#fafafa] rounded-[1.5rem] p-6">
+          <div className="lg:col-span-8 order-1">
+            <div className="bg-[#fafafa] rounded-2xl sm:rounded-3xl p-4 sm:p-6">
               {cart.items.map((item) => (
                 <CartItem
                   key={item.id}
@@ -201,15 +201,15 @@ export function CartContent() {
             {/* Continue Shopping Link */}
             <Link 
               href="/products"
-              className="inline-flex items-center gap-2 text-[#0071e3] text-[15px] font-medium mt-6 hover:underline"
+              className="inline-flex items-center gap-2 text-[#0071e3] text-[14px] sm:text-[15px] font-medium mt-4 sm:mt-6 hover:underline"
             >
               <Search className="w-4 h-4" />
               Дэлгүүр үргэлжлүүлэх
             </Link>
           </div>
 
-          {/* Summary */}
-          <div className="lg:col-span-4">
+          {/* Summary - sticky on desktop, fixed bottom on mobile */}
+          <div className="lg:col-span-4 order-2">
             <div className="lg:sticky lg:top-24">
               <CartSummary cart={cart} />
             </div>

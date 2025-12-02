@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Search, X, ArrowRight, Loader2, Clock, TrendingUp, Sparkles } from "lucide-react";
+import { Search, X, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useUIStore } from "@/lib/store";
 import { CloudinaryImage } from "@/components/Cloudinary";
@@ -33,8 +33,7 @@ interface SearchResult {
   estimatedTotalHits?: number;
 }
 
-const POPULAR_SEARCHES = ["iPhone", "MacBook", "iPad", "AirPods", "Watch"];
-const RECENT_SEARCHES_KEY = "alimhan_recent_searches";
+const POPULAR_SEARCHES = ["Galaxy S24", "Galaxy S24 Fe", "Galaxy S24 Ultra", "Galaxy S25"];
 
 function formatPrice(amount: number, currencyCode: string = "mnt") {
   return new Intl.NumberFormat("mn-MN", {
@@ -49,31 +48,34 @@ export function SearchModal() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [recommendedProducts, setRecommendedProducts] = useState<SearchHit[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load recent searches from localStorage
+  // Fetch recommended products on mount
   useEffect(() => {
-    const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
-    if (stored) {
+    const fetchRecommended = async () => {
       try {
-        setRecentSearches(JSON.parse(stored));
-      } catch {
-        setRecentSearches([]);
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/search?q=&limit=4`,
+          {
+            headers: {
+              "x-publishable-api-key": process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "",
+            },
+          }
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setRecommendedProducts(data.hits || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch recommended products:", error);
       }
-    }
+    };
+    fetchRecommended();
   }, []);
-
-  // Save recent searches to localStorage
-  const saveRecentSearch = useCallback((searchQuery: string) => {
-    if (!searchQuery.trim()) return;
-    const updated = [searchQuery, ...recentSearches.filter(s => s !== searchQuery)].slice(0, 5);
-    setRecentSearches(updated);
-    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
-  }, [recentSearches]);
 
   // Focus input when modal opens
   useEffect(() => {
@@ -152,18 +154,18 @@ export function SearchModal() {
 
   // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!results?.hits.length) return;
+    const items = results?.hits || recommendedProducts;
+    if (!items.length) return;
 
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setSelectedIndex(prev => (prev < results.hits.length - 1 ? prev + 1 : 0));
+      setSelectedIndex(prev => (prev < items.length - 1 ? prev + 1 : 0));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setSelectedIndex(prev => (prev > 0 ? prev - 1 : results.hits.length - 1));
+      setSelectedIndex(prev => (prev > 0 ? prev - 1 : items.length - 1));
     } else if (e.key === "Enter" && selectedIndex >= 0) {
       e.preventDefault();
-      const hit = results.hits[selectedIndex];
-      saveRecentSearch(query);
+      const hit = items[selectedIndex];
       closeSearch();
       window.location.href = `/products/${hit.handle}`;
     }
@@ -178,251 +180,234 @@ export function SearchModal() {
 
   if (!isSearchOpen) return null;
 
+  // Products to display - search results or recommended
+  const displayProducts = results?.hits || recommendedProducts;
+
   return (
     <div 
-      className="fixed inset-0 z-100 bg-black/50 backdrop-blur-xl animate-in fade-in duration-150"
+      className="fixed inset-0 z-[100] bg-black/60 animate-in fade-in duration-150"
       onClick={handleBackdropClick}
     >
-      <div className="flex items-start justify-center pt-[8vh] px-4">
-        <div 
-          ref={modalRef}
-          className="w-full max-w-[680px] bg-[rgba(251,251,253,0.98)] rounded-2xl shadow-2xl animate-in slide-in-from-top-2 duration-200 overflow-hidden"
-        >
-          {/* Search Input */}
-          <div className="relative border-b border-gray-200/50">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-foreground/40" />
-            <input
-              ref={inputRef}
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Хайх..."
-              className="w-full pl-14 pr-14 py-4 text-base bg-transparent focus:outline-none placeholder:text-foreground/40"
-            />
-            {isLoading ? (
-              <Loader2 className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/40 animate-spin" />
-            ) : query ? (
-              <button
-                onClick={() => setQuery("")}
-                className="absolute right-5 top-1/2 -translate-y-1/2 p-1 text-foreground/40 hover:text-foreground/60 rounded-full hover:bg-foreground/5 transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            ) : (
-              <kbd className="absolute right-5 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-foreground/40 bg-foreground/5 rounded-md">
-                <span className="text-xs">⌘</span>K
-              </kbd>
-            )}
+      {/* Desktop: Half page from top / Mobile: Full page */}
+      <div 
+        ref={modalRef}
+        className="w-full bg-white animate-in slide-in-from-top duration-200 
+                   h-full lg:h-auto lg:max-h-[55vh] overflow-hidden"
+      >
+        {/* Search Header */}
+        <div className="border-b border-gray-200">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center gap-3 sm:gap-4 py-4 sm:py-5 lg:py-6">
+              <Search className="h-5 w-5 sm:h-6 sm:w-6 text-foreground/50 shrink-0" />
+              <input
+                ref={inputRef}
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Search"
+                className="flex-1 text-lg sm:text-xl lg:text-2xl font-light bg-transparent focus:outline-none placeholder:text-foreground/40"
+              />
+              {isLoading ? (
+                <Loader2 className="h-5 w-5 text-foreground/40 animate-spin shrink-0" />
+              ) : (
+                <button
+                  onClick={closeSearch}
+                  className="p-1.5 sm:p-2 text-foreground/60 hover:text-foreground rounded-full hover:bg-foreground/5 transition-colors shrink-0"
+                >
+                  <X className="h-5 w-5 sm:h-6 sm:w-6" />
+                </button>
+              )}
+            </div>
           </div>
+        </div>
 
-          {/* Content */}
-          <div className="max-h-[55vh] overflow-y-auto">
-            {/* Search Results */}
-            {results && results.hits.length > 0 && (
-              <div className="p-2">
-                <div className="flex items-center justify-between px-3 py-1.5">
-                  <p className="text-[10px] font-medium text-foreground/40 uppercase tracking-wider">
-                    Илэрц ({results.estimatedTotalHits || results.hits.length})
-                  </p>
-                  <p className="text-[10px] text-foreground/30">
-                    {results.processingTimeMs}ms
-                  </p>
-                </div>
-                <div className="space-y-0.5">
-                  {results.hits.map((hit, index) => (
-                    <Link
-                      key={hit.id}
-                      href={`/products/${hit.handle}`}
-                      onClick={() => {
-                        saveRecentSearch(query);
-                        closeSearch();
-                      }}
-                      className={`flex items-center gap-3 p-2.5 rounded-xl transition-all ${
-                        selectedIndex === index 
-                          ? "bg-foreground/5" 
-                          : "hover:bg-foreground/[0.03]"
-                      }`}
+        {/* Content */}
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 lg:py-8 overflow-y-auto h-[calc(100%-65px)] sm:h-[calc(100%-75px)] lg:h-auto lg:max-h-[calc(55vh-90px)]">
+          {/* Mobile/Tablet Layout: Stacked */}
+          <div className="lg:hidden space-y-6 sm:space-y-8">
+            {/* Popular Searches */}
+            {!query && (
+              <div>
+                <h3 className="text-[10px] sm:text-xs font-semibold text-foreground/50 uppercase tracking-wider mb-3 sm:mb-4">
+                  POPULAR SEARCHES
+                </h3>
+                <div className="space-y-2 sm:space-y-3">
+                  {POPULAR_SEARCHES.map((search) => (
+                    <button
+                      key={search}
+                      onClick={() => setQuery(search)}
+                      className="block text-sm sm:text-base font-semibold text-foreground hover:text-foreground/70 transition-colors"
                     >
-                      <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-[#f5f5f7] shrink-0">
-                        {hit.thumbnail ? (
-                          hit.thumbnail.includes("cloudinary") ? (
-                            <CloudinaryImage
-                              src={hit.thumbnail}
-                              alt={hit.title}
-                              width={48}
-                              height={48}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={hit.thumbnail}
-                              alt={hit.title}
-                              className="w-full h-full object-cover"
-                            />
-                          )
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-foreground/20">
-                            <Sparkles className="w-5 h-5" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-medium text-foreground truncate">
-                          {hit.title}
-                        </h3>
-                        {hit.category_names && hit.category_names.length > 0 && (
-                          <p className="text-xs text-foreground/50 truncate">
-                            {hit.category_names.join(" • ")}
-                          </p>
-                        )}
-                        {hit.min_price !== undefined && hit.min_price > 0 && (
-                          <p className="text-xs font-medium text-foreground/70 mt-0.5">
-                            {formatPrice(hit.min_price)}
-                            {hit.max_price && hit.max_price !== hit.min_price && (
-                              <span className="text-foreground/40"> - {formatPrice(hit.max_price)}</span>
-                            )}
-                          </p>
-                        )}
-                      </div>
-                      <ArrowRight className="w-3.5 h-3.5 text-foreground/30 shrink-0" />
-                    </Link>
+                      {search}
+                    </button>
                   ))}
                 </div>
-                {results.estimatedTotalHits && results.estimatedTotalHits > results.hits.length && (
-                  <Link
-                    href={`/products?search=${encodeURIComponent(query)}`}
-                    onClick={() => {
-                      saveRecentSearch(query);
-                      closeSearch();
-                    }}
-                    className="flex items-center justify-center gap-1.5 mt-1.5 py-2.5 text-xs font-medium text-blue-600 hover:bg-foreground/[0.03] rounded-xl transition-colors"
-                  >
-                    Бүх илэрц үзэх ({results.estimatedTotalHits})
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                )}
               </div>
             )}
 
+            {/* Products */}
+            <div>
+              <h3 className="text-[10px] sm:text-xs font-semibold text-foreground/50 uppercase tracking-wider mb-3 sm:mb-4">
+                {query ? `RESULTS (${results?.estimatedTotalHits || displayProducts.length})` : "RECOMMENDED"}
+              </h3>
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                {displayProducts.map((product, index) => (
+                  <Link
+                    key={product.id}
+                    href={`/products/${product.handle}`}
+                    onClick={closeSearch}
+                    className={`group ${selectedIndex === index ? 'ring-2 ring-foreground/20 rounded-lg' : ''}`}
+                  >
+                    <div className="aspect-square bg-gray-50 rounded-lg overflow-hidden mb-2 sm:mb-3">
+                      {product.thumbnail ? (
+                        product.thumbnail.includes("cloudinary") ? (
+                          <CloudinaryImage
+                            src={product.thumbnail}
+                            alt={product.title}
+                            width={200}
+                            height={200}
+                            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={product.thumbnail}
+                            alt={product.title}
+                            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                          />
+                        )
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-foreground/20">
+                          <Search className="w-6 h-6 sm:w-8 sm:h-8" />
+                        </div>
+                      )}
+                    </div>
+                    <h4 className="text-xs sm:text-sm font-medium text-foreground line-clamp-2 mb-0.5 sm:mb-1">
+                      {product.title}
+                    </h4>
+                    {product.min_price !== undefined && product.min_price > 0 && (
+                      <p className="text-xs sm:text-sm text-foreground/70">
+                        {formatPrice(product.min_price)}
+                      </p>
+                    )}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
             {/* No Results */}
             {results && results.hits.length === 0 && query && (
-              <div className="p-8 text-center">
-                <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-foreground/5 flex items-center justify-center">
-                  <Search className="w-6 h-6 text-foreground/20" />
-                </div>
-                <h3 className="text-base font-medium text-foreground mb-1">
+              <div className="text-center py-6 sm:py-8">
+                <Search className="w-10 h-10 sm:w-12 sm:h-12 text-foreground/20 mx-auto mb-3 sm:mb-4" />
+                <h3 className="text-base sm:text-lg font-medium text-foreground mb-1 sm:mb-2">
                   Илэрц олдсонгүй
                 </h3>
-                <p className="text-xs text-foreground/50">
+                <p className="text-xs sm:text-sm text-foreground/50">
                   &ldquo;{query}&rdquo; гэсэн хайлтаар илэрц олдсонгүй
                 </p>
               </div>
             )}
+          </div>
 
-            {/* Initial State - Recent & Popular Searches */}
-            {!results && !query && (
-              <div className="p-3 space-y-4">
-                {/* Recent Searches */}
-                {recentSearches.length > 0 && (
-                  <div>
-                    <div className="flex items-center gap-1.5 px-2 mb-2">
-                      <Clock className="w-3.5 h-3.5 text-foreground/40" />
-                      <h3 className="text-[10px] font-medium text-foreground/40 uppercase tracking-wider">
-                        Сүүлд хайсан
-                      </h3>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {recentSearches.map((search) => (
-                        <button
-                          key={search}
-                          onClick={() => setQuery(search)}
-                          className="px-3 py-1.5 text-xs text-foreground/70 bg-foreground/5 rounded-full hover:bg-foreground/10 transition-colors"
-                        >
-                          {search}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Popular Searches */}
-                <div>
-                  <div className="flex items-center gap-1.5 px-2 mb-2">
-                    <TrendingUp className="w-3.5 h-3.5 text-foreground/40" />
-                    <h3 className="text-[10px] font-medium text-foreground/40 uppercase tracking-wider">
-                      Түгээмэл хайлт
-                    </h3>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {POPULAR_SEARCHES.map((search) => (
-                      <button
-                        key={search}
-                        onClick={() => setQuery(search)}
-                        className="px-3 py-1.5 text-xs text-foreground/70 bg-foreground/5 rounded-full hover:bg-foreground/10 transition-colors"
-                      >
-                        {search}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Quick Links */}
-                <div className="border-t border-gray-200/50 pt-3">
-                  <h3 className="text-[10px] font-medium text-foreground/40 uppercase tracking-wider px-2 mb-2">
-                    Шууд холбоос
-                  </h3>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    <Link
-                      href="/products"
-                      onClick={closeSearch}
-                      className="flex items-center gap-2.5 p-2.5 rounded-xl bg-foreground/[0.03] hover:bg-foreground/5 transition-colors"
+          {/* Desktop Layout: Side by side */}
+          <div className="hidden lg:flex gap-8 xl:gap-12">
+            {/* Left Column - Popular Searches */}
+            {!query && (
+              <div className="w-40 xl:w-48 shrink-0">
+                <h3 className="text-xs font-semibold text-foreground/50 uppercase tracking-wider mb-3 xl:mb-4">
+                  POPULAR SEARCHES
+                </h3>
+                <div className="space-y-2 xl:space-y-3">
+                  {POPULAR_SEARCHES.map((search) => (
+                    <button
+                      key={search}
+                      onClick={() => setQuery(search)}
+                      className="block text-sm xl:text-base font-semibold text-foreground hover:text-foreground/70 transition-colors"
                     >
-                      <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                        <Sparkles className="w-4 h-4 text-white" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground text-xs">Бүх бүтээгдэхүүн</p>
-                        <p className="text-[10px] text-foreground/50">Каталог үзэх</p>
-                      </div>
-                    </Link>
-                    <Link
-                      href="/collections"
-                      onClick={closeSearch}
-                      className="flex items-center gap-2.5 p-2.5 rounded-xl bg-foreground/[0.03] hover:bg-foreground/5 transition-colors"
-                    >
-                      <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
-                        <TrendingUp className="w-4 h-4 text-white" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground text-xs">Цуглуулга</p>
-                        <p className="text-[10px] text-foreground/50">Онцлох бүтээгдэхүүн</p>
-                      </div>
-                    </Link>
-                  </div>
+                      {search}
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
-          </div>
 
-          {/* Footer */}
-          <div className="border-t border-gray-200/50 px-4 py-2.5 flex items-center justify-between text-[10px] text-foreground/40">
-            <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-foreground/5 rounded text-[9px] font-medium">↑↓</kbd>
-                Сонгох
-              </span>
-              <span className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-foreground/5 rounded text-[9px] font-medium">↵</kbd>
-                Нээх
-              </span>
-              <span className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-foreground/5 rounded text-[9px] font-medium">esc</kbd>
-                Хаах
-              </span>
+            {/* Right Column - Products */}
+            <div className="flex-1">
+              <h3 className="text-xs font-semibold text-foreground/50 uppercase tracking-wider mb-3 xl:mb-4">
+                {query ? `RESULTS (${results?.estimatedTotalHits || displayProducts.length})` : "RECOMMENDED"}
+              </h3>
+              
+              {/* No Results */}
+              {results && results.hits.length === 0 && query ? (
+                <div className="text-center py-10 xl:py-12">
+                  <Search className="w-10 h-10 xl:w-12 xl:h-12 text-foreground/20 mx-auto mb-3 xl:mb-4" />
+                  <h3 className="text-base xl:text-lg font-medium text-foreground mb-1 xl:mb-2">
+                    Илэрц олдсонгүй
+                  </h3>
+                  <p className="text-xs xl:text-sm text-foreground/50">
+                    &ldquo;{query}&rdquo; гэсэн хайлтаар илэрц олдсонгүй
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 xl:grid-cols-4 gap-4 xl:gap-6">
+                  {displayProducts.slice(0, 4).map((product, index) => (
+                    <Link
+                      key={product.id}
+                      href={`/products/${product.handle}`}
+                      onClick={closeSearch}
+                      className={`group ${selectedIndex === index ? 'ring-2 ring-foreground/20 rounded-lg' : ''}`}
+                    >
+                      <div className="aspect-square bg-gray-50 rounded-lg overflow-hidden mb-2 xl:mb-3">
+                        {product.thumbnail ? (
+                          product.thumbnail.includes("cloudinary") ? (
+                            <CloudinaryImage
+                              src={product.thumbnail}
+                              alt={product.title}
+                              width={200}
+                              height={200}
+                              className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                            />
+                          ) : (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={product.thumbnail}
+                              alt={product.title}
+                              className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                            />
+                          )
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-foreground/20">
+                            <Search className="w-6 h-6 xl:w-8 xl:h-8" />
+                          </div>
+                        )}
+                      </div>
+                      <h4 className="text-xs xl:text-sm font-medium text-foreground line-clamp-2 mb-0.5 xl:mb-1">
+                        {product.title}
+                      </h4>
+                      {product.min_price !== undefined && product.min_price > 0 && (
+                        <p className="text-xs xl:text-sm text-foreground/70">
+                          {formatPrice(product.min_price)}
+                        </p>
+                      )}
+                    </Link>
+                  ))}
+                </div>
+              )}
+
+              {/* View All Results Link */}
+              {results && results.estimatedTotalHits && results.estimatedTotalHits > 4 && (
+                <div className="mt-4 xl:mt-6">
+                  <Link
+                    href={`/products?search=${encodeURIComponent(query)}`}
+                    onClick={closeSearch}
+                    className="text-xs xl:text-sm font-medium text-blue-600 hover:underline"
+                  >
+                    Бүх илэрц үзэх ({results.estimatedTotalHits}) →
+                  </Link>
+                </div>
+              )}
             </div>
-            <span className="hidden sm:inline text-foreground/30">MeiliSearch</span>
           </div>
         </div>
       </div>

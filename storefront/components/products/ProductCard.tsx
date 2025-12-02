@@ -338,17 +338,17 @@ export function ProductCard({ id, title, handle, thumbnail, price, options, vari
             )}
 
             {/* Title */}
-            <h3 className="text-[15px] font-medium text-[#1d1d1f] leading-snug group-hover:text-[#0066cc] transition-colors line-clamp-2 min-h-[2.5em]">
+            <h3 className="text-[18px] font-medium text-[#1d1d1f] leading-snug group-hover:text-[#0066cc] transition-colors line-clamp-2 min-h-[2.5em]">
               {title}
             </h3>
             
             {/* Price */}
             {price ? (
-              <p className="text-[15px] font-semibold text-[#1d1d1f]">
+              <p className="text-[18px] font-semibold text-[#1d1d1f]">
                 {formatPrice(price.amount, price.currencyCode)}
               </p>
             ) : (
-              <p className="text-[14px] text-[#86868b]">
+              <p className="text-[16px] text-[#86868b]">
                 Үнэ тодорхойгүй
               </p>
             )}

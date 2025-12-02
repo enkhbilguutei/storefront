@@ -85,11 +85,11 @@ export function CartItem({ item, currencyCode, refreshCart }: CartItemProps) {
   };
 
   return (
-    <div className="flex gap-5 py-6 border-b border-gray-100 last:border-0">
+    <div className="flex flex-col sm:flex-row gap-3 sm:gap-5 py-4 sm:py-6 border-b border-gray-100 last:border-0">
       {/* Image - Clickable with clean background */}
       <Link 
         href={item.variant?.product?.handle ? `/products/${item.variant.product.handle}` : '#'}
-        className="relative w-28 h-28 sm:w-36 sm:h-36 shrink-0 bg-[#fafafa] rounded-[1.5rem] overflow-hidden hover:bg-[#f5f5f5] transition-colors group"
+        className="relative w-24 h-24 sm:w-28 sm:h-28 md:w-36 md:h-36 shrink-0 bg-[#fafafa] rounded-xl sm:rounded-3xl overflow-hidden hover:bg-[#f5f5f5] transition-colors group mx-auto sm:mx-0"
       >
         {item.thumbnail ? (
           <CloudinaryImage
@@ -97,7 +97,7 @@ export function CartItem({ item, currencyCode, refreshCart }: CartItemProps) {
             alt={item.title}
             width={144}
             height={144}
-            className="w-full h-full object-contain p-3 group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-contain p-2 sm:p-3 group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
@@ -105,31 +105,31 @@ export function CartItem({ item, currencyCode, refreshCart }: CartItemProps) {
           </div>
         )}
         {isUpdating && (
-          <div className="absolute inset-0 bg-white/70 flex items-center justify-center rounded-[1.5rem]">
+          <div className="absolute inset-0 bg-white/70 flex items-center justify-center rounded-xl sm:rounded-3xl">
             <Loader2 className="w-5 h-5 animate-spin text-[#0071e3]" />
           </div>
         )}
       </Link>
 
       {/* Details */}
-      <div className="flex flex-1 flex-col justify-between py-1">
-        <div className="flex justify-between items-start gap-4">
-          <div className="flex-1">
+      <div className="flex flex-1 flex-col justify-between py-0 sm:py-1">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-2 sm:gap-4">
+          <div className="flex-1 w-full">
             {/* Product Title - Clickable */}
             <Link 
               href={item.variant?.product?.handle ? `/products/${item.variant.product.handle}` : '#'}
-              className="text-[17px] font-semibold text-[#1d1d1f] hover:text-[#0071e3] transition-colors line-clamp-2 leading-snug"
+              className="text-[15px] sm:text-[17px] font-semibold text-[#1d1d1f] hover:text-[#0071e3] transition-colors line-clamp-2 leading-snug"
             >
               {item.title}
             </Link>
             
             {/* Variant Info - Show as pills */}
             {item.variant?.title && item.variant.title !== "Default" && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
+              <div className="flex flex-wrap gap-1 sm:gap-1.5 mt-1.5 sm:mt-2">
                 {item.variant.title.split(" / ").map((attr, idx) => (
                   <span 
                     key={idx}
-                    className="inline-flex items-center px-2.5 py-1 bg-[#f5f5f7] text-[#1d1d1f] text-[12px] font-medium rounded-full"
+                    className="inline-flex items-center px-2 sm:px-2.5 py-0.5 sm:py-1 bg-[#f5f5f7] text-[#1d1d1f] text-[11px] sm:text-[12px] font-medium rounded-full"
                   >
                     {attr}
                   </span>
@@ -138,13 +138,13 @@ export function CartItem({ item, currencyCode, refreshCart }: CartItemProps) {
             )}
             
             {/* Unit Price */}
-            <p className="text-[13px] text-[#86868b] mt-2">
+            <p className="text-[12px] sm:text-[13px] text-[#86868b] mt-1.5 sm:mt-2">
               {formatPrice(item.unit_price)} / ширхэг
             </p>
           </div>
           
           {/* Total Price */}
-          <p className="text-[17px] font-semibold text-[#1d1d1f] whitespace-nowrap">
+          <p className="text-[16px] sm:text-[17px] font-semibold text-[#1d1d1f] whitespace-nowrap">
             {formatPrice(item.unit_price * item.quantity)}
           </p>
         </div>
@@ -157,26 +157,26 @@ export function CartItem({ item, currencyCode, refreshCart }: CartItemProps) {
         )}
 
         {/* Quantity & Remove */}
-        <div className="flex items-center justify-between mt-4">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between mt-3 sm:mt-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             {/* Quantity Controls */}
-            <div className="flex items-center bg-[#f5f5f7] rounded-full p-1">
+            <div className="flex items-center bg-[#f5f5f7] rounded-full p-0.5 sm:p-1">
               <button
                 onClick={() => updateQuantity(item.quantity - 1)}
                 disabled={isUpdating || item.quantity <= 1}
-                className="w-8 h-8 flex items-center justify-center hover:bg-white rounded-full disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center hover:bg-white rounded-full disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
-                <Minus className="w-4 h-4 text-[#1d1d1f]" />
+                <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#1d1d1f]" />
               </button>
-              <span className="w-10 text-center text-[15px] font-semibold text-[#1d1d1f]">
+              <span className="w-8 sm:w-10 text-center text-[14px] sm:text-[15px] font-semibold text-[#1d1d1f]">
                 {item.quantity}
               </span>
               <button
                 onClick={() => updateQuantity(item.quantity + 1)}
                 disabled={isUpdating}
-                className="w-8 h-8 flex items-center justify-center hover:bg-white rounded-full disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center hover:bg-white rounded-full disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
-                <Plus className="w-4 h-4 text-[#1d1d1f]" />
+                <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#1d1d1f]" />
               </button>
             </div>
             
@@ -184,9 +184,9 @@ export function CartItem({ item, currencyCode, refreshCart }: CartItemProps) {
             <button
               onClick={removeItem}
               disabled={isUpdating}
-              className="text-[15px] text-[#0071e3] hover:text-[#0077ed] font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50"
+              className="text-[14px] sm:text-[15px] text-[#0071e3] hover:text-[#0077ed] font-medium flex items-center gap-1 sm:gap-1.5 transition-colors disabled:opacity-50"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span className="hidden sm:inline">Устгах</span>
             </button>
           </div>
