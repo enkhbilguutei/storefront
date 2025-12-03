@@ -34,6 +34,9 @@ interface ProductVariant {
   }[];
   thumbnail?: string | null;
   images?: ProductImage[];
+  inventory_quantity?: number;
+  manage_inventory?: boolean;
+  allow_backorder?: boolean;
 }
 
 interface ProductOption {
@@ -184,6 +187,21 @@ export function ProductDetails({ product }: ProductDetailsProps) {
       selectedVariant.prices[0].amount,
       selectedVariant.prices[0].currency_code
     );
+  }, [selectedVariant]);
+
+  // Check if the selected variant is in stock
+  const isInStock = useMemo(() => {
+    if (!selectedVariant) return false;
+    
+    // If inventory is not managed, assume it's in stock
+    if (selectedVariant.manage_inventory === false) return true;
+    
+    // If backorders are allowed, it's always "in stock"
+    if (selectedVariant.allow_backorder) return true;
+    
+    // Check actual inventory quantity
+    const qty = selectedVariant.inventory_quantity ?? 0;
+    return qty > 0;
   }, [selectedVariant]);
 
   // Handle option selection - reset image index when variant changes
@@ -388,6 +406,23 @@ export function ProductDetails({ product }: ProductDetailsProps) {
                 {/* <p className="text-lg text-[#86868b] line-through">₮1,500,000</p> */}
               </div>
             )}
+
+            {/* Stock Status */}
+            {selectedVariant && (
+              <div className="mt-3">
+                {isInStock ? (
+                  <span className="inline-flex items-center gap-1.5 text-sm text-green-600">
+                    <span className="w-2 h-2 bg-green-500 rounded-full" />
+                    Бэлэн байгаа
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 text-sm text-red-500">
+                    <span className="w-2 h-2 bg-red-500 rounded-full" />
+                    Дууссан
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Divider */}
@@ -497,11 +532,17 @@ export function ProductDetails({ product }: ProductDetailsProps) {
             <div className="flex gap-3">
               <button
                 onClick={handleAddToCart}
-                disabled={isAdding || !selectedVariant}
-                className="flex-1 bg-[#0071e3] text-white rounded-full py-4 px-8 text-[17px] font-medium hover:bg-[#0077ed] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-lg shadow-blue-500/25"
+                disabled={isAdding || !selectedVariant || !isInStock}
+                className={`flex-1 rounded-full py-4 px-8 text-[17px] font-medium active:scale-[0.98] transition-all disabled:cursor-not-allowed flex items-center justify-center ${
+                  !isInStock 
+                    ? "bg-gray-200 text-gray-500" 
+                    : "bg-[#0071e3] text-white hover:bg-[#0077ed] shadow-lg shadow-blue-500/25 disabled:opacity-50"
+                }`}
               >
                 {isAdding ? (
                   <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : !isInStock ? (
+                  "Дууссан"
                 ) : (
                   <>
                     <ShoppingBag className="w-5 h-5 mr-2" />

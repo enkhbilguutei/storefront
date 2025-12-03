@@ -70,86 +70,79 @@ export function HeaderClient({ categories }: HeaderClientProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full bg-white border-b border-gray-200">
-        {/* Top bar - Apple Intelligence gradient promotional banner */}
-        <div className="bg-gradient-to-r from-[#60a5fa] via-[#a5f3fc] via-[#fef08a] to-[#fb923c] text-[#1d1d1f] text-center py-2.5 text-xs font-medium tracking-wide">
-          <p className="drop-shadow-sm">Шинэ бүтээгдэхүүн! iPhone 16 Pro худалдаанд гарлаа. <Link href="/categories/iphone" className="underline hover:no-underline ml-1 font-semibold">Дэлгэрэнгүй →</Link></p>
+      <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-gray-100">
+        {/* Top bar - Promotional banner */}
+        <div className="bg-[#f5f5f7] text-[#1d1d1f] text-center py-2 text-xs">
+          <p>Шинэ бүтээгдэхүүн! iPhone 16 Pro худалдаанд гарлаа. <Link href="/categories/iphone" className="text-blue-600 hover:underline ml-1">Дэлгэрэнгүй →</Link></p>
         </div>
         
-        <div className="container mx-auto flex h-12 items-center justify-between px-4">
+        <div className="container mx-auto flex h-11 items-center justify-between px-4">
           {/* Logo - always on left */}
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-xl font-display font-semibold tracking-tight">
+          <Link href="/" className="flex items-center">
+            <span className="text-lg font-display font-semibold tracking-tight text-foreground">
               alimhan
             </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center space-x-1">
+          <nav className="hidden lg:flex items-center h-full">
             <Link 
               href="/products" 
-              className="px-3 py-1.5 text-sm font-medium text-foreground/80"
+              className="px-4 h-full flex items-center text-xs font-medium text-foreground/70 hover:text-foreground transition-colors"
             >
               Бүтээгдэхүүн
             </Link>
             
             {/* Categories Mega Menu Trigger */}
             {categories.length > 0 && (
-              <div className="relative">
+              <div className="relative h-full">
                 <button 
                   ref={megaMenuTriggerRef}
                   onMouseEnter={handleMegaMenuEnter}
                   onMouseLeave={handleMegaMenuLeave}
-                  className="px-3 py-1.5 text-sm font-medium text-foreground/80 flex items-center gap-0.5"
+                  className="px-4 h-full flex items-center text-xs font-medium text-foreground/70 hover:text-foreground transition-colors gap-1"
                 >
                   Ангилал
-                  <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${isMegaMenuOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${isMegaMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
               </div>
             )}
             
             <Link 
-              href="/collections" 
-              className="px-3 py-1.5 text-sm font-medium text-foreground/80"
-            >
-              Цуглуулга
-            </Link>
-            <Link 
               href="/about" 
-              className="px-3 py-1.5 text-sm font-medium text-foreground/80"
+              className="px-4 h-full flex items-center text-xs font-medium text-foreground/70 hover:text-foreground transition-colors"
             >
               Бидний тухай
             </Link>
           </nav>
 
           {/* Actions */}
-          <div className="flex items-center gap-1 sm:gap-2">
-            {/* Desktop Search Bar */}
+          <div className="flex items-center gap-0.5">
+            {/* Desktop Search Button */}
             <button 
               onClick={openSearch}
-              className="hidden lg:flex items-center gap-2.5 px-5 xl:px-6 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-full transition-all min-w-[140px] xl:min-w-[180px]"
+              className="hidden lg:flex text-foreground/80 hover:text-foreground transition-colors p-2 rounded-full w-10 h-10 items-center justify-center"
               aria-label="Хайх"
             >
-              <Search className="h-4 w-4 xl:h-5 xl:w-5 text-foreground/50" strokeWidth={1.5} />
-              <span className="text-sm xl:text-base text-foreground/50">Search</span>
+              <Search className="h-5 w-5" strokeWidth={2.5} />
             </button>
             {/* Mobile Search Button */}
             <button 
               onClick={openSearch}
-              className="lg:hidden text-foreground/80 p-2 rounded-full w-10 h-10 flex items-center justify-center"
+              className="lg:hidden text-foreground/80 hover:text-foreground transition-colors p-2 rounded-full w-10 h-10 flex items-center justify-center"
               aria-label="Хайх"
             >
-              <Search className="h-5 w-5" strokeWidth={1.5} />
+              <Search className="h-5 w-5" strokeWidth={2.5} />
             </button>
             <CartButton />
             <UserMenu />
             {/* Mobile menu button - on right side */}
             <button 
               onClick={isMobileMenuOpen ? closeMobileMenu : openMobileMenu}
-              className="lg:hidden text-foreground/80 hover:text-foreground transition-all p-2 rounded-full w-10 h-10 flex items-center justify-center"
+              className="lg:hidden text-foreground/80 hover:text-foreground transition-colors p-2 rounded-full w-10 h-10 flex items-center justify-center"
               aria-label={isMobileMenuOpen ? "Цэсийг хаах" : "Цэсийг нээх"}
             >
-              {isMobileMenuOpen ? <X className="h-5 w-5" strokeWidth={1.5} /> : <Menu className="h-5 w-5" strokeWidth={1.5} />}
+              {isMobileMenuOpen ? <X className="h-5 w-5" strokeWidth={2.5} /> : <Menu className="h-5 w-5" strokeWidth={2.5} />}
             </button>
           </div>
         </div>
@@ -281,7 +274,7 @@ export function HeaderClient({ categories }: HeaderClientProps) {
                         </>
                       )}
 
-                      <div className="bg-gradient-to-br from-foreground/[0.03] to-foreground/[0.06] rounded-2xl p-4">
+                      <div className="bg-linear-to-br from-foreground/3 to-foreground/6 rounded-2xl p-4">
                         <p className="text-[10px] font-semibold text-foreground/40 uppercase tracking-wider mb-1.5">Онцлох</p>
                         <p className="text-xs font-medium text-foreground mb-2">{activeCategory.name} бүтээгдэхүүнүүдтэй танилцана уу</p>
                         <Link 
@@ -366,13 +359,6 @@ export function HeaderClient({ categories }: HeaderClientProps) {
                 Бүтээгдэхүүн
               </Link>
               <Link 
-                href="/collections" 
-                onClick={closeMobileMenu}
-                className="flex items-center px-3 sm:px-4 py-3 sm:py-4 text-base sm:text-lg font-semibold text-foreground hover:bg-foreground/5 rounded-xl sm:rounded-2xl transition-all active:scale-[0.98]"
-              >
-                Цуглуулга
-              </Link>
-              <Link 
                 href="/about" 
                 onClick={closeMobileMenu}
                 className="flex items-center px-3 sm:px-4 py-3 sm:py-4 text-base sm:text-lg font-semibold text-foreground hover:bg-foreground/5 rounded-xl sm:rounded-2xl transition-all active:scale-[0.98]"
@@ -453,51 +439,51 @@ function MobileAccountSection({ closeMobileMenu }: { closeMobileMenu: () => void
       <>
         {/* User Info Section */}
         <div className="border-t border-gray-100 pt-6 mt-6">
-          <div className="px-4 py-3 flex items-center gap-4">
+          <div className="px-4 py-3 flex items-center gap-3">
             {user.image ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img 
                 src={user.image} 
                 alt={displayName}
-                className="w-12 h-12 rounded-full object-cover"
+                className="w-10 h-10 rounded-full object-cover"
               />
             ) : (
-              <div className="w-12 h-12 rounded-full bg-linear-to-br from-foreground to-foreground/70 text-white flex items-center justify-center text-lg font-medium">
+              <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center text-sm font-medium">
                 {initials}
               </div>
             )}
-            <div>
-              <p className="font-semibold text-foreground">{displayName}</p>
-              <p className="text-sm text-secondary">{user.email}</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-foreground truncate">{displayName}</p>
+              <p className="text-xs text-secondary truncate">{user.email}</p>
             </div>
           </div>
           
-          <div className="mt-4 space-y-1">
+          <div className="mt-3 space-y-0.5">
             <Link 
               href="/account" 
               onClick={closeMobileMenu}
-              className="flex items-center gap-4 px-4 py-3 text-foreground hover:bg-foreground/5 rounded-2xl transition-all"
+              className="flex items-center gap-3 px-4 py-2.5 text-foreground hover:bg-foreground/5 rounded-xl transition-colors"
             >
-              <User className="h-5 w-5 text-foreground/70" />
-              <span className="text-base font-medium">Профайл</span>
+              <User className="h-4 w-4 text-foreground/60" strokeWidth={1.5} />
+              <span className="text-sm">Профайл</span>
             </Link>
             <Link 
               href="/account/orders" 
               onClick={closeMobileMenu}
-              className="flex items-center gap-4 px-4 py-3 text-foreground hover:bg-foreground/5 rounded-2xl transition-all"
+              className="flex items-center gap-3 px-4 py-2.5 text-foreground hover:bg-foreground/5 rounded-xl transition-colors"
             >
-              <Package className="h-5 w-5 text-foreground/70" />
-              <span className="text-base font-medium">Захиалгууд</span>
+              <Package className="h-4 w-4 text-foreground/60" strokeWidth={1.5} />
+              <span className="text-sm">Захиалгууд</span>
             </Link>
             <button 
               onClick={async () => {
                 closeMobileMenu();
                 await signOut({ callbackUrl: "/" });
               }}
-              className="w-full flex items-center gap-4 px-4 py-3 text-red-600 hover:bg-red-50 rounded-2xl transition-all"
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-red-600 hover:bg-red-50 rounded-xl transition-colors"
             >
-              <LogOut className="h-5 w-5" />
-              <span className="text-base font-medium">Гарах</span>
+              <LogOut className="h-4 w-4" strokeWidth={1.5} />
+              <span className="text-sm">Гарах</span>
             </button>
           </div>
         </div>
@@ -512,26 +498,26 @@ function MobileAccountSection({ closeMobileMenu }: { closeMobileMenu: () => void
         <Link 
           href="/auth/login" 
           onClick={closeMobileMenu}
-          className="flex items-center gap-4 px-4 py-3.5 text-foreground hover:bg-foreground/5 rounded-2xl transition-all active:scale-[0.98]"
+          className="flex items-center gap-3 px-4 py-3 text-foreground hover:bg-foreground/5 rounded-xl transition-colors active:scale-[0.98]"
         >
-          <div className="w-10 h-10 rounded-xl bg-foreground/5 flex items-center justify-center">
-            <User className="h-5 w-5 text-foreground/70" />
+          <div className="w-9 h-9 rounded-full bg-foreground/5 flex items-center justify-center">
+            <User className="h-4 w-4 text-foreground/60" strokeWidth={1.5} />
           </div>
           <div>
-            <span className="text-base font-semibold block">Нэвтрэх</span>
+            <span className="text-sm font-medium block">Нэвтрэх</span>
             <span className="text-xs text-secondary">Бүртгэлтэй хэрэглэгч</span>
           </div>
         </Link>
       </div>
 
       {/* Bottom CTA */}
-      <div className="mt-8 p-4">
-        <div className="bg-linear-to-br from-foreground to-foreground/90 rounded-2xl p-5 text-center">
-          <p className="text-background/80 text-sm mb-2">Шинэ хэрэглэгч үү?</p>
+      <div className="mt-6 px-4">
+        <div className="bg-[#f5f5f7] rounded-xl p-4 text-center">
+          <p className="text-foreground/60 text-xs mb-2">Шинэ хэрэглэгч үү?</p>
           <Link 
             href="/auth/register" 
             onClick={closeMobileMenu}
-            className="inline-block text-background font-semibold text-base hover:underline"
+            className="inline-block text-blue-600 font-medium text-sm hover:underline"
           >
             Бүртгүүлэх →
           </Link>

@@ -8,5 +8,10 @@ export default defineMiddlewares({
       matcher: "/store/search",
       middlewares: [],
     },
+    {
+      // Allow unauthenticated access to banners (public CMS content)
+      matcher: "/store/banners",
+      middlewares: [],
+    },
   ],
 });

@@ -52,7 +52,7 @@ export const getProductsByCategory = cache(async (categoryId: string) => {
     const { products } = await medusa.store.product.list({
       category_id: [categoryId],
       limit: 50,
-      fields: "id,title,handle,thumbnail,options.*,options.values.*,variants.id,variants.title,variants.options.*,variants.prices.amount,variants.prices.currency_code",
+      fields: "id,title,handle,thumbnail,options.*,options.values.*,variants.id,variants.title,variants.options.*,variants.prices.amount,variants.prices.currency_code,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder",
     });
     
     return products;

@@ -4,7 +4,6 @@ loadEnv(process.env.NODE_ENV || 'development', process.cwd())
 
 module.exports = defineConfig({
   admin: {
-    // Set default language to Mongolian
     backendUrl: process.env.MEDUSA_BACKEND_URL || "http://localhost:9000",
   },
   projectConfig: {
@@ -15,7 +14,8 @@ module.exports = defineConfig({
       authCors: process.env.AUTH_CORS!,
       jwtSecret: process.env.JWT_SECRET || "supersecret",
       cookieSecret: process.env.COOKIE_SECRET || "supersecret",
-    }
+    },
+    workerMode: process.env.MEDUSA_WORKER_MODE as "shared" | "worker" | "server" || "shared",
   },
   modules: [
     {
@@ -41,6 +41,9 @@ module.exports = defineConfig({
         host: process.env.MEILISEARCH_HOST || "http://localhost:7700",
         apiKey: process.env.MEILISEARCH_API_KEY,
       },
+    },
+    {
+      resolve: "./src/modules/banner",
     },
   ],
 })

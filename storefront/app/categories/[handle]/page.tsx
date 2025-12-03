@@ -24,6 +24,9 @@ interface ProductVariant {
     amount: number;
     currency_code: string;
   }>;
+  inventory_quantity?: number;
+  manage_inventory?: boolean;
+  allow_backorder?: boolean;
 }
 
 interface Product {

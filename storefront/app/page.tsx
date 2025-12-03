@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Suspense } from "react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Categories } from "@/components/home/Categories";
@@ -8,21 +8,67 @@ import { IPhoneBanners } from "@/components/home/IPhoneBanners";
 import { DJIBento } from "@/components/home/DJIBento";
 import { Truck, RotateCcw, ShieldCheck } from "lucide-react";
 
+// Loading skeletons for banner sections
+function HeroSkeleton() {
+  return (
+    <div className="w-full h-[580px] md:h-[680px] bg-gray-100 animate-pulse" />
+  );
+}
+
+function BannerGridSkeleton() {
+  return (
+    <section className="py-3 container mx-auto px-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="h-[400px] md:h-[500px] bg-gray-100 rounded-3xl animate-pulse" />
+        <div className="h-[400px] md:h-[500px] bg-gray-100 rounded-3xl animate-pulse" />
+      </div>
+    </section>
+  );
+}
+
+function BentoSkeleton() {
+  return (
+    <section className="py-3 container mx-auto px-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="col-span-2 row-span-2 h-[400px] md:h-[500px] lg:h-[500px] bg-gray-100 rounded-3xl animate-pulse" />
+        <div className="h-[200px] md:h-[245px] bg-gray-100 rounded-3xl animate-pulse" />
+        <div className="h-[200px] md:h-[245px] bg-gray-100 rounded-3xl animate-pulse" />
+      </div>
+    </section>
+  );
+}
+
+function PromoBannerSkeleton() {
+  return (
+    <section className="py-3 container mx-auto px-4">
+      <div className="w-full h-[400px] md:h-[500px] bg-gray-100 rounded-3xl animate-pulse" />
+    </section>
+  );
+}
+
 export default function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
       
       <main className="flex-1">
-        <Hero />
+        <Suspense fallback={<HeroSkeleton />}>
+          <Hero />
+        </Suspense>
 
-        <IPhoneBanners />
+        <Suspense fallback={<BannerGridSkeleton />}>
+          <IPhoneBanners />
+        </Suspense>
 
         <Categories />
 
-        <DJIBento />
+        <Suspense fallback={<BentoSkeleton />}>
+          <DJIBento />
+        </Suspense>
 
-        <PromoBanner />
+        <Suspense fallback={<PromoBannerSkeleton />}>
+          <PromoBanner />
+        </Suspense>
 
         {/* Features */}
         <section className="py-24 bg-background border-t border-gray-100">

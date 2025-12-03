@@ -7,7 +7,7 @@ import { CartItem } from "@/components/cart/CartItem";
 import { CartSummary } from "@/components/cart/CartSummary";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Loader2, Search, Smartphone, Laptop, Headphones, Watch, RefreshCw, ShoppingCart } from "lucide-react";
+import { ArrowRight, Loader2, Search, Smartphone, Laptop, Headphones, Watch, RefreshCw, ShoppingBag } from "lucide-react";
 
 // Define types based on Medusa response
 interface LineItem {

@@ -3,51 +3,88 @@ import { Footer } from "@/components/layout/Footer";
 import { ProductCard } from "@/components/products/ProductCard";
 import { ProductFilters } from "@/components/products/ProductFilters";
 import { medusa } from "@/lib/medusa";
+import { getCategories } from "@/lib/data/categories";
 
-async function getProducts(searchParams: { [key: string]: string | string[] | undefined }) {
-  const collectionId = searchParams.collection_id as string;
+interface ProductQuery {
+  limit: number;
+  fields: string;
+  category_id?: string[];
+}
+
+// Extended variant type that includes prices
+interface VariantWithPrices {
+  id: string;
+  title: string | null;
+  options?: { option_id: string; value: string }[];
+  prices?: { amount: number; currency_code: string }[];
+  inventory_quantity?: number;
+  manage_inventory?: boolean;
+  allow_backorder?: boolean;
+}
+
+// Extended types for product data with prices
+interface ProductWithPrices {
+  id: string;
+  title: string;
+  handle: string;
+  thumbnail: string | null;
+  options?: {
+    id: string;
+    title: string;
+    values?: { id: string; value: string }[];
+  }[] | null;
+  variants?: VariantWithPrices[] | null;
+}
+
+async function getProducts(searchParams: { [key: string]: string | string[] | undefined }): Promise<ProductWithPrices[]> {
+  const categoryId = searchParams.category_id as string;
   const order = searchParams.order as string;
+  const priceMin = searchParams.price_min ? parseInt(searchParams.price_min as string) : null;
+  const priceMax = searchParams.price_max ? parseInt(searchParams.price_max as string) : null;
 
-  const query: any = {
-    limit: 20,
-    fields: "id,title,handle,thumbnail,options.*,options.values.*,variants.id,variants.title,variants.options.*,variants.prices.amount,variants.prices.currency_code",
+  const query: ProductQuery = {
+    limit: 100, // Fetch more to allow client-side price filtering
+    fields: "id,title,handle,thumbnail,options.*,options.values.*,variants.id,variants.title,variants.options.*,variants.prices.amount,variants.prices.currency_code,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder",
   };
 
-  if (collectionId) {
-    query.collection_id = [collectionId];
+  if (categoryId) {
+    query.category_id = [categoryId];
   }
 
   try {
     const { products } = await medusa.store.product.list(query);
     
+    // Cast to our extended type that includes prices
+    let typedProducts = products as unknown as ProductWithPrices[];
+    
+    // Price filtering (client-side since Medusa doesn't support price range filtering directly)
+    if (priceMin !== null || priceMax !== null) {
+      typedProducts = typedProducts.filter(product => {
+        const price = product.variants?.[0]?.prices?.[0]?.amount || 0;
+        if (priceMin !== null && price < priceMin) return false;
+        if (priceMax !== null && price > priceMax) return false;
+        return true;
+      });
+    }
+    
     // In-memory sort for price if needed (for small catalog)
     if (order === 'price_asc') {
-      products.sort((a: any, b: any) => {
+      typedProducts.sort((a, b) => {
         const priceA = a.variants?.[0]?.prices?.[0]?.amount || 0;
         const priceB = b.variants?.[0]?.prices?.[0]?.amount || 0;
         return priceA - priceB;
       });
     } else if (order === 'price_desc') {
-      products.sort((a: any, b: any) => {
+      typedProducts.sort((a, b) => {
         const priceA = a.variants?.[0]?.prices?.[0]?.amount || 0;
         const priceB = b.variants?.[0]?.prices?.[0]?.amount || 0;
         return priceB - priceA;
       });
     }
 
-    return products;
+    return typedProducts;
   } catch (error) {
     console.error("Failed to fetch products:", error);
-    return [];
-  }
-}
-
-async function getCollections() {
-  try {
-    const { collections } = await medusa.store.collection.list();
-    return collections;
-  } catch (error) {
-    console.error("Failed to fetch collections:", error);
     return [];
   }
 }
@@ -59,62 +96,83 @@ export default async function ProductsPage({
 }) {
   const params = await searchParams;
   const products = await getProducts(params);
-  const collections = await getCollections();
+  const categories = await getCategories();
+
+  const activeCategory = params.category_id 
+    ? categories.find(c => c.id === params.category_id)?.name 
+    : null;
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-white">
       <Header />
       
       <main className="flex-1">
-        <div className="container mx-auto px-4 py-12">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Бүх бүтээгдэхүүн</h1>
-            <p className="text-gray-600 mt-2">
-              Манай бүх бүтээгдэхүүний цуглуулгыг нээгээрэй
+        {/* Minimal Hero */}
+        <div className="border-b border-gray-100">
+          <div className="container mx-auto px-4 py-8 md:py-12">
+            <h1 className="text-[28px] md:text-[40px] font-semibold text-[#1d1d1f] tracking-tight">
+              {activeCategory || "Бүх бүтээгдэхүүн"}
+            </h1>
+            <p className="text-[#86868b] text-[15px] md:text-[17px] mt-1">
+              {products.length} бүтээгдэхүүн
             </p>
           </div>
+        </div>
 
-          <div className="flex flex-col md:flex-row gap-8">
-            {/* Sidebar Filters */}
-            <aside className="w-full md:w-64 shrink-0">
-              <div className="bg-white p-6 rounded-2xl shadow-sm sticky top-24">
-                <ProductFilters collections={collections} />
-              </div>
-            </aside>
-
-            {/* Product Grid */}
-            <div className="flex-1">
-              {products.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {products.map((product: any) => (
-                    <ProductCard
-                      key={product.id}
-                      id={product.id}
-                      title={product.title}
-                      handle={product.handle}
-                      thumbnail={product.thumbnail}
-                      options={product.options}
-                      variants={product.variants}
-                      price={
-                        product.variants?.[0]?.prices?.[0]
-                          ? {
-                              amount: product.variants[0].prices[0].amount,
-                              currencyCode: product.variants[0].prices[0].currency_code,
-                            }
-                          : undefined
-                      }
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
-                  <p className="text-gray-500 text-lg">
-                    Бүтээгдэхүүн олдсонгүй.
-                  </p>
-                </div>
-              )}
-            </div>
+        {/* Filters Bar - Horizontal, minimal */}
+        <div className="border-b border-gray-100 sticky top-[88px] bg-white/95 backdrop-blur-md z-30">
+          <div className="container mx-auto px-4">
+            <ProductFilters categories={categories} />
           </div>
+        </div>
+
+        {/* Product Grid */}
+        <div className="container mx-auto px-4 py-8 md:py-12">
+          {products.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+              {products.map((product) => {
+                const firstVariant = product.variants?.[0];
+                const firstPrice = firstVariant?.prices?.[0];
+                
+                return (
+                  <ProductCard
+                    key={product.id}
+                    id={product.id}
+                    title={product.title}
+                    handle={product.handle}
+                    thumbnail={product.thumbnail ?? undefined}
+                    options={product.options?.map(opt => ({
+                      id: opt.id,
+                      title: opt.title,
+                      values: opt.values?.map(v => v.value) ?? []
+                    }))}
+                    variants={product.variants?.map(v => ({
+                      id: v.id,
+                      title: v.title ?? "Default",
+                      options: v.options,
+                      inventory_quantity: v.inventory_quantity,
+                      manage_inventory: v.manage_inventory,
+                      allow_backorder: v.allow_backorder
+                    }))}
+                    price={
+                      firstPrice
+                        ? {
+                            amount: firstPrice.amount,
+                            currencyCode: firstPrice.currency_code,
+                          }
+                        : undefined
+                    }
+                  />
+                );
+              })}
+            </div>
+          ) : (
+            <div className="py-20 text-center">
+              <p className="text-[#86868b] text-[17px]">
+                Бүтээгдэхүүн олдсонгүй.
+              </p>
+            </div>
+          )}
         </div>
       </main>
 

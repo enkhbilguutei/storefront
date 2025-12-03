@@ -1,59 +1,109 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useCallback, useSyncExternalStore } from "react";
 import { useCartStore, useUIStore } from "@/lib/store";
 import { CloudinaryImage } from "@/components/Cloudinary";
 import Link from "next/link";
-import { X, Check, ShoppingBag, Sparkles } from "lucide-react";
+import { X, Check, ShoppingBag } from "lucide-react";
+
+// Simple visibility store to avoid setState in effects
+const createVisibilityStore = () => {
+  let isVisible = false;
+  let isAnimatingOut = false;
+  // Cache the snapshot object to avoid infinite loop with useSyncExternalStore
+  let snapshot = { isVisible, isAnimatingOut };
+  const listeners = new Set<() => void>();
+  
+  const updateSnapshot = () => {
+    snapshot = { isVisible, isAnimatingOut };
+    listeners.forEach(l => l());
+  };
+  
+  return {
+    getSnapshot: () => snapshot,
+    subscribe: (listener: () => void) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    show: () => {
+      isVisible = true;
+      isAnimatingOut = false;
+      updateSnapshot();
+    },
+    startClose: () => {
+      isAnimatingOut = true;
+      updateSnapshot();
+    },
+    hide: () => {
+      isVisible = false;
+      isAnimatingOut = false;
+      updateSnapshot();
+    },
+  };
+};
+
+const visibilityStore = createVisibilityStore();
 
 export function CartNotification() {
   const { lastAddedItem, items, syncCart } = useCartStore();
   const { isCartNotificationOpen, closeCartNotification } = useUIStore();
-  const [isVisible, setIsVisible] = useState(false);
-  const [isClosing, setIsClosing] = useState(false);
-  const [displayItem, setDisplayItem] = useState(lastAddedItem);
+  const { isVisible, isAnimatingOut } = useSyncExternalStore(
+    visibilityStore.subscribe,
+    visibilityStore.getSnapshot,
+    visibilityStore.getSnapshot
+  );
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const hasSyncedRef = useRef(false);
 
   const handleClose = useCallback(() => {
-    setIsClosing(true);
+    if (isAnimatingOut) return;
+    visibilityStore.startClose();
     setTimeout(() => {
-      setIsVisible(false);
+      visibilityStore.hide();
       closeCartNotification();
-    }, 300);
-  }, [closeCartNotification]);
+    }, 200);
+  }, [closeCartNotification, isAnimatingOut]);
 
-  // Handle animation states and sync cart to get correct data
+  // Handle open/close based on store state
   useEffect(() => {
     if (isCartNotificationOpen && lastAddedItem) {
-      setDisplayItem(lastAddedItem);
-      setIsVisible(true);
-      setIsClosing(false);
+      // Clear any existing timer
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
       
-      // Sync cart to ensure we have fresh data
-      syncCart();
+      visibilityStore.show();
       
-      const timer = setTimeout(() => {
-        handleClose();
-      }, 5000);
-      return () => clearTimeout(timer);
+      // Sync cart once to get fresh data
+      if (!hasSyncedRef.current) {
+        hasSyncedRef.current = true;
+        syncCart();
+      }
+      
+      // Auto close after 4 seconds
+      timerRef.current = setTimeout(handleClose, 4000);
+    } else {
+      hasSyncedRef.current = false;
     }
+    
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
   }, [isCartNotificationOpen, lastAddedItem, handleClose, syncCart]);
 
-  // Update displayItem when items change (after sync)
-  useEffect(() => {
-    if (displayItem && items.length > 0) {
-      const updatedItem = items.find(item => item.variantId === displayItem.variantId);
-      if (updatedItem && updatedItem.thumbnail !== displayItem.thumbnail) {
-        setDisplayItem(prev => prev ? { ...prev, thumbnail: updatedItem.thumbnail } : prev);
-      }
-    }
-  }, [items, displayItem]);
+  // Get the most up-to-date item data from synced cart
+  const displayItem = lastAddedItem 
+    ? items.find(item => item.variantId === lastAddedItem.variantId) || lastAddedItem 
+    : null;
 
   const formatPrice = (amount: number) => {
-    const formatted = new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("mn-MN", {
+      style: "decimal",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
-    return `₮ ${formatted}`;
   };
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -63,155 +113,136 @@ export function CartNotification() {
 
   return (
     <>
-      {/* Backdrop - subtle blur */}
+      {/* Backdrop */}
       <div 
-        className={`fixed inset-0 bg-black/30 backdrop-blur-sm z-50 transition-opacity duration-300 ${
-          isClosing ? "opacity-0" : "opacity-100"
+        className={`fixed inset-0 bg-black/20 backdrop-blur-[2px] z-50 transition-opacity duration-200 ${
+          isAnimatingOut ? "opacity-0" : "opacity-100"
         }`}
         onClick={handleClose}
+        aria-hidden="true"
       />
 
-      {/* Notification Card */}
+      {/* Notification - Centered on desktop, bottom sheet on mobile */}
       <div 
-        className={`fixed z-50 transition-all duration-300 ease-out
-          bottom-0 left-0 right-0 
-          md:bottom-auto md:left-auto md:top-24 md:right-6 md:w-[400px]
-          ${isClosing 
-            ? "translate-y-full md:translate-y-[-20px] md:opacity-0 md:scale-95" 
-            : "translate-y-0 md:translate-y-0 md:opacity-100 md:scale-100"
+        role="dialog"
+        aria-labelledby="cart-notification-title"
+        className={`fixed z-50 transition-all duration-200 ease-out
+          inset-x-0 bottom-0 mx-auto
+          sm:bottom-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:inset-auto sm:w-[380px]
+          ${isAnimatingOut 
+            ? "translate-y-full sm:translate-y-0 sm:opacity-0 sm:scale-95" 
+            : "translate-y-0 sm:translate-y-[-50%] sm:opacity-100 sm:scale-100"
           }`}
       >
-        <div className="bg-white shadow-2xl shadow-black/20 rounded-t-3xl md:rounded-3xl overflow-hidden border border-gray-100">
-          {/* Mobile drag handle */}
-          <div className="md:hidden flex justify-center pt-3 pb-1">
-            <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
+        <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl overflow-hidden">
+          {/* Mobile drag indicator */}
+          <div className="sm:hidden flex justify-center pt-3">
+            <div className="w-10 h-1 bg-gray-300 rounded-full" />
           </div>
-          
-          {/* Success Header with gradient */}
-          <div className="relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-[#34c759] to-[#30d158] opacity-10" />
-            <div className="relative px-5 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-[#34c759] to-[#30d158] rounded-full flex items-center justify-center shadow-lg shadow-green-500/30">
-                  <Check className="w-5 h-5 text-white" strokeWidth={3} />
-                </div>
-                <div>
-                  <span className="text-[16px] font-semibold text-[#1d1d1f] block">Сагсанд нэмэгдлээ!</span>
-                  <span className="text-[12px] text-[#86868b]">Та хүссэн үедээ дэлгүүр хэсэх боломжтой</span>
-                </div>
+
+          {/* Header */}
+          <div className="px-5 pt-4 pb-3 flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-[#34c759] rounded-full flex items-center justify-center shrink-0">
+                <Check className="w-5 h-5 text-white" strokeWidth={2.5} />
               </div>
-              <button 
-                onClick={handleClose}
-                className="text-[#86868b] hover:text-[#1d1d1f] transition-all p-2 hover:bg-gray-100 rounded-full hover:rotate-90 duration-200"
-              >
-                <X className="h-5 w-5" />
-              </button>
+              <div>
+                <h3 id="cart-notification-title" className="text-[15px] font-semibold text-[#1d1d1f]">
+                  Сагсанд нэмэгдлээ
+                </h3>
+                <p className="text-[13px] text-[#86868b]">Худалдан авалтаа үргэлжлүүлэх боломжтой</p>
+              </div>
             </div>
+            <button 
+              onClick={handleClose}
+              aria-label="Хаах"
+              className="p-1.5 -mr-1.5 -mt-0.5 text-[#86868b] hover:text-[#1d1d1f] hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
+
+          {/* Divider */}
+          <div className="mx-5 h-px bg-gray-100" />
           
-          {/* Product Card */}
-          <div className="px-5 py-4">
-            <div className="flex gap-4 p-4 bg-gradient-to-br from-[#fafafa] to-[#f5f5f7] rounded-2xl">
-              {/* Product Image */}
+          {/* Product */}
+          <div className="p-5">
+            <div className="flex gap-4">
+              {/* Image */}
               <Link 
                 href={displayItem.handle ? `/products/${displayItem.handle}` : '#'}
                 onClick={handleClose}
-                className="relative h-24 w-24 shrink-0 rounded-xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow group"
+                className="w-20 h-20 shrink-0 rounded-xl bg-[#f5f5f7] flex items-center justify-center overflow-hidden"
               >
                 {displayItem.thumbnail ? (
                   <CloudinaryImage
                     src={displayItem.thumbnail}
                     alt={displayItem.title}
-                    width={96}
-                    height={96}
-                    className="h-full w-full object-contain p-2 group-hover:scale-110 transition-transform duration-300"
+                    width={80}
+                    height={80}
+                    className="w-full h-full object-contain p-2"
                   />
                 ) : (
-                  <div className="h-full w-full flex items-center justify-center bg-gray-50">
-                    <ShoppingBag className="w-8 h-8 text-gray-300" />
-                  </div>
+                  <ShoppingBag className="w-8 h-8 text-[#d1d1d6]" />
                 )}
               </Link>
               
-              {/* Product Details */}
-              <div className="flex-1 min-w-0 flex flex-col justify-center">
+              {/* Details */}
+              <div className="flex-1 min-w-0 py-0.5">
                 <Link 
                   href={displayItem.handle ? `/products/${displayItem.handle}` : '#'}
                   onClick={handleClose}
-                  className="text-[15px] font-semibold text-[#1d1d1f] line-clamp-2 leading-snug hover:text-[#0071e3] transition-colors"
+                  className="text-[15px] font-medium text-[#1d1d1f] line-clamp-2 leading-tight hover:text-[#0066cc] transition-colors"
                 >
                   {displayItem.title}
                 </Link>
                 
-                {/* Variant Attributes */}
                 {displayItem.variantTitle && displayItem.variantTitle !== "Default" && (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {displayItem.variantTitle.split(" / ").map((attr, idx) => (
-                      <span 
-                        key={idx}
-                        className="inline-flex items-center px-2.5 py-1 bg-white text-[#1d1d1f] text-[11px] font-medium rounded-lg shadow-sm border border-gray-100"
-                      >
-                        {attr}
-                      </span>
-                    ))}
-                  </div>
+                  <p className="text-[13px] text-[#86868b] mt-1 truncate">
+                    {displayItem.variantTitle}
+                  </p>
                 )}
                 
-                {/* Price & Quantity */}
-                <div className="flex items-center gap-2 mt-3">
-                  <span className="text-[17px] font-bold text-[#1d1d1f]">
-                    {formatPrice(displayItem.unitPrice)}
+                <div className="flex items-baseline gap-2 mt-2">
+                  <span className="text-[15px] font-semibold text-[#1d1d1f]">
+                    ₮{formatPrice(displayItem.unitPrice)}
                   </span>
-                  <span className="text-[13px] text-[#86868b]">
-                    × {displayItem.quantity}
-                  </span>
+                  {displayItem.quantity > 1 && (
+                    <span className="text-[13px] text-[#86868b]">
+                      × {displayItem.quantity}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
           </div>
-          
-          {/* Cart Summary */}
-          <div className="px-5 pb-4">
-            <div className="flex items-center justify-between py-3 px-4 bg-[#f5f5f7] rounded-xl">
-              <div className="flex items-center gap-2">
-                <ShoppingBag className="w-4 h-4 text-[#86868b]" />
-                <span className="text-[13px] text-[#86868b]">Сагсанд {totalItems} бараа</span>
-              </div>
-              <span className="text-[15px] font-semibold text-[#1d1d1f]">
-                {formatPrice(totalPrice)}
-              </span>
-            </div>
+
+          {/* Cart summary */}
+          <div className="mx-5 py-3 px-4 bg-[#f5f5f7] rounded-xl flex items-center justify-between">
+            <span className="text-[13px] text-[#86868b]">
+              Сагсанд {totalItems} бараа
+            </span>
+            <span className="text-[15px] font-semibold text-[#1d1d1f]">
+              ₮{formatPrice(totalPrice)}
+            </span>
           </div>
           
-          {/* Action Buttons */}
-          <div className="px-5 pb-6 flex gap-3">
+          {/* Actions */}
+          <div className="p-5 pt-4 flex gap-3">
             <button
               onClick={handleClose}
-              className="flex-1 py-3.5 px-4 rounded-xl border-2 border-gray-200 text-[15px] font-semibold text-[#1d1d1f] hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-[0.98]"
+              className="flex-1 h-12 rounded-xl border border-gray-200 text-[15px] font-medium text-[#1d1d1f] hover:bg-gray-50 active:scale-[0.98] transition-all"
             >
               Үргэлжлүүлэх
             </button>
             <Link
               href="/cart"
               onClick={handleClose}
-              className="flex-1 py-3.5 px-4 rounded-xl bg-[#0071e3] text-[15px] font-semibold text-white hover:bg-[#0077ed] transition-all active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25"
+              className="flex-1 h-12 rounded-xl bg-[#0066cc] text-[15px] font-medium text-white hover:bg-[#0055b3] active:scale-[0.98] transition-all flex items-center justify-center"
             >
-              <span>Сагс үзэх</span>
-              <Sparkles className="w-4 h-4" />
+              Сагс үзэх
             </Link>
           </div>
-          
-          {/* Progress bar for auto-close */}
-          {!isClosing && (
-            <div className="h-1 bg-gray-100">
-              <div 
-                className="h-full bg-gradient-to-r from-[#0071e3] to-[#34c759] rounded-full"
-                style={{ 
-                  animation: "shrink-width 5s linear forwards"
-                }}
-              />
-            </div>
-          )}
         </div>
       </div>
     </>

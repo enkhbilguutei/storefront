@@ -9,7 +9,7 @@ async function getProduct(handle: string) {
     const { products } = await medusa.store.product.list({
       handle,
       limit: 1,
-      fields: "+variants.thumbnail,+variants.images.*,id,title,handle,description,thumbnail,images.*,options.*,options.values.*,variants.id,variants.title,variants.options.*,variants.prices.amount,variants.prices.currency_code",
+      fields: "+variants.thumbnail,+variants.images.*,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder,id,title,handle,description,thumbnail,images.*,options.*,options.values.*,variants.id,variants.title,variants.options.*,variants.prices.amount,variants.prices.currency_code",
     });
     
     if (!products || products.length === 0) {

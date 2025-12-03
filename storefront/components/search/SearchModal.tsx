@@ -185,7 +185,7 @@ export function SearchModal() {
 
   return (
     <div 
-      className="fixed inset-0 z-[100] bg-black/60 animate-in fade-in duration-150"
+      className="fixed inset-0 z-100 bg-black/60 animate-in fade-in duration-150"
       onClick={handleBackdropClick}
     >
       {/* Desktop: Half page from top / Mobile: Full page */}

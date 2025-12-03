@@ -26,6 +26,9 @@ interface ProductVariant {
     option_id: string;
     value: string;
   }[];
+  inventory_quantity?: number;
+  manage_inventory?: boolean;
+  allow_backorder?: boolean;
 }
 
 interface ProductCardProps {
@@ -130,12 +133,6 @@ export function ProductCard({ id, title, handle, thumbnail, price, options, vari
     return colorOption?.values || [];
   }, [parsedOptions]);
 
-  // Extract other variant options (storage, size, etc.) for display
-  const otherOptions = useMemo(() => {
-    const colorTitles = ["color", "colour", "өнгө"];
-    return parsedOptions.filter(opt => !colorTitles.includes(opt.title.toLowerCase()));
-  }, [parsedOptions]);
-
   // Find matching variant based on selected options
   const findMatchingVariant = (selections: Record<string, string>) => {
     if (!variants || !options) return null;
@@ -162,6 +159,32 @@ export function ProductCard({ id, title, handle, thumbnail, price, options, vari
     return findMatchingVariant(selectedOptions);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allOptionsSelected, selectedOptions]);
+
+  // Check if a variant is in stock
+  const isVariantInStock = (variant: ProductVariant | null | undefined): boolean => {
+    if (!variant) return false;
+    
+    // If inventory is not managed, assume it's in stock
+    if (variant.manage_inventory === false) return true;
+    
+    // If backorders are allowed, it's always "in stock"
+    if (variant.allow_backorder) return true;
+    
+    // Check actual inventory quantity
+    const qty = variant.inventory_quantity ?? 0;
+    return qty > 0;
+  };
+
+  // Check if the first variant is in stock (for single variant products)
+  const isFirstVariantInStock = useMemo(() => {
+    if (!variants || variants.length === 0) return false;
+    return isVariantInStock(variants[0]);
+  }, [variants]);
+
+  // Check if selected variant is in stock
+  const isSelectedVariantInStock = useMemo(() => {
+    return isVariantInStock(selectedVariant);
+  }, [selectedVariant]);
 
   // Handle click outside modal
   useEffect(() => {
@@ -196,6 +219,11 @@ export function ProductCard({ id, title, handle, thumbnail, price, options, vari
     if (needsVariantSelection) {
       setShowVariantModal(true);
       return;
+    }
+
+    // Single variant - check stock before adding
+    if (!isFirstVariantInStock) {
+      return; // Don't add if out of stock
     }
 
     // Single variant - add directly
@@ -262,7 +290,7 @@ export function ProductCard({ id, title, handle, thumbnail, price, options, vari
 
   return (
     <>
-      <div className="group block bg-white rounded-3xl transition-all duration-300 hover:shadow-xl hover:shadow-black/[0.08] relative overflow-hidden">
+      <div className="group block bg-white rounded-2xl md:rounded-3xl transition-all duration-300 hover:shadow-lg hover:shadow-black/5 relative overflow-hidden">
         <Link 
           href={`/products/${handle}`} 
           className="block"
@@ -270,14 +298,14 @@ export function ProductCard({ id, title, handle, thumbnail, price, options, vari
           onMouseLeave={() => setIsHovered(false)}
         >
           {/* Image Container - Clean white background */}
-          <div className="relative aspect-square overflow-hidden bg-[#fafafa] rounded-t-3xl">
+          <div className="relative aspect-square overflow-hidden bg-[#f5f5f7] rounded-t-2xl md:rounded-t-3xl">
             {thumbnail ? (
               <CloudinaryImage
                 src={thumbnail}
                 alt={title}
                 width={400}
                 height={400}
-                className={`h-full w-full object-contain p-8 transition-transform duration-500 ${
+                className={`h-full w-full object-contain p-4 md:p-8 transition-transform duration-500 ${
                   isHovered ? "scale-105" : "scale-100"
                 }`}
               />
@@ -289,17 +317,17 @@ export function ProductCard({ id, title, handle, thumbnail, price, options, vari
           </div>
           
           {/* Product Info */}
-          <div className="p-5 space-y-3">
+          <div className="p-3 md:p-5 space-y-2 md:space-y-3">
             {/* Color Swatches */}
             {colorOptions.length > 0 && (
-              <div className="flex items-center gap-1.5">
-                {colorOptions.slice(0, 5).map((color, index) => {
+              <div className="flex items-center gap-1">
+                {colorOptions.slice(0, 4).map((color, index) => {
                   const bg = colorMap[color.toLowerCase()] || color;
                   const isWhite = bg.toLowerCase() === "#ffffff" || bg.toLowerCase() === "#f3f4f6" || bg.toLowerCase() === "#f5f5f5";
                   return (
                     <div
                       key={index}
-                      className={`w-3.5 h-3.5 rounded-full transition-transform hover:scale-125 ${
+                      className={`w-3 h-3 rounded-full transition-transform hover:scale-125 ${
                         isWhite ? "border border-gray-200" : ""
                       }`}
                       style={{ 
@@ -310,45 +338,24 @@ export function ProductCard({ id, title, handle, thumbnail, price, options, vari
                     />
                   );
                 })}
-                {colorOptions.length > 5 && (
-                  <span className="text-[11px] text-[#86868b] ml-1">+{colorOptions.length - 5}</span>
+                {colorOptions.length > 4 && (
+                  <span className="text-[10px] text-[#86868b] ml-0.5">+{colorOptions.length - 4}</span>
                 )}
               </div>
             )}
 
-            {/* Other Variant Options (Storage, Size, etc.) */}
-            {otherOptions.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {otherOptions.map((opt, optIndex) => (
-                  <div key={optIndex} className="flex items-center gap-1">
-                    {opt.values.slice(0, 3).map((value, valueIndex) => (
-                      <span
-                        key={valueIndex}
-                        className="text-[10px] px-2 py-0.5 bg-[#f5f5f7] text-[#1d1d1f] rounded-full"
-                      >
-                        {value}
-                      </span>
-                    ))}
-                    {opt.values.length > 3 && (
-                      <span className="text-[10px] text-[#86868b]">+{opt.values.length - 3}</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-
             {/* Title */}
-            <h3 className="text-[18px] font-medium text-[#1d1d1f] leading-snug group-hover:text-[#0066cc] transition-colors line-clamp-2 min-h-[2.5em]">
+            <h3 className="text-[14px] md:text-[16px] font-medium text-[#1d1d1f] leading-snug group-hover:text-[#0066cc] transition-colors line-clamp-2 min-h-[2.5em]">
               {title}
             </h3>
             
             {/* Price */}
             {price ? (
-              <p className="text-[18px] font-semibold text-[#1d1d1f]">
+              <p className="text-[15px] md:text-[17px] font-semibold text-[#1d1d1f]">
                 {formatPrice(price.amount, price.currencyCode)}
               </p>
             ) : (
-              <p className="text-[16px] text-[#86868b]">
+              <p className="text-[14px] text-[#86868b]">
                 Үнэ тодорхойгүй
               </p>
             )}
@@ -356,21 +363,31 @@ export function ProductCard({ id, title, handle, thumbnail, price, options, vari
         </Link>
 
         {/* Add to Cart Button - Always Visible */}
-        <div className="px-5 pb-5">
-          <button
-            onClick={handleQuickAdd}
-            disabled={isAdding}
-            className="w-full h-11 bg-[#1d1d1f] text-white rounded-full flex items-center justify-center gap-2 text-sm font-medium hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
-          >
-            {isAdding ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <>
-                <ShoppingCart className="w-4 h-4" />
-                <span>Сагсанд нэмэх</span>
-              </>
-            )}
-          </button>
+        <div className="px-3 pb-3 md:px-5 md:pb-5">
+          {!needsVariantSelection && !isFirstVariantInStock ? (
+            <button
+              disabled
+              className="w-full h-10 md:h-11 bg-gray-100 text-gray-400 rounded-full flex items-center justify-center gap-2 text-[13px] md:text-sm font-medium cursor-not-allowed"
+            >
+              <span>Дууссан</span>
+            </button>
+          ) : (
+            <button
+              onClick={handleQuickAdd}
+              disabled={isAdding}
+              className="w-full h-10 md:h-11 bg-[#1d1d1f] text-white rounded-full flex items-center justify-center gap-1.5 md:gap-2 text-[13px] md:text-sm font-medium hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
+            >
+              {isAdding ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <ShoppingCart className="w-4 h-4 md:w-[18px] md:h-[18px]" strokeWidth={2.5} />
+                  <span className="hidden sm:inline">Сагсанд нэмэх</span>
+                  <span className="sm:hidden">Нэмэх</span>
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
 
@@ -490,10 +507,25 @@ export function ProductCard({ id, title, handle, thumbnail, price, options, vari
 
               {/* Selected Variant Display */}
               {selectedVariant && (
-                <div className="p-3 bg-green-50 rounded-xl border border-green-200">
-                  <p className="text-sm text-green-800 font-medium flex items-center gap-2">
-                    <Check className="w-4 h-4" />
-                    Сонгосон: {selectedVariant.title}
+                <div className={`p-3 rounded-xl border ${
+                  isSelectedVariantInStock 
+                    ? "bg-green-50 border-green-200" 
+                    : "bg-red-50 border-red-200"
+                }`}>
+                  <p className={`text-sm font-medium flex items-center gap-2 ${
+                    isSelectedVariantInStock ? "text-green-800" : "text-red-700"
+                  }`}>
+                    {isSelectedVariantInStock ? (
+                      <>
+                        <Check className="w-4 h-4" />
+                        Сонгосон: {selectedVariant.title}
+                      </>
+                    ) : (
+                      <>
+                        <X className="w-4 h-4" />
+                        {selectedVariant.title} - Дууссан
+                      </>
+                    )}
                   </p>
                 </div>
               )}
@@ -503,14 +535,20 @@ export function ProductCard({ id, title, handle, thumbnail, price, options, vari
             <div className="p-6 border-t border-gray-100">
               <button
                 onClick={handleAddSelectedVariant}
-                disabled={!selectedVariant || isAdding}
-                className="w-full h-12 bg-[#0071e3] text-white rounded-full flex items-center justify-center gap-2 text-[15px] font-medium hover:bg-[#0077ed] disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
+                disabled={!selectedVariant || isAdding || !isSelectedVariantInStock}
+                className={`w-full h-12 rounded-full flex items-center justify-center gap-2 text-[15px] font-medium transition-all active:scale-[0.98] ${
+                  selectedVariant && !isSelectedVariantInStock
+                    ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                    : "bg-[#0071e3] text-white hover:bg-[#0077ed] disabled:opacity-50 disabled:cursor-not-allowed"
+                }`}
               >
                 {isAdding ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
+                ) : selectedVariant && !isSelectedVariantInStock ? (
+                  <span>Дууссан</span>
                 ) : (
                   <>
-                    <ShoppingCart className="w-5 h-5" />
+                    <ShoppingCart className="w-5 h-5" strokeWidth={2.5} />
                     <span>Сагсанд нэмэх</span>
                   </>
                 )}
