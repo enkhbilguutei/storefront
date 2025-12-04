@@ -32,7 +32,7 @@ export default function OrdersPage() {
       
       try {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/customers/me/orders`,
+          `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/orders`,
           {
             credentials: "include",
             headers: {

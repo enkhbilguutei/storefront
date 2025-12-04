@@ -2,8 +2,7 @@
 
 import { CloudinaryImage } from "@/components/Cloudinary";
 import { Minus, Plus, Trash2, Loader2, AlertCircle } from "lucide-react";
-import { useState } from "react";
-import { medusa } from "@/lib/medusa";
+import { useState, useCallback } from "react";
 import { useCartStore } from "@/lib/store";
 import Link from "next/link";
 
@@ -12,15 +11,15 @@ interface CartItemProps {
     id: string;
     title: string;
     quantity: number;
-    thumbnail?: string;
+    thumbnail?: string | null;
     unit_price: number;
-    variant: {
+    variant?: {
       id: string;
-      title: string;
-      product: {
-        handle: string;
-        title: string;
-      };
+      title?: string | null;
+      product?: {
+        handle?: string;
+        title?: string;
+      } | null;
     };
   };
   currencyCode: string;
@@ -30,58 +29,42 @@ interface CartItemProps {
 export function CartItem({ item, currencyCode, refreshCart }: CartItemProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const { updateItemQuantity, removeItem } = useCartStore();
 
-  const formatPrice = (amount: number) => {
+  const formatPrice = useCallback((amount: number) => {
     return new Intl.NumberFormat("mn-MN", {
       style: "currency",
       currency: currencyCode,
     }).format(amount);
-  };
+  }, [currencyCode]);
 
-  const updateQuantity = async (newQuantity: number) => {
-    if (newQuantity < 1) return;
-    
-    const cartId = useCartStore.getState().cartId;
-    if (!cartId) {
-      setError("Сагс олдсонгүй");
-      return;
-    }
+  const handleUpdateQuantity = async (newQuantity: number) => {
+    if (newQuantity < 1 || isUpdating) return;
     
     setIsUpdating(true);
     setError(null);
     
-    try {
-      await medusa.store.cart.updateLineItem(cartId, item.id, {
-        quantity: newQuantity,
-      });
-      refreshCart();
-    } catch (err) {
-      console.error("Failed to update quantity:", err);
+    const success = await updateItemQuantity(item.id, newQuantity);
+    if (!success) {
       setError("Тоо хэмжээг өөрчлөхөд алдаа гарлаа");
-    } finally {
-      setIsUpdating(false);
     }
+    
+    setIsUpdating(false);
   };
 
-  const removeItem = async () => {
-    const cartId = useCartStore.getState().cartId;
-    if (!cartId) {
-      setError("Сагс олдсонгүй");
-      return;
-    }
+  const handleRemoveItem = async () => {
+    if (isUpdating) return;
     
     setIsUpdating(true);
     setError(null);
     
-    try {
-      await medusa.store.cart.deleteLineItem(cartId, item.id);
-      refreshCart();
-    } catch (err) {
-      console.error("Failed to remove item:", err);
+    const success = await removeItem(item.id);
+    if (!success) {
       setError("Бараа устгахад алдаа гарлаа");
-    } finally {
-      setIsUpdating(false);
     }
+    
+    setIsUpdating(false);
   };
 
   return (
@@ -162,7 +145,7 @@ export function CartItem({ item, currencyCode, refreshCart }: CartItemProps) {
             {/* Quantity Controls */}
             <div className="flex items-center bg-[#f5f5f7] rounded-full p-0.5 sm:p-1">
               <button
-                onClick={() => updateQuantity(item.quantity - 1)}
+                onClick={() => handleUpdateQuantity(item.quantity - 1)}
                 disabled={isUpdating || item.quantity <= 1}
                 className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center hover:bg-white rounded-full disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
@@ -172,7 +155,7 @@ export function CartItem({ item, currencyCode, refreshCart }: CartItemProps) {
                 {item.quantity}
               </span>
               <button
-                onClick={() => updateQuantity(item.quantity + 1)}
+                onClick={() => handleUpdateQuantity(item.quantity + 1)}
                 disabled={isUpdating}
                 className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center hover:bg-white rounded-full disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
@@ -182,7 +165,7 @@ export function CartItem({ item, currencyCode, refreshCart }: CartItemProps) {
             
             {/* Remove Button */}
             <button
-              onClick={removeItem}
+              onClick={handleRemoveItem}
               disabled={isUpdating}
               className="text-[14px] sm:text-[15px] text-[#0071e3] hover:text-[#0077ed] font-medium flex items-center gap-1 sm:gap-1.5 transition-colors disabled:opacity-50"
             >

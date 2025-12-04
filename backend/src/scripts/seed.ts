@@ -235,78 +235,132 @@ export default async function seedDemoData({ container }: ExecArgs) {
     },
   });
 
-  await createShippingOptionsWorkflow(container).run({
-    input: [
-      {
-        name: "Энгийн хүргэлт",
-        price_type: "flat",
-        provider_id: "manual_manual",
-        service_zone_id: fulfillmentSet.service_zones[0].id,
-        shipping_profile_id: shippingProfile.id,
-        type: {
-          label: "Энгийн",
-          description: "2-3 хоногт хүргэнэ.",
-          code: "standard",
-        },
-        prices: [
-          {
-            currency_code: "mnt",
-            amount: 5000,
-          },
-          {
-            region_id: region.id,
-            amount: 5000,
-          },
-        ],
-        rules: [
-          {
-            attribute: "enabled_in_store",
-            value: "true",
-            operator: "eq",
-          },
-          {
-            attribute: "is_return",
-            value: "false",
-            operator: "eq",
-          },
-        ],
+  // Check for existing shipping options to avoid duplicates
+  const existingShippingOptions = await fulfillmentModuleService.listShippingOptions({});
+  const existingOptionNames = new Set(existingShippingOptions.map((o: any) => o.name));
+  
+  // Only create shipping options if they don't exist
+  const shippingOptionsToCreate: any[] = [];
+  
+  if (!existingOptionNames.has("Энгийн хүргэлт")) {
+    shippingOptionsToCreate.push({
+      name: "Энгийн хүргэлт",
+      price_type: "flat",
+      provider_id: "manual_manual",
+      service_zone_id: fulfillmentSet.service_zones[0].id,
+      shipping_profile_id: shippingProfile.id,
+      type: {
+        label: "Энгийн",
+        description: "2-3 хоногт хүргэнэ.",
+        code: "standard",
       },
-      {
-        name: "Шуурхай хүргэлт",
-        price_type: "flat",
-        provider_id: "manual_manual",
-        service_zone_id: fulfillmentSet.service_zones[0].id,
-        shipping_profile_id: shippingProfile.id,
-        type: {
-          label: "Шуурхай",
-          description: "24 цагийн дотор хүргэнэ.",
-          code: "express",
+      prices: [
+        {
+          currency_code: "mnt",
+          amount: 5000,
         },
-        prices: [
-          {
-            currency_code: "mnt",
-            amount: 10000,
-          },
-          {
-            region_id: region.id,
-            amount: 10000,
-          },
-        ],
-        rules: [
-          {
-            attribute: "enabled_in_store",
-            value: "true",
-            operator: "eq",
-          },
-          {
-            attribute: "is_return",
-            value: "false",
-            operator: "eq",
-          },
-        ],
+        {
+          region_id: region.id,
+          amount: 5000,
+        },
+      ],
+      rules: [
+        {
+          attribute: "enabled_in_store",
+          value: "true",
+          operator: "eq",
+        },
+        {
+          attribute: "is_return",
+          value: "false",
+          operator: "eq",
+        },
+      ],
+    });
+  }
+  
+  if (!existingOptionNames.has("Шуурхай хүргэлт")) {
+    shippingOptionsToCreate.push({
+      name: "Шуурхай хүргэлт",
+      price_type: "flat",
+      provider_id: "manual_manual",
+      service_zone_id: fulfillmentSet.service_zones[0].id,
+      shipping_profile_id: shippingProfile.id,
+      type: {
+        label: "Шуурхай",
+        description: "24 цагийн дотор хүргэнэ.",
+        code: "express",
       },
-    ],
-  });
+      prices: [
+        {
+          currency_code: "mnt",
+          amount: 10000,
+        },
+        {
+          region_id: region.id,
+          amount: 10000,
+        },
+      ],
+      rules: [
+        {
+          attribute: "enabled_in_store",
+          value: "true",
+          operator: "eq",
+        },
+        {
+          attribute: "is_return",
+          value: "false",
+          operator: "eq",
+        },
+      ],
+    });
+  }
+  
+  if (!existingOptionNames.has("Дэлгүүрээс авах")) {
+    shippingOptionsToCreate.push({
+      name: "Дэлгүүрээс авах",
+      price_type: "flat",
+      provider_id: "manual_manual",
+      service_zone_id: fulfillmentSet.service_zones[0].id,
+      shipping_profile_id: shippingProfile.id,
+      type: {
+        label: "Дэлгүүрээс авах",
+        description: "Peace Tower дэлгүүрээс авах.",
+        code: "pickup",
+      },
+      prices: [
+        {
+          currency_code: "mnt",
+          amount: 0,
+        },
+        {
+          region_id: region.id,
+          amount: 0,
+        },
+      ],
+      rules: [
+        {
+          attribute: "enabled_in_store",
+          value: "true",
+          operator: "eq",
+        },
+        {
+          attribute: "is_return",
+          value: "false",
+          operator: "eq",
+        },
+      ],
+    });
+  }
+  
+  if (shippingOptionsToCreate.length > 0) {
+    await createShippingOptionsWorkflow(container).run({
+      input: shippingOptionsToCreate,
+    });
+    logger.info(`Created ${shippingOptionsToCreate.length} shipping options`);
+  } else {
+    logger.info("Shipping options already exist, skipping creation");
+  }
   logger.info("Finished seeding fulfillment data.");
 
   await linkSalesChannelsToStockLocationWorkflow(container).run({

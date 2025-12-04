@@ -5,11 +5,11 @@ export interface Category {
   id: string;
   name: string;
   handle: string;
-  description?: string;
-  parent_category_id?: string;
-  parent_category?: Category;
-  category_children?: Category[];
-  metadata?: Record<string, unknown>;
+  description?: string | null;
+  parent_category_id?: string | null;
+  parent_category?: Category | null;
+  category_children?: Category[] | null;
+  metadata?: Record<string, unknown> | null;
 }
 
 // Cache the categories fetch to avoid multiple calls

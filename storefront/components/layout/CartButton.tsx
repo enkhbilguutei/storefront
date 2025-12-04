@@ -22,7 +22,7 @@ export function CartButton() {
         className="text-foreground hover:text-foreground/80 transition-colors p-2 rounded-full w-10 h-10 flex items-center justify-center relative"
         aria-label="Сагс"
       >
-        <ShoppingCart className="h-[22px] w-[22px]" strokeWidth={2.5} />
+        <ShoppingCart className="h-[22px] w-[22px]" />
       </Link>
     );
   }

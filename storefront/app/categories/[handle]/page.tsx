@@ -7,35 +7,29 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight, Package } from "lucide-react";
 
-interface ProductOption {
+// Extended variant type that includes prices
+interface VariantWithPrices {
   id: string;
-  title: string;
-  values: string[];
-}
-
-interface ProductVariant {
-  id: string;
-  title: string;
-  options: {
-    option_id: string;
-    value: string;
-  }[];
-  prices?: Array<{
-    amount: number;
-    currency_code: string;
-  }>;
+  title: string | null;
+  options?: { option_id: string; value: string }[];
+  prices?: { amount: number; currency_code: string }[];
   inventory_quantity?: number;
   manage_inventory?: boolean;
   allow_backorder?: boolean;
 }
 
-interface Product {
+// Extended types for product data with prices
+interface ProductWithPrices {
   id: string;
   title: string;
   handle: string;
   thumbnail?: string;
-  options?: ProductOption[];
-  variants?: ProductVariant[];
+  options?: {
+    id: string;
+    title: string;
+    values?: { id: string; value: string }[];
+  }[] | null;
+  variants?: VariantWithPrices[] | null;
 }
 
 export default async function CategoryPage({ 
@@ -54,20 +48,22 @@ export default async function CategoryPage({
     notFound();
   }
   
-  const products = await getProductsByCategory(category.id) as Product[];
+  const rawProducts = await getProductsByCategory(category.id);
+  // Cast to our extended type that includes prices
+  const products = rawProducts as unknown as ProductWithPrices[];
   
   // Sort products based on query params
   const sortedProducts = [...products];
   const sortOrder = query.sort as string;
   
   if (sortOrder === 'price_asc') {
-    sortedProducts.sort((a: Product, b: Product) => {
+    sortedProducts.sort((a, b) => {
       const priceA = a.variants?.[0]?.prices?.[0]?.amount || 0;
       const priceB = b.variants?.[0]?.prices?.[0]?.amount || 0;
       return priceA - priceB;
     });
   } else if (sortOrder === 'price_desc') {
-    sortedProducts.sort((a: Product, b: Product) => {
+    sortedProducts.sort((a, b) => {
       const priceA = a.variants?.[0]?.prices?.[0]?.amount || 0;
       const priceB = b.variants?.[0]?.prices?.[0]?.amount || 0;
       return priceB - priceA;
@@ -127,25 +123,41 @@ export default async function CategoryPage({
           {/* Product Grid */}
           {sortedProducts.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {sortedProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  id={product.id}
-                  title={product.title}
-                  handle={product.handle}
-                  thumbnail={product.thumbnail}
-                  options={product.options}
-                  variants={product.variants}
-                  price={
-                    product.variants?.[0]?.prices?.[0]
-                      ? {
-                          amount: product.variants[0].prices[0].amount,
-                          currencyCode: product.variants[0].prices[0].currency_code,
-                        }
-                      : undefined
-                  }
-                />
-              ))}
+              {sortedProducts.map((product) => {
+                const firstVariant = product.variants?.[0];
+                const firstPrice = firstVariant?.prices?.[0];
+                
+                return (
+                  <ProductCard
+                    key={product.id}
+                    id={product.id}
+                    title={product.title}
+                    handle={product.handle}
+                    thumbnail={product.thumbnail}
+                    options={product.options?.map(opt => ({
+                      id: opt.id,
+                      title: opt.title,
+                      values: opt.values?.map(v => v.value) ?? []
+                    }))}
+                    variants={product.variants?.map(v => ({
+                      id: v.id,
+                      title: v.title ?? "Default",
+                      options: v.options,
+                      inventory_quantity: v.inventory_quantity,
+                      manage_inventory: v.manage_inventory,
+                      allow_backorder: v.allow_backorder
+                    }))}
+                    price={
+                      firstPrice
+                        ? {
+                            amount: firstPrice.amount,
+                            currencyCode: firstPrice.currency_code,
+                          }
+                        : undefined
+                    }
+                  />
+                );
+              })}
             </div>
           ) : (
             <div className="bg-white rounded-2xl p-12 text-center shadow-sm">

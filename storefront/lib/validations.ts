@@ -31,7 +31,6 @@ export const addressSchema = z.object({
   address2: z.string().optional(),
   city: z.string().min(1, "City is required"),
   province: z.string().optional(),
-  postalCode: z.string().min(1, "Postal code is required"),
   countryCode: z.string().min(2, "Country is required"),
   phone: z.string().optional(),
   company: z.string().optional(),
@@ -72,6 +71,59 @@ export const searchSchema = z.object({
   offset: z.number().int().min(0).optional(),
 });
 
+// Checkout schemas (Mongolian)
+export const checkoutContactSchema = z.object({
+  firstName: z.string().min(1, "Нэр оруулна уу"),
+  lastName: z.string().min(1, "Овог оруулна уу"),
+  email: z.string().email("И-мэйл хаяг буруу байна"),
+  phone: z.string().length(8, "Утасны дугаар 8 оронтой байх ёстой").regex(/^\d{8}$/, "Утасны дугаар зөвхөн тоо байх ёстой"),
+});
+
+export const checkoutDeliveryMethodSchema = z.enum(["delivery", "pickup"], {
+  message: "Хүргэлтийн төрөл сонгоно уу",
+});
+
+export const checkoutAddressSchema = z.object({
+  city: z.string().min(1, "Хот/Аймаг сонгоно уу"),
+  district: z.string().min(1, "Дүүрэг/Сум оруулна уу"),
+  khoroo: z.string().min(1, "Хороо/Баг оруулна уу"),
+  street: z.string().min(1, "Гудамж оруулна уу"),
+  building: z.string().min(1, "Байрны дугаар оруулна уу"),
+  apartment: z.string().min(1, "Тоот оруулна уу"),
+  additionalInfo: z.string().optional(),
+  countryCode: z.string().default("mn"),
+});
+
+export const checkoutPaymentMethodSchema = z.enum(["bank_transfer", "cash_on_delivery"], {
+  message: "Төлбөрийн хэлбэр сонгоно уу",
+});
+
+export const checkoutShippingOptionSchema = z.object({
+  shippingOptionId: z.string().min(1, "Хүргэлтийн сонголт сонгоно уу"),
+});
+
+// Full checkout form schema
+export const checkoutFormSchema = z.object({
+  firstName: z.string().min(1, "Нэр оруулна уу"),
+  lastName: z.string().min(1, "Овог оруулна уу"),
+  email: z.string().email("И-мэйл хаяг буруу байна"),
+  phone: z.string().length(8, "Утасны дугаар 8 оронтой байх ёстой").regex(/^\d{8}$/, "Утасны дугаар зөвхөн тоо байх ёстой"),
+  deliveryMethod: checkoutDeliveryMethodSchema,
+  shippingAddress: checkoutAddressSchema.optional(),
+  shippingOptionId: z.string().optional(),
+  paymentMethod: checkoutPaymentMethodSchema,
+  notes: z.string().optional(),
+}).refine((data) => {
+  // If delivery is selected, shipping address is required
+  if (data.deliveryMethod === "delivery") {
+    return data.shippingAddress !== undefined;
+  }
+  return true;
+}, {
+  message: "Хүргэлтийн хаяг оруулна уу",
+  path: ["shippingAddress"],
+});
+
 // Types
 export type CustomerInput = z.infer<typeof customerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
@@ -81,3 +133,8 @@ export type AddToCartInput = z.infer<typeof addToCartSchema>;
 export type UpdateCartItemInput = z.infer<typeof updateCartItemSchema>;
 export type ContactInput = z.infer<typeof contactSchema>;
 export type SearchInput = z.infer<typeof searchSchema>;
+export type CheckoutContactInput = z.infer<typeof checkoutContactSchema>;
+export type CheckoutDeliveryMethod = z.infer<typeof checkoutDeliveryMethodSchema>;
+export type CheckoutAddressInput = z.infer<typeof checkoutAddressSchema>;
+export type CheckoutPaymentMethod = z.infer<typeof checkoutPaymentMethodSchema>;
+export type CheckoutFormInput = z.infer<typeof checkoutFormSchema>;

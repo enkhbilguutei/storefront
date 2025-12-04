@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useSyncExternalStore } from "react";
+import { useEffect, useRef, useCallback, useSyncExternalStore, useMemo } from "react";
 import { useCartStore, useUIStore } from "@/lib/store";
 import { CloudinaryImage } from "@/components/Cloudinary";
 import Link from "next/link";
@@ -45,7 +45,7 @@ const createVisibilityStore = () => {
 const visibilityStore = createVisibilityStore();
 
 export function CartNotification() {
-  const { lastAddedItem, items, syncCart } = useCartStore();
+  const { lastAddedItem, items, fetchCart } = useCartStore();
   const { isCartNotificationOpen, closeCartNotification } = useUIStore();
   const { isVisible, isAnimatingOut } = useSyncExternalStore(
     visibilityStore.subscribe,
@@ -74,10 +74,10 @@ export function CartNotification() {
       
       visibilityStore.show();
       
-      // Sync cart once to get fresh data
+      // Fetch cart once to get fresh data (uses caching)
       if (!hasSyncedRef.current) {
         hasSyncedRef.current = true;
-        syncCart();
+        fetchCart();
       }
       
       // Auto close after 4 seconds
@@ -91,7 +91,7 @@ export function CartNotification() {
         clearTimeout(timerRef.current);
       }
     };
-  }, [isCartNotificationOpen, lastAddedItem, handleClose, syncCart]);
+  }, [isCartNotificationOpen, lastAddedItem, handleClose, fetchCart]);
 
   // Get the most up-to-date item data from synced cart
   const displayItem = lastAddedItem 
@@ -106,8 +106,25 @@ export function CartNotification() {
     }).format(amount);
   };
 
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-  const totalPrice = items.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
+  // Calculate totals from items array, but ensure lastAddedItem is included
+  // This handles the case where the store hasn't fully synced yet
+  const { totalItems, totalPrice } = useMemo(() => {
+    // Start with the items from store
+    let calculatedItems = [...items];
+    
+    // If lastAddedItem exists and isn't in items yet, include it
+    if (lastAddedItem) {
+      const existingItem = calculatedItems.find(item => item.variantId === lastAddedItem.variantId);
+      if (!existingItem) {
+        calculatedItems = [...calculatedItems, lastAddedItem];
+      }
+    }
+    
+    const total = calculatedItems.reduce((sum, item) => sum + item.quantity, 0);
+    const price = calculatedItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
+    
+    return { totalItems: total, totalPrice: price };
+  }, [items, lastAddedItem]);
 
   if (!isVisible || !displayItem) return null;
 

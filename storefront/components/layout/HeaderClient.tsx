@@ -124,7 +124,7 @@ export function HeaderClient({ categories }: HeaderClientProps) {
               className="hidden lg:flex text-foreground/80 hover:text-foreground transition-colors p-2 rounded-full w-10 h-10 items-center justify-center"
               aria-label="Хайх"
             >
-              <Search className="h-5 w-5" strokeWidth={2.5} />
+              <Search className="h-5 w-5" />
             </button>
             {/* Mobile Search Button */}
             <button 
@@ -132,7 +132,7 @@ export function HeaderClient({ categories }: HeaderClientProps) {
               className="lg:hidden text-foreground/80 hover:text-foreground transition-colors p-2 rounded-full w-10 h-10 flex items-center justify-center"
               aria-label="Хайх"
             >
-              <Search className="h-5 w-5" strokeWidth={2.5} />
+              <Search className="h-5 w-5" />
             </button>
             <CartButton />
             <UserMenu />
@@ -142,7 +142,7 @@ export function HeaderClient({ categories }: HeaderClientProps) {
               className="lg:hidden text-foreground/80 hover:text-foreground transition-colors p-2 rounded-full w-10 h-10 flex items-center justify-center"
               aria-label={isMobileMenuOpen ? "Цэсийг хаах" : "Цэсийг нээх"}
             >
-              {isMobileMenuOpen ? <X className="h-5 w-5" strokeWidth={2.5} /> : <Menu className="h-5 w-5" strokeWidth={2.5} />}
+              {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
           </div>
         </div>

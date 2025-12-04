@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { medusa } from "@/lib/medusa";
 import { useCartStore, useUIStore } from "@/lib/store";
 import { CloudinaryImage } from "@/components/Cloudinary";
@@ -22,27 +22,27 @@ import {
 
 interface ProductVariant {
   id: string;
-  title: string;
-  prices: {
+  title?: string | null;
+  prices?: {
     amount: number;
     currency_code: string;
   }[];
   options?: {
     id: string;
-    option_id: string;
+    option_id?: string | null;
     value: string;
-  }[];
+  }[] | null;
   thumbnail?: string | null;
-  images?: ProductImage[];
-  inventory_quantity?: number;
-  manage_inventory?: boolean;
-  allow_backorder?: boolean;
+  images?: ProductImage[] | null;
+  inventory_quantity?: number | null;
+  manage_inventory?: boolean | null;
+  allow_backorder?: boolean | null;
 }
 
 interface ProductOption {
   id: string;
   title: string;
-  values: {
+  values?: {
     id: string;
     value: string;
   }[];
@@ -57,11 +57,11 @@ interface Product {
   id: string;
   title: string;
   handle: string;
-  description: string;
-  thumbnail: string;
-  images: ProductImage[];
-  variants: ProductVariant[];
-  options: ProductOption[];
+  description?: string | null;
+  thumbnail?: string | null;
+  images?: ProductImage[] | null;
+  variants?: ProductVariant[] | null;
+  options?: ProductOption[] | null;
 }
 
 interface ProductDetailsProps {
@@ -72,12 +72,19 @@ export function ProductDetails({ product }: ProductDetailsProps) {
   const { cartId, setCartId, addItem, syncCart } = useCartStore();
   const { openCartNotification } = useUIStore();
   
+  // Scroll to top when navigating to product page
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [product.id]);
+  
   // Track selected option values
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(() => {
     const initial: Record<string, string> = {};
     if (product.variants?.[0]?.options) {
       product.variants[0].options.forEach((opt) => {
-        initial[opt.option_id] = opt.value;
+        if (opt.option_id) {
+          initial[opt.option_id] = opt.value;
+        }
       });
     }
     return initial;
@@ -91,7 +98,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
     return product.variants.find((variant) => {
       if (!variant.options) return false;
       return variant.options.every(
-        (opt) => selectedOptions[opt.option_id] === opt.value
+        (opt) => opt.option_id && selectedOptions[opt.option_id] === opt.value
       );
     }) || product.variants[0];
   }, [product.variants, selectedOptions]);
@@ -235,62 +242,64 @@ export function ProductDetails({ product }: ProductDetailsProps) {
   };
 
   const handleAddToCart = async () => {
-    if (!selectedVariant) return;
+    if (!selectedVariant || isAdding) return;
     
     setIsAdding(true);
     
-    // Immediately show notification with optimistic data
-    const optimisticItem = {
-      id: "temp-" + Date.now(),
-      variantId: selectedVariant.id,
-      productId: product.id,
-      title: product.title,
-      quantity: quantity,
-      thumbnail: product.thumbnail,
-      unitPrice: selectedVariant.prices?.[0]?.amount || 0,
-      handle: product.handle
-    };
-    
-    addItem(optimisticItem);
-    openCartNotification();
-    setIsAdding(false);
-    
-    // Do API calls in background
-    (async () => {
-      try {
-        let currentCartId = cartId;
+    try {
+      let currentCartId = cartId;
 
-        // Create cart if it doesn't exist
-        if (!currentCartId) {
-          // First get a region
-          const { regions } = await medusa.store.region.list();
-          if (!regions || regions.length === 0) {
-            console.error("No regions available");
-            return;
-          }
-          
-          const { cart } = await medusa.store.cart.create({
-            region_id: regions[0].id
-          });
-          currentCartId = cart.id;
-          setCartId(cart.id);
+      // Create cart if it doesn't exist
+      if (!currentCartId) {
+        // First get a region
+        const { regions } = await medusa.store.region.list();
+        if (!regions || regions.length === 0) {
+          console.error("No regions available");
+          setIsAdding(false);
+          return;
         }
-
-        if (!currentCartId) return;
-
-        // Add item to Medusa cart
-        await medusa.store.cart.createLineItem(currentCartId, {
-          variant_id: selectedVariant.id,
-          quantity: quantity,
-        });
-
-        // Sync cart state from server in background
-        syncCart();
         
-      } catch (error) {
-        console.error("Error adding to cart:", error);
+        const { cart } = await medusa.store.cart.create({
+          region_id: regions[0].id
+        });
+        currentCartId = cart.id;
+        setCartId(cart.id);
       }
-    })();
+
+      if (!currentCartId) {
+        setIsAdding(false);
+        return;
+      }
+
+      // Add item to Medusa cart
+      await medusa.store.cart.createLineItem(currentCartId, {
+        variant_id: selectedVariant.id,
+        quantity: quantity,
+      });
+
+      // Sync cart state from server
+      await syncCart();
+      
+      // Only show notification after successful API call with real data
+      const addedItem = {
+        id: "added-" + Date.now(),
+        variantId: selectedVariant.id,
+        productId: product.id,
+        title: product.title,
+        quantity: quantity,
+        thumbnail: product.thumbnail,
+        unitPrice: selectedVariant.prices?.[0]?.amount || 0,
+        handle: product.handle
+      };
+      
+      addItem(addedItem);
+      openCartNotification();
+      
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   const nextImage = () => {
@@ -448,7 +457,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
                     // Variant thumbnail selector - uses variant's own image
                     // Shows the color image from ANY variant with that color (not storage-specific)
                     <div className="flex flex-wrap gap-3">
-                      {option.values.map((value) => {
+                      {option.values?.map((value) => {
                         const isSelected = selectedOptions[option.id] === value.value;
                         const thumbnailUrl = getThumbnailForColorValue(option.id, value.value);
                         
@@ -482,7 +491,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
                   ) : (
                     // Regular option buttons
                     <div className="flex flex-wrap gap-2">
-                      {option.values.map((value) => (
+                      {option.values?.map((value) => (
                         <button
                           key={value.id}
                           onClick={() => handleOptionSelect(option.id, value.value)}

@@ -13,7 +13,6 @@ const addressSchema = z.object({
   address2: z.string().optional(),
   city: z.string().min(1, "Хот/Аймаг оруулна уу"),
   province: z.string().optional(),
-  postalCode: z.string().optional(),
 });
 
 interface Address {
@@ -25,7 +24,6 @@ interface Address {
   address_2?: string;
   city: string;
   province?: string;
-  postal_code?: string;
   country_code: string;
   is_default_shipping?: boolean;
   is_default_billing?: boolean;
@@ -48,7 +46,6 @@ export default function AddressesPage() {
     address2: "",
     city: "",
     province: "",
-    postalCode: "",
   });
 
   useEffect(() => {
@@ -114,7 +111,6 @@ export default function AddressesPage() {
           address_2: validatedData.address2,
           city: validatedData.city,
           province: validatedData.province,
-          postal_code: validatedData.postalCode,
           country_code: "mn",
         }),
       });
@@ -179,7 +175,6 @@ export default function AddressesPage() {
       address2: address.address_2 || "",
       city: address.city,
       province: address.province || "",
-      postalCode: address.postal_code || "",
     });
     setShowForm(true);
   };
@@ -193,7 +188,6 @@ export default function AddressesPage() {
       address2: "",
       city: "",
       province: "",
-      postalCode: "",
     });
   };
 
@@ -329,31 +323,39 @@ export default function AddressesPage() {
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground/70 mb-2">
-                  Хот/Аймаг *
-                </label>
-                <input
-                  type="text"
-                  value={formData.city}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:border-foreground/40 transition-all"
-                  placeholder="Улаанбаатар"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground/70 mb-2">
-                  Шуудангийн код
-                </label>
-                <input
-                  type="text"
-                  value={formData.postalCode}
-                  onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:border-foreground/40 transition-all"
-                  placeholder="14200"
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground/70 mb-2">
+                Хот/Аймаг *
+              </label>
+              <select
+                value={formData.city}
+                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:border-foreground/40 transition-all appearance-none cursor-pointer bg-white"
+              >
+                <option value="">Сонгоно уу</option>
+                <option value="Улаанбаатар">Улаанбаатар</option>
+                <option value="Дархан-Уул">Дархан-Уул</option>
+                <option value="Орхон">Орхон (Эрдэнэт)</option>
+                <option value="Архангай">Архангай</option>
+                <option value="Баян-Өлгий">Баян-Өлгий</option>
+                <option value="Баянхонгор">Баянхонгор</option>
+                <option value="Булган">Булган</option>
+                <option value="Говь-Алтай">Говь-Алтай</option>
+                <option value="Говьсүмбэр">Говьсүмбэр</option>
+                <option value="Дорноговь">Дорноговь</option>
+                <option value="Дорнод">Дорнод</option>
+                <option value="Дундговь">Дундговь</option>
+                <option value="Завхан">Завхан</option>
+                <option value="Өвөрхангай">Өвөрхангай</option>
+                <option value="Өмнөговь">Өмнөговь</option>
+                <option value="Сүхбаатар">Сүхбаатар</option>
+                <option value="Сэлэнгэ">Сэлэнгэ</option>
+                <option value="Төв">Төв</option>
+                <option value="Увс">Увс</option>
+                <option value="Ховд">Ховд</option>
+                <option value="Хөвсгөл">Хөвсгөл</option>
+                <option value="Хэнтий">Хэнтий</option>
+              </select>
             </div>
 
             <div className="flex gap-3 pt-4">
@@ -423,7 +425,7 @@ export default function AddressesPage() {
               <div className="space-y-1 text-sm text-secondary mb-4">
                 <p>{address.address_1}</p>
                 {address.address_2 && <p>{address.address_2}</p>}
-                <p>{address.city}{address.postal_code ? `, ${address.postal_code}` : ""}</p>
+                <p>{address.city}</p>
                 {address.phone && <p className="text-foreground">{address.phone}</p>}
               </div>
 

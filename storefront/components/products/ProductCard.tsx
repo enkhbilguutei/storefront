@@ -242,15 +242,33 @@ export function ProductCard({ id, title, handle, thumbnail, price, options, vari
       let currentCartId = cartId;
 
       if (!currentCartId) {
-        const { cart } = await medusa.store.cart.create({});
+        // Get region first for proper cart creation
+        const { regions } = await medusa.store.region.list();
+        if (!regions || regions.length === 0) {
+          console.error("No regions available");
+          setIsAdding(false);
+          return;
+        }
+        
+        const { cart } = await medusa.store.cart.create({
+          region_id: regions[0].id
+        });
         currentCartId = cart.id;
         setCartId(cart.id);
       }
 
       const variantId = variant.id;
 
+      await medusa.store.cart.createLineItem(currentCartId!, {
+        variant_id: variantId,
+        quantity: 1,
+      });
+
+      await syncCart();
+
+      // Only show notification after successful API call
       addItem({
-        id: "temp-" + Date.now(),
+        id: "added-" + Date.now(),
         variantId: variantId,
         productId: id,
         title: title,
@@ -262,16 +280,9 @@ export function ProductCard({ id, title, handle, thumbnail, price, options, vari
       });
       
       openCartNotification();
-      setIsAdding(false);
-
-      await medusa.store.cart.createLineItem(currentCartId!, {
-        variant_id: variantId,
-        quantity: 1,
-      });
-
-      await syncCart();
     } catch (error) {
       console.error("Failed to add to cart:", error);
+    } finally {
       setIsAdding(false);
     }
   };

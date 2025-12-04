@@ -4,94 +4,259 @@ import { medusa } from "@/lib/medusa";
 import type { Session } from "next-auth";
 import type { AuthAction } from "@/lib/auth";
 
-interface CartItem {
+// Cart types
+export interface CartItem {
   id: string;
   variantId: string;
   productId: string;
   title: string;
   variantTitle?: string;
   quantity: number;
-  thumbnail?: string;
+  thumbnail?: string | null;
   unitPrice: number;
   handle?: string;
 }
 
+export interface CartData {
+  id: string;
+  email?: string;
+  items: CartItem[];
+  subtotal?: number;
+  discount_total?: number;
+  shipping_total?: number;
+  tax_total?: number;
+  total?: number;
+  currency_code: string;
+  region_id?: string;
+  shipping_methods?: Array<{ id: string; shipping_option_id?: string; name?: string }>;
+  completed_at?: string;
+  status?: string;
+}
+
 interface CartStore {
+  // State
   cartId: string | null;
+  cart: CartData | null;
   items: CartItem[];
   isOpen: boolean;
   isLoading: boolean;
+  isFetching: boolean;
+  error: string | null;
   lastAddedItem: CartItem | null;
+  lastFetchTime: number;
+  
+  // Actions
   setCartId: (id: string | null) => void;
   setItems: (items: CartItem[]) => void;
-  addItem: (item: CartItem) => void;
+  addItemOptimistic: (item: CartItem) => void;
+  addItem: (item: CartItem) => void; // Alias for addItemOptimistic
   setLastAddedItem: (item: CartItem | null) => void;
   openCart: () => void;
   closeCart: () => void;
   toggleCart: () => void;
   clearCart: () => void;
-  syncCart: () => Promise<void>;
+  setError: (error: string | null) => void;
+  
+  // API Actions
+  fetchCart: (force?: boolean) => Promise<CartData | null>;
+  syncCart: () => Promise<CartData | null>; // Alias for fetchCart(true)
+  updateItemQuantity: (itemId: string, quantity: number) => Promise<boolean>;
+  removeItem: (itemId: string) => Promise<boolean>;
 }
+
+// Request deduplication
+let pendingFetch: Promise<CartData | null> | null = null;
+const CACHE_DURATION = 5000; // 5 seconds cache
 
 export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
       cartId: null,
+      cart: null,
       items: [],
       isOpen: false,
       isLoading: false,
+      isFetching: false,
+      error: null,
       lastAddedItem: null,
+      lastFetchTime: 0,
+      
       setCartId: (id) => set({ cartId: id }),
       setItems: (items) => set({ items }),
-      addItem: (item) => set((state) => {
-        // Optimistically add item to the items array for immediate UI update
-        const existingItem = state.items.find((i) => i.variantId === item.variantId);
-        let newItems;
-        if (existingItem) {
-          newItems = state.items.map((i) =>
-            i.variantId === item.variantId ? { ...i, quantity: i.quantity + item.quantity } : i
-          );
-        } else {
-          newItems = [...state.items, item];
-        }
-        return { items: newItems, lastAddedItem: item };
-      }),
+      setError: (error) => set({ error }),
+      
+      addItemOptimistic: (item) => {
+        set((state) => {
+          const existingItem = state.items.find((i) => i.variantId === item.variantId);
+          let newItems: CartItem[];
+          if (existingItem) {
+            newItems = state.items.map((i) =>
+              i.variantId === item.variantId ? { ...i, quantity: i.quantity + item.quantity } : i
+            );
+          } else {
+            newItems = [...state.items, item];
+          }
+          return { items: newItems, lastAddedItem: item };
+        });
+        // Sync with server after optimistic update
+        setTimeout(() => get().fetchCart(true), 300);
+      },
+      
+      // Backwards-compatible alias
+      addItem: (item) => get().addItemOptimistic(item),
+      
       setLastAddedItem: (item) => set({ lastAddedItem: item }),
       openCart: () => set({ isOpen: true }),
       closeCart: () => set({ isOpen: false }),
       toggleCart: () => set((state) => ({ isOpen: !state.isOpen })),
-      clearCart: () => set({ cartId: null, items: [], lastAddedItem: null }),
-      syncCart: async () => {
-        const { cartId } = get();
+      clearCart: () => set({ cartId: null, cart: null, items: [], lastAddedItem: null, error: null }),
+      
+      fetchCart: async (force = false) => {
+        const { cartId, lastFetchTime, isFetching } = get();
+        
         if (!cartId) {
-            set({ items: [], isLoading: false });
-            return;
+          set({ cart: null, items: [], isLoading: false, isFetching: false });
+          return null;
         }
-        try {
-          const { cart } = await medusa.store.cart.retrieve(cartId, {
-            fields: "+items.variant.product.handle,+items.variant.product.title,+items.variant.title",
-          });
-          if (!cart || !cart.items) {
-             set({ cartId: null, items: [], isLoading: false });
-             return;
+        
+        // Return cached data if within cache duration and not forced
+        const now = Date.now();
+        if (!force && now - lastFetchTime < CACHE_DURATION && get().cart) {
+          return get().cart;
+        }
+        
+        // Deduplicate concurrent requests
+        if (pendingFetch && isFetching) {
+          return pendingFetch;
+        }
+        
+        set({ isFetching: true, error: null });
+        
+        pendingFetch = (async () => {
+          try {
+            const { cart } = await medusa.store.cart.retrieve(cartId, {
+              fields: "+items.variant.product.handle,+items.variant.product.title,+items.variant.title,+shipping_methods.shipping_option_id",
+            });
+            
+            if (!cart || !cart.items) {
+              get().clearCart();
+              return null;
+            }
+            
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const cartAny = cart as any;
+            if (cartAny.completed_at || cartAny.status === "completed") {
+              get().clearCart();
+              return null;
+            }
+            
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const mappedItems: CartItem[] = cart.items.map((item: any) => ({
+              id: item.id,
+              variantId: item.variant_id,
+              productId: item.variant?.product_id || item.product_id,
+              title: item.title,
+              variantTitle: item.variant?.title,
+              quantity: item.quantity,
+              thumbnail: item.thumbnail,
+              unitPrice: item.unit_price,
+              handle: item.variant?.product?.handle,
+            }));
+            
+            const cartData: CartData = {
+              id: cart.id,
+              email: cart.email || undefined,
+              items: mappedItems,
+              subtotal: cartAny.subtotal,
+              discount_total: cartAny.discount_total,
+              shipping_total: cartAny.shipping_total,
+              tax_total: cartAny.tax_total,
+              total: cartAny.total,
+              currency_code: cart.currency_code,
+              region_id: cart.region_id || undefined,
+              shipping_methods: cartAny.shipping_methods,
+            };
+            
+            set({ 
+              cart: cartData, 
+              items: mappedItems, 
+              isLoading: false, 
+              isFetching: false,
+              lastFetchTime: Date.now(),
+              error: null,
+            });
+            
+            return cartData;
+          } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            
+            if (errorMessage.includes("completed") || errorMessage.includes("not found") || errorMessage.includes("404")) {
+              get().clearCart();
+              return null;
+            }
+            
+            set({ error: "Сагс ачаалахад алдаа гарлаа", isLoading: false, isFetching: false });
+            return null;
+          } finally {
+            pendingFetch = null;
           }
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const mappedItems = cart.items.map((item: any) => ({
-            id: item.id,
-            variantId: item.variant_id,
-            productId: item.variant?.product_id || item.product_id,
-            title: item.title,
-            variantTitle: item.variant?.title,
-            quantity: item.quantity,
-            thumbnail: item.thumbnail,
-            unitPrice: item.unit_price,
-            handle: item.variant?.product?.handle 
-          }));
-          set({ items: mappedItems, isLoading: false });
-        } catch (error) {
-          console.error("Failed to sync cart:", error);
-          // Cart might be expired or invalid, clear it
-          set({ cartId: null, items: [], isLoading: false });
+        })();
+        
+        return pendingFetch;
+      },
+      
+      // Backwards-compatible alias for fetchCart(true)
+      syncCart: () => get().fetchCart(true),
+      
+      updateItemQuantity: async (itemId, quantity) => {
+        const { cartId, items } = get();
+        if (!cartId) return false;
+        
+        // Optimistic update
+        const previousItems = [...items];
+        set({
+          items: items.map((i) => i.id === itemId ? { ...i, quantity } : i),
+        });
+        
+        try {
+          await medusa.store.cart.updateLineItem(cartId, itemId, { quantity });
+          // Refresh cart data
+          await get().fetchCart(true);
+          return true;
+        } catch (error: unknown) {
+          // Rollback on error
+          set({ items: previousItems });
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          if (errorMessage.includes("completed")) {
+            get().clearCart();
+          }
+          return false;
+        }
+      },
+      
+      removeItem: async (itemId) => {
+        const { cartId, items } = get();
+        if (!cartId) return false;
+        
+        // Optimistic update
+        const previousItems = [...items];
+        set({
+          items: items.filter((i) => i.id !== itemId),
+        });
+        
+        try {
+          await medusa.store.cart.deleteLineItem(cartId, itemId);
+          // Refresh cart data
+          await get().fetchCart(true);
+          return true;
+        } catch (error: unknown) {
+          // Rollback on error
+          set({ items: previousItems });
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          if (errorMessage.includes("completed")) {
+            get().clearCart();
+          }
+          return false;
         }
       },
     }),
@@ -99,11 +264,17 @@ export const useCartStore = create<CartStore>()(
       name: "cart-storage",
       partialize: (state) => ({ 
         cartId: state.cartId,
-        // Don't persist items - always fetch fresh from server
+        items: state.items,
       }),
     }
   )
 );
+
+// Selector hooks for performance
+export const useCart = () => useCartStore((state) => state.cart);
+export const useCartItems = () => useCartStore((state) => state.items);
+export const useCartId = () => useCartStore((state) => state.cartId);
+export const useCartLoading = () => useCartStore((state) => state.isLoading || state.isFetching);
 
 interface User {
   id: string;
@@ -207,7 +378,7 @@ export const useUIStore = create<UIStore>((set) => ({
   toggleSearch: () => set((state) => ({ isSearchOpen: !state.isSearchOpen })),
   openCartNotification: () => set({ isCartNotificationOpen: true }),
   closeCartNotification: () => set({ isCartNotificationOpen: false }),
-  openAuthModal: (action = null, view = "login") => set({ 
+  openAuthModal: (action = undefined, view = "login") => set({ 
     isAuthModalOpen: true, 
     authModalAction: action,
     authModalView: view,

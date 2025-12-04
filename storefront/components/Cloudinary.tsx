@@ -4,7 +4,7 @@ import { CldImage, CldUploadWidget } from "next-cloudinary";
 import Image from "next/image";
 
 interface CloudinaryImageProps {
-  src: string;
+  src?: string | null;
   alt: string;
   width: number;
   height: number;

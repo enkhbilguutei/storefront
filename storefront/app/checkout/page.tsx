@@ -1,0 +1,705 @@
+"use client";
+
+import Link from "next/link";
+import Image from "next/image";
+import {
+  ArrowLeft,
+  Loader2,
+  ShoppingBag,
+  Lock,
+  AlertCircle,
+  User,
+  Mail,
+  Phone,
+  Truck,
+  Store,
+  MapPin,
+  Clock,
+  Building2,
+  Banknote,
+  Package,
+  LogIn,
+  CheckCircle,
+} from "lucide-react";
+import { Footer } from "@/components/layout/Footer";
+import { useCheckout, completeCheckout, handleCheckoutError, STORE_INFO, CITIES, UB_DISTRICTS } from "@/lib/checkout";
+
+export default function CheckoutPage() {
+  const checkout = useCheckout();
+
+  // Handle form submission
+  const handleSubmit = async () => {
+    if (checkout.isSubmitting || checkout.isCompletingRef.current) {
+      console.log("Submission already in progress, ignoring duplicate click");
+      return;
+    }
+
+    const now = Date.now();
+    if (now - checkout.lastSubmitAttempt.current < 3000) {
+      console.log("Too soon after last submission attempt, ignoring");
+      return;
+    }
+    checkout.lastSubmitAttempt.current = now;
+
+    checkout.setFormSubmitted(true);
+
+    if (!checkout.validate() || !checkout.cartId || !checkout.cart) {
+      const firstError = document.querySelector('[data-error="true"]');
+      firstError?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
+    // Check if cart is already completed
+    if (checkout.cart.completed_at || checkout.cart.status === "completed") {
+      checkout.clearCart();
+      checkout.router.push("/");
+      return;
+    }
+
+    checkout.isCompletingRef.current = true;
+    checkout.setIsSubmitting(true);
+    checkout.setError(null);
+
+    let shouldResetState = true;
+
+    try {
+      await completeCheckout({
+        cartId: checkout.cartId,
+        cart: checkout.cart,
+        firstName: checkout.firstName,
+        lastName: checkout.lastName,
+        email: checkout.email,
+        phone: checkout.phone,
+        deliveryMethod: checkout.deliveryMethod,
+        city: checkout.city,
+        district: checkout.district,
+        khoroo: checkout.khoroo,
+        street: checkout.street,
+        building: checkout.building,
+        apartment: checkout.apartment,
+        additionalInfo: checkout.additionalInfo,
+        paymentMethod: checkout.paymentMethod,
+        onSuccess: (orderId, paymentMethod) => {
+          shouldResetState = false; // Don't reset on success (navigating away)
+          checkout.router.push(`/checkout/confirmation?order_id=${orderId}&payment_method=${paymentMethod}`);
+        },
+        clearCart: checkout.clearCart,
+      });
+    } catch (err) {
+      const result = await handleCheckoutError(
+        err,
+        checkout.cartId!,
+        checkout.paymentMethod,
+        checkout.clearCart,
+        (orderId, paymentMethod) => {
+          shouldResetState = false; // Don't reset on success redirect
+          checkout.router.push(`/checkout/confirmation?order_id=${orderId}&payment_method=${paymentMethod}`);
+        }
+      );
+      
+      if (result === "__redirect_confirmation__") {
+        shouldResetState = false;
+        // Redirect to confirmation - it will try to find the recent order
+        checkout.router.push(`/checkout/confirmation?payment_method=${checkout.paymentMethod}`);
+        return;
+      } else if (result === "__refresh_5s__") {
+        checkout.setError("Захиалга боловсруулж байна. 5 секундын дараа автоматаар шинэчлэгдэнэ...");
+        setTimeout(() => window.location.reload(), 5000);
+        return;
+      } else if (result) {
+        checkout.setError(result);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    } finally {
+      if (shouldResetState) {
+        checkout.isCompletingRef.current = false;
+        checkout.setIsSubmitting(false);
+      }
+    }
+  };
+
+  // Loading state
+  if (checkout.isLoading || checkout.sessionStatus === "loading") {
+    return (
+      <div className="min-h-screen flex flex-col bg-[#f8f8f8]">
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin text-[#0071e3] mx-auto mb-4" />
+            <p className="text-gray-500">Ачаалж байна...</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Empty cart
+  if (!checkout.cart || !checkout.cart.items?.length) {
+    return (
+      <div className="min-h-screen flex flex-col bg-[#f8f8f8]">
+        <main className="flex-1 flex items-center justify-center py-20">
+          <div className="text-center max-w-md px-6">
+            <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center mx-auto mb-6 shadow-sm">
+              <ShoppingBag className="w-10 h-10 text-gray-400" />
+            </div>
+            <h1 className="text-2xl font-semibold text-gray-900 mb-3">
+              Сагс хоосон байна
+            </h1>
+            <p className="text-gray-500 mb-8">
+              Захиалга өгөхийн тулд сагсандаа бараа нэмнэ үү
+            </p>
+            <Link
+              href="/products"
+              className="inline-flex items-center justify-center bg-[#0071e3] text-white rounded-full py-3 px-8 font-medium hover:bg-[#0077ed] transition-colors"
+            >
+              Дэлгүүр хэсэх
+            </Link>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  const itemCount = checkout.cart.items.reduce((acc, item) => acc + item.quantity, 0);
+
+  return (
+    <div className="min-h-screen flex flex-col bg-[#f8f8f8]">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+          <Link href="/cart" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors">
+            <ArrowLeft className="w-5 h-5" />
+            <span className="hidden sm:inline">Сагс руу буцах</span>
+          </Link>
+          <Link href="/" className="text-xl font-semibold text-gray-900">
+            Alimhan
+          </Link>
+          <div className="flex items-center gap-2 text-gray-500">
+            <Lock className="w-4 h-4" />
+            <span className="text-sm hidden sm:inline">Аюулгүй төлбөр</span>
+          </div>
+        </div>
+      </header>
+
+      <main className="flex-1 py-8">
+        <div className="max-w-6xl mx-auto px-4">
+          <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-8">
+            Захиалга баталгаажуулах
+          </h1>
+
+          {/* Error */}
+          {checkout.error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-red-800 font-medium">Алдаа гарлаа</p>
+                <p className="text-red-600 text-sm mt-1">{checkout.error}</p>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {/* Form */}
+            <div className="lg:col-span-7 space-y-6">
+              
+              {/* Contact Info */}
+              <section className="bg-white rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-full bg-[#0071e3] flex items-center justify-center">
+                    <User className="w-5 h-5 text-white" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-gray-900">Холбоо барих мэдээлэл</h2>
+                </div>
+
+                {checkout.isAuthenticated ? (
+                  <div className="flex items-center gap-3 p-3 bg-green-50 rounded-xl mb-6">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <span className="text-sm text-green-800">Нэвтэрсэн: {checkout.session?.user?.name || checkout.session?.user?.email}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl mb-6">
+                    <span className="text-sm text-gray-600">Зочин хэрэглэгч</span>
+                    <Link href="/auth/login?callbackUrl=/checkout" className="flex items-center gap-1.5 text-sm font-medium text-[#0071e3] hover:underline">
+                      <LogIn className="w-4 h-4" />
+                      Нэвтрэх
+                    </Link>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div data-error={!!checkout.getError("lastName")}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Овог *</label>
+                    <input
+                      type="text"
+                      value={checkout.lastName}
+                      onChange={(e) => checkout.setLastName(e.target.value)}
+                      onBlur={() => checkout.handleBlur("lastName")}
+                      placeholder="Овог"
+                      className={`w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] transition-all ${
+                        checkout.getError("lastName") ? "border-red-400 bg-red-50" : "border-gray-200"
+                      }`}
+                    />
+                    {checkout.getError("lastName") && <p className="text-red-500 text-xs mt-1">{checkout.getError("lastName")}</p>}
+                  </div>
+                  <div data-error={!!checkout.getError("firstName")}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Нэр *</label>
+                    <input
+                      type="text"
+                      value={checkout.firstName}
+                      onChange={(e) => checkout.setFirstName(e.target.value)}
+                      onBlur={() => checkout.handleBlur("firstName")}
+                      placeholder="Нэр"
+                      className={`w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] transition-all ${
+                        checkout.getError("firstName") ? "border-red-400 bg-red-50" : "border-gray-200"
+                      }`}
+                    />
+                    {checkout.getError("firstName") && <p className="text-red-500 text-xs mt-1">{checkout.getError("firstName")}</p>}
+                  </div>
+                </div>
+
+                <div className="mt-4" data-error={!!checkout.getError("email")}>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">И-мэйл *</label>
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="email"
+                      value={checkout.email}
+                      onChange={(e) => checkout.setEmail(e.target.value)}
+                      onBlur={() => checkout.handleBlur("email")}
+                      placeholder="example@mail.com"
+                      className={`w-full pl-11 pr-4 py-3 bg-gray-50 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] transition-all ${
+                        checkout.getError("email") ? "border-red-400 bg-red-50" : "border-gray-200"
+                      }`}
+                    />
+                  </div>
+                  {checkout.getError("email") && <p className="text-red-500 text-xs mt-1">{checkout.getError("email")}</p>}
+                </div>
+
+                <div className="mt-4" data-error={!!checkout.getError("phone")}>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Утас *</label>
+                  <div className="relative">
+                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="tel"
+                      value={checkout.phone}
+                      onChange={(e) => checkout.setPhone(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                      onBlur={() => checkout.handleBlur("phone")}
+                      placeholder="99112233"
+                      maxLength={8}
+                      className={`w-full pl-11 pr-4 py-3 bg-gray-50 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] transition-all ${
+                        checkout.getError("phone") ? "border-red-400 bg-red-50" : "border-gray-200"
+                      }`}
+                    />
+                  </div>
+                  {checkout.getError("phone") && <p className="text-red-500 text-xs mt-1">{checkout.getError("phone")}</p>}
+                </div>
+              </section>
+
+              {/* Delivery Method */}
+              <section className="bg-white rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-full bg-[#0071e3] flex items-center justify-center">
+                    <Truck className="w-5 h-5 text-white" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-gray-900">Хүргэлтийн төрөл</h2>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => checkout.setDeliveryMethod("delivery")}
+                    className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left ${
+                      checkout.deliveryMethod === "delivery"
+                        ? "border-[#0071e3] bg-[#0071e3]/5"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${
+                      checkout.deliveryMethod === "delivery" ? "bg-[#0071e3]" : "bg-gray-100"
+                    }`}>
+                      <Truck className={`w-6 h-6 ${checkout.deliveryMethod === "delivery" ? "text-white" : "text-gray-600"}`} />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">Хүргэлт</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Таны хаягт хүргэнэ</p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => checkout.setDeliveryMethod("pickup")}
+                    className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left ${
+                      checkout.deliveryMethod === "pickup"
+                        ? "border-[#0071e3] bg-[#0071e3]/5"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${
+                      checkout.deliveryMethod === "pickup" ? "bg-[#0071e3]" : "bg-gray-100"
+                    }`}>
+                      <Store className={`w-6 h-6 ${checkout.deliveryMethod === "pickup" ? "text-white" : "text-gray-600"}`} />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">Дэлгүүрээс авах</p>
+                      <p className="text-xs text-green-600 font-medium mt-0.5">Үнэгүй</p>
+                    </div>
+                  </button>
+                </div>
+
+                {checkout.deliveryMethod === "pickup" && (
+                  <div className="mt-4 p-4 bg-gray-50 rounded-xl">
+                    <h4 className="font-semibold text-gray-900 mb-3">{STORE_INFO.name}</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-start gap-2">
+                        <MapPin className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                        <span className="text-gray-600">{STORE_INFO.address}, {STORE_INFO.city}</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Clock className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                        <span className="text-gray-600">{STORE_INFO.hours}</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Phone className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                        <span className="text-gray-600">{STORE_INFO.phone}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </section>
+
+              {/* Address (delivery only) */}
+              {checkout.deliveryMethod === "delivery" && (
+                <section className="bg-white rounded-2xl p-6 shadow-sm">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-full bg-[#0071e3] flex items-center justify-center">
+                      <MapPin className="w-5 h-5 text-white" />
+                    </div>
+                    <h2 className="text-lg font-semibold text-gray-900">Хүргэлтийн хаяг</h2>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div data-error={!!checkout.getError("city")}>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Хот/Аймаг *</label>
+                        <select
+                          value={checkout.city}
+                          onChange={(e) => { checkout.setCity(e.target.value); checkout.setDistrict(""); }}
+                          onBlur={() => checkout.handleBlur("city")}
+                          className={`w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] transition-all appearance-none cursor-pointer ${
+                            checkout.getError("city") ? "border-red-400 bg-red-50" : "border-gray-200"
+                          }`}
+                        >
+                          {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                        {checkout.getError("city") && <p className="text-red-500 text-xs mt-1">{checkout.getError("city")}</p>}
+                      </div>
+
+                      <div data-error={!!checkout.getError("district")}>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Дүүрэг/Сум *</label>
+                        {checkout.city === "Улаанбаатар" ? (
+                          <select
+                            value={checkout.district}
+                            onChange={(e) => checkout.setDistrict(e.target.value)}
+                            onBlur={() => checkout.handleBlur("district")}
+                            className={`w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] transition-all appearance-none cursor-pointer ${
+                              checkout.getError("district") ? "border-red-400 bg-red-50" : "border-gray-200"
+                            }`}
+                          >
+                            <option value="">Сонгоно уу</option>
+                            {UB_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
+                          </select>
+                        ) : (
+                          <input
+                            type="text"
+                            value={checkout.district}
+                            onChange={(e) => checkout.setDistrict(e.target.value)}
+                            onBlur={() => checkout.handleBlur("district")}
+                            placeholder="Сум"
+                            className={`w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] transition-all ${
+                              checkout.getError("district") ? "border-red-400 bg-red-50" : "border-gray-200"
+                            }`}
+                          />
+                        )}
+                        {checkout.getError("district") && <p className="text-red-500 text-xs mt-1">{checkout.getError("district")}</p>}
+                      </div>
+                    </div>
+
+                    <div data-error={!!checkout.getError("khoroo")}>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Хороо/Баг *</label>
+                      <input
+                        type="text"
+                        value={checkout.khoroo}
+                        onChange={(e) => checkout.setKhoroo(e.target.value)}
+                        onBlur={() => checkout.handleBlur("khoroo")}
+                        placeholder="Жишээ: 1-р хороо"
+                        className={`w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] transition-all ${
+                          checkout.getError("khoroo") ? "border-red-400 bg-red-50" : "border-gray-200"
+                        }`}
+                      />
+                      {checkout.getError("khoroo") && <p className="text-red-500 text-xs mt-1">{checkout.getError("khoroo")}</p>}
+                    </div>
+
+                    <div data-error={!!checkout.getError("street")}>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Гудамж *</label>
+                      <input
+                        type="text"
+                        value={checkout.street}
+                        onChange={(e) => checkout.setStreet(e.target.value)}
+                        onBlur={() => checkout.handleBlur("street")}
+                        placeholder="Гудамжийн нэр"
+                        className={`w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] transition-all ${
+                          checkout.getError("street") ? "border-red-400 bg-red-50" : "border-gray-200"
+                        }`}
+                      />
+                      {checkout.getError("street") && <p className="text-red-500 text-xs mt-1">{checkout.getError("street")}</p>}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div data-error={!!checkout.getError("building")}>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Байр *</label>
+                        <input
+                          type="text"
+                          value={checkout.building}
+                          onChange={(e) => checkout.setBuilding(e.target.value)}
+                          onBlur={() => checkout.handleBlur("building")}
+                          placeholder="Байрны дугаар"
+                          className={`w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] transition-all ${
+                            checkout.getError("building") ? "border-red-400 bg-red-50" : "border-gray-200"
+                          }`}
+                        />
+                        {checkout.getError("building") && <p className="text-red-500 text-xs mt-1">{checkout.getError("building")}</p>}
+                      </div>
+                      <div data-error={!!checkout.getError("apartment")}>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Тоот *</label>
+                        <input
+                          type="text"
+                          value={checkout.apartment}
+                          onChange={(e) => checkout.setApartment(e.target.value)}
+                          onBlur={() => checkout.handleBlur("apartment")}
+                          placeholder="Орц, давхар, тоот"
+                          className={`w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] transition-all ${
+                            checkout.getError("apartment") ? "border-red-400 bg-red-50" : "border-gray-200"
+                          }`}
+                        />
+                        {checkout.getError("apartment") && <p className="text-red-500 text-xs mt-1">{checkout.getError("apartment")}</p>}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Нэмэлт мэдээлэл</label>
+                      <textarea
+                        value={checkout.additionalInfo}
+                        onChange={(e) => checkout.setAdditionalInfo(e.target.value)}
+                        placeholder="Хүргэлтийн нэмэлт зааварчилгаа"
+                        rows={2}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] transition-all resize-none"
+                      />
+                    </div>
+
+                    {/* Shipping info - standard delivery auto-selected */}
+                    <div className="pt-4 border-t border-gray-100">
+                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                        <div className="flex items-center gap-3">
+                          <Truck className="w-5 h-5 text-[#0071e3]" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">Энгийн хүргэлт</p>
+                            <p className="text-xs text-gray-500">2-3 хоногт хүргэнэ</p>
+                          </div>
+                        </div>
+                        <span className="text-sm font-semibold text-gray-900">₮5,000</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* Payment */}
+              <section className="bg-white rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-full bg-[#0071e3] flex items-center justify-center">
+                    <Building2 className="w-5 h-5 text-white" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-gray-900">Төлбөрийн хэлбэр</h2>
+                </div>
+
+                <div className="space-y-3">
+                  <button
+                    type="button"
+                    onClick={() => checkout.setPaymentMethod("bank_transfer")}
+                    className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left ${
+                      checkout.paymentMethod === "bank_transfer"
+                        ? "border-[#0071e3] bg-[#0071e3]/5"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${
+                      checkout.paymentMethod === "bank_transfer" ? "bg-[#0071e3]" : "bg-gray-100"
+                    }`}>
+                      <Building2 className={`w-6 h-6 ${checkout.paymentMethod === "bank_transfer" ? "text-white" : "text-gray-600"}`} />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900">Банкны шилжүүлэг</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Банкны апп эсвэл интернет банкаар</p>
+                    </div>
+                    {checkout.paymentMethod === "bank_transfer" && (
+                      <CheckCircle className="w-5 h-5 text-[#0071e3]" />
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => checkout.setPaymentMethod("cash_on_delivery")}
+                    className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left ${
+                      checkout.paymentMethod === "cash_on_delivery"
+                        ? "border-[#0071e3] bg-[#0071e3]/5"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${
+                      checkout.paymentMethod === "cash_on_delivery" ? "bg-[#0071e3]" : "bg-gray-100"
+                    }`}>
+                      <Banknote className={`w-6 h-6 ${checkout.paymentMethod === "cash_on_delivery" ? "text-white" : "text-gray-600"}`} />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900">
+                        {checkout.deliveryMethod === "pickup" ? "Дэлгүүрт төлөх" : "Хүргэлтээр төлөх"}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {checkout.deliveryMethod === "pickup" 
+                          ? "Бараа авахдаа дэлгүүрт бэлнээр төлнө" 
+                          : "Бараа хүлээн авахдаа бэлнээр төлнө"}
+                      </p>
+                    </div>
+                    {checkout.paymentMethod === "cash_on_delivery" && (
+                      <CheckCircle className="w-5 h-5 text-[#0071e3]" />
+                    )}
+                  </button>
+                </div>
+              </section>
+
+              {/* Submit (mobile) */}
+              <div className="lg:hidden">
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={checkout.isSubmitting}
+                  className="w-full bg-[#0071e3] text-white rounded-xl py-4 px-6 font-semibold text-base hover:bg-[#0077ed] active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {checkout.isSubmitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Боловсруулж байна...
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-5 h-5" />
+                      Захиалга баталгаажуулах
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Order Summary */}
+            <div className="lg:col-span-5">
+              <div className="bg-white rounded-2xl p-6 shadow-sm sticky top-24">
+                <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-100">
+                  <h2 className="text-lg font-semibold text-gray-900">Захиалга</h2>
+                  <span className="text-sm text-gray-500">{itemCount} бараа</span>
+                </div>
+
+                <div className="space-y-3 max-h-[280px] overflow-y-auto mb-4 pb-4 border-b border-gray-100">
+                  {checkout.cart.items.map((item) => (
+                    <div key={item.id} className="flex gap-3">
+                      <div className="relative w-16 h-16 bg-gray-100 rounded-xl overflow-hidden shrink-0">
+                        {item.thumbnail ? (
+                          <Image src={item.thumbnail} alt={item.title} fill sizes="64px" className="object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Package className="w-6 h-6 text-gray-400" />
+                          </div>
+                        )}
+                        <span className="absolute -top-1 -right-1 w-5 h-5 bg-gray-900 text-white text-[10px] font-medium rounded-full flex items-center justify-center">
+                          {item.quantity}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 line-clamp-1">{item.title}</p>
+                        {item.variantTitle && item.variantTitle !== "Default" && (
+                          <p className="text-xs text-gray-500 mt-0.5">{item.variantTitle}</p>
+                        )}
+                        <p className="text-sm font-semibold text-gray-900 mt-1">
+                          {checkout.formatPrice(item.unitPrice * item.quantity)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Барааны үнэ</span>
+                    <span className="font-medium text-gray-900">{checkout.formatPrice(checkout.cart.subtotal || 0)}</span>
+                  </div>
+                  {(checkout.cart.discount_total || 0) > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Хямдрал</span>
+                      <span className="font-medium">-{checkout.formatPrice(checkout.cart.discount_total || 0)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Хүргэлт</span>
+                    <span className="font-medium text-gray-900">
+                      {checkout.deliveryMethod === "pickup" ? "Үнэгүй" : 
+                        (checkout.cart.shipping_total || 0) > 0 ? checkout.formatPrice(checkout.cart.shipping_total || 0) : 
+                        "₮5,000"
+                      }
+                    </span>
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-100 pt-4 mt-4">
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-base font-semibold text-gray-900">Нийт</span>
+                    <span className="text-2xl font-bold text-gray-900">{checkout.formatPrice(checkout.cart.total || 0)}</span>
+                  </div>
+                </div>
+
+                {/* Submit (desktop) */}
+                <div className="hidden lg:block mt-6">
+                  <button
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={checkout.isSubmitting}
+                    className="w-full bg-[#0071e3] text-white rounded-xl py-4 px-6 font-semibold text-base hover:bg-[#0077ed] active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {checkout.isSubmitting ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Боловсруулж байна...
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-5 h-5" />
+                        Захиалга баталгаажуулах
+                      </>
+                    )}
+                  </button>
+                  
+                  <p className="text-xs text-gray-500 text-center mt-3">
+                    Захиалга өгснөөр та манай{" "}
+                    <Link href="/terms" className="text-[#0071e3] hover:underline">
+                      үйлчилгээний нөхцөл
+                    </Link>
+                    -ийг зөвшөөрч байна
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  );
+}

@@ -13,5 +13,10 @@ export default defineMiddlewares({
       matcher: "/store/banners",
       middlewares: [],
     },
+    {
+      // Allow unauthenticated access to warm endpoint (connection warmup)
+      matcher: "/store/warm",
+      middlewares: [],
+    },
   ],
 });

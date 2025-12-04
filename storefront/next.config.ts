@@ -19,6 +19,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "popmart.com",
       },
+      {
+        protocol: "https",
+        hostname: "store.storeimages.cdn-apple.com",
+      },
     ],
   },
 };

@@ -2,7 +2,7 @@ import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 
 export default withAuth(
-  function middleware(req) {
+  function proxy(req) {
     // If user is not authenticated and trying to access protected route
     if (!req.nextauth.token) {
       const url = new URL("/auth/login", req.url);
@@ -18,10 +18,9 @@ export default withAuth(
   }
 );
 
-// Protect these routes
+// Protect these routes - checkout allows guest access
 export const config = {
   matcher: [
     "/account/:path*",
-    "/checkout/:path*",
   ],
 };

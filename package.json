@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "Alimhan E-commerce - Medusa Backend + Next.js Storefront",
-  "packageManager": "pnpm@9.14.2",
+  "packageManager": "pnpm@10.11.1",
   "workspaces": [
     "backend",
     "storefront"
@@ -19,7 +19,7 @@
     "seed": "pnpm --filter @alimhan/admin seed"
   },
   "devDependencies": {
-    "turbo": "^2.3.3"
+    "turbo": "^2.5.4"
   },
   "dependencies": {
     "swiper": "^12.0.3"
