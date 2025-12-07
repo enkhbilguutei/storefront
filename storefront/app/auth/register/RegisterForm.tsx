@@ -74,6 +74,8 @@ export function RegisterForm() {
           body: JSON.stringify({
             email: formData.email,
             password: formData.password,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
           }),
         }
       );
@@ -90,33 +92,6 @@ export function RegisterForm() {
         }
         setIsLoading(false);
         return;
-      }
-
-      const registerData = await registerResponse.json();
-
-      // If registration successful, create customer profile with name
-      if (registerData.token) {
-        // Create customer profile with email, first_name, last_name
-        const customerResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/customers`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${registerData.token}`,
-              "x-publishable-api-key": process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "",
-            },
-            body: JSON.stringify({
-              email: formData.email,
-              first_name: formData.firstName,
-              last_name: formData.lastName,
-            }),
-          }
-        );
-
-        if (!customerResponse.ok) {
-          console.error("Failed to create customer profile:", await customerResponse.text());
-        }
       }
 
       // Auto-login after registration

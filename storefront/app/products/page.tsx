@@ -4,19 +4,32 @@ import { ProductCard } from "@/components/products/ProductCard";
 import { ProductFilters } from "@/components/products/ProductFilters";
 import { medusa } from "@/lib/medusa";
 import { getCategories } from "@/lib/data/categories";
+import { getDefaultRegion } from "@/lib/data/regions";
 
 interface ProductQuery {
   limit: number;
   fields: string;
   category_id?: string[];
+  region_id?: string;
 }
 
-// Extended variant type that includes prices
+// Calculated price from promotions/price lists
+interface CalculatedPrice {
+  id?: string;
+  calculated_amount: number;
+  original_amount: number;
+  currency_code: string;
+  is_calculated_price_price_list?: boolean;
+  is_calculated_price_tax_inclusive?: boolean;
+}
+
+// Extended variant type that includes prices and calculated prices
 interface VariantWithPrices {
   id: string;
   title: string | null;
   options?: { option_id: string; value: string }[];
   prices?: { amount: number; currency_code: string }[];
+  calculated_price?: CalculatedPrice;
   inventory_quantity?: number;
   manage_inventory?: boolean;
   allow_backorder?: boolean;
@@ -42,10 +55,18 @@ async function getProducts(searchParams: { [key: string]: string | string[] | un
   const priceMin = searchParams.price_min ? parseInt(searchParams.price_min as string) : null;
   const priceMax = searchParams.price_max ? parseInt(searchParams.price_max as string) : null;
 
+  // Get default region for calculated prices (promotions)
+  const region = await getDefaultRegion();
+
   const query: ProductQuery = {
     limit: 100, // Fetch more to allow client-side price filtering
-    fields: "id,title,handle,thumbnail,options.*,options.values.*,variants.id,variants.title,variants.options.*,variants.prices.amount,variants.prices.currency_code,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder",
+    fields: "id,title,handle,thumbnail,options.*,options.values.*,variants.id,variants.title,variants.options.*,variants.prices.amount,variants.prices.currency_code,+variants.calculated_price,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder",
   };
+
+  // Add region_id to get calculated prices with promotions
+  if (region?.id) {
+    query.region_id = region.id;
+  }
 
   if (categoryId) {
     query.category_id = [categoryId];
@@ -57,10 +78,11 @@ async function getProducts(searchParams: { [key: string]: string | string[] | un
     // Cast to our extended type that includes prices
     let typedProducts = products as unknown as ProductWithPrices[];
     
-    // Price filtering (client-side since Medusa doesn't support price range filtering directly)
+    // Price filtering - use calculated_price if available, otherwise fall back to prices
     if (priceMin !== null || priceMax !== null) {
       typedProducts = typedProducts.filter(product => {
-        const price = product.variants?.[0]?.prices?.[0]?.amount || 0;
+        const variant = product.variants?.[0];
+        const price = variant?.calculated_price?.calculated_amount ?? variant?.prices?.[0]?.amount ?? 0;
         if (priceMin !== null && price < priceMin) return false;
         if (priceMax !== null && price > priceMax) return false;
         return true;
@@ -70,14 +92,18 @@ async function getProducts(searchParams: { [key: string]: string | string[] | un
     // In-memory sort for price if needed (for small catalog)
     if (order === 'price_asc') {
       typedProducts.sort((a, b) => {
-        const priceA = a.variants?.[0]?.prices?.[0]?.amount || 0;
-        const priceB = b.variants?.[0]?.prices?.[0]?.amount || 0;
+        const variantA = a.variants?.[0];
+        const variantB = b.variants?.[0];
+        const priceA = variantA?.calculated_price?.calculated_amount ?? variantA?.prices?.[0]?.amount ?? 0;
+        const priceB = variantB?.calculated_price?.calculated_amount ?? variantB?.prices?.[0]?.amount ?? 0;
         return priceA - priceB;
       });
     } else if (order === 'price_desc') {
       typedProducts.sort((a, b) => {
-        const priceA = a.variants?.[0]?.prices?.[0]?.amount || 0;
-        const priceB = b.variants?.[0]?.prices?.[0]?.amount || 0;
+        const variantA = a.variants?.[0];
+        const variantB = b.variants?.[0];
+        const priceA = variantA?.calculated_price?.calculated_amount ?? variantA?.prices?.[0]?.amount ?? 0;
+        const priceB = variantB?.calculated_price?.calculated_amount ?? variantB?.prices?.[0]?.amount ?? 0;
         return priceB - priceA;
       });
     }
@@ -132,7 +158,14 @@ export default async function ProductsPage({
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
               {products.map((product) => {
                 const firstVariant = product.variants?.[0];
+                const calculatedPrice = firstVariant?.calculated_price;
                 const firstPrice = firstVariant?.prices?.[0];
+                
+                // Use calculated price if available (includes promotions)
+                const displayPrice = calculatedPrice?.calculated_amount ?? firstPrice?.amount;
+                const originalPrice = calculatedPrice?.original_amount;
+                const currencyCode = calculatedPrice?.currency_code ?? firstPrice?.currency_code ?? "MNT";
+                const isOnSale = calculatedPrice && calculatedPrice.calculated_amount < calculatedPrice.original_amount;
                 
                 return (
                   <ProductCard
@@ -155,10 +188,18 @@ export default async function ProductsPage({
                       allow_backorder: v.allow_backorder
                     }))}
                     price={
-                      firstPrice
+                      displayPrice
                         ? {
-                            amount: firstPrice.amount,
-                            currencyCode: firstPrice.currency_code,
+                            amount: displayPrice,
+                            currencyCode: currencyCode,
+                          }
+                        : undefined
+                    }
+                    originalPrice={
+                      isOnSale && originalPrice
+                        ? {
+                            amount: originalPrice,
+                            currencyCode: currencyCode,
                           }
                         : undefined
                     }

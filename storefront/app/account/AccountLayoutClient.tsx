@@ -4,12 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUserStore } from "@/lib/store";
 import { 
-  UserCircle, Package, MapPin, Heart, 
-  Settings, ChevronRight
+  User, Package, MapPin, Heart, Settings, LogOut
 } from "lucide-react";
+import { signOut } from "next-auth/react";
 
 const accountLinks = [
-  { href: "/account", label: "Профайл", icon: UserCircle },
+  { href: "/account", label: "Профайл", icon: User },
   { href: "/account/orders", label: "Захиалгууд", icon: Package },
   { href: "/account/addresses", label: "Хаягууд", icon: MapPin },
   { href: "/account/wishlist", label: "Хүслийн жагсаалт", icon: Heart },
@@ -31,85 +31,74 @@ export function AccountLayoutClient({
       : user?.email?.[0].toUpperCase() || "У";
 
   const displayName = user?.firstName && user?.lastName 
-    ? `${user.firstName} ${user.lastName}`
+    ? `${user.lastName} ${user.firstName}`
     : user?.name || "Хэрэглэгч";
+
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: "/" });
+  };
 
   return (
     <div className="flex-1 bg-gray-50/50">
-      <div className="container mx-auto px-4 py-8">
-        {/* Mobile Header */}
-        <div className="lg:hidden mb-6">
-          <div className="bg-white rounded-2xl p-4 shadow-sm">
-            <div className="flex items-center gap-4">
-              {user?.image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img 
-                  src={user.image} 
-                  alt={displayName}
-                  className="w-16 h-16 rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-16 h-16 rounded-full bg-linear-to-br from-foreground to-foreground/70 text-white flex items-center justify-center text-xl font-medium">
-                  {initials}
-                </div>
-              )}
-              <div>
-                <h1 className="text-xl font-bold text-foreground">{displayName}</h1>
-                <p className="text-sm text-secondary">{user?.email}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-col lg:flex-row gap-8">
+      <div className="container mx-auto px-4 py-6 lg:py-8">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
           {/* Sidebar */}
-          <aside className="lg:w-72 shrink-0">
-            {/* Desktop User Info */}
-            <div className="hidden lg:block bg-white rounded-2xl p-6 shadow-sm mb-6">
-              <div className="flex flex-col items-center text-center">
+          <aside className="lg:w-64 shrink-0">
+            {/* User Info */}
+            <div className="bg-white rounded-xl border border-gray-100 p-4 mb-4">
+              <div className="flex items-center gap-3">
                 {user?.image ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img 
                     src={user.image} 
                     alt={displayName}
-                    className="w-20 h-20 rounded-full object-cover mb-4"
+                    className="w-12 h-12 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="w-20 h-20 rounded-full bg-linear-to-br from-foreground to-foreground/70 text-white flex items-center justify-center text-2xl font-medium mb-4">
+                  <div className="w-12 h-12 rounded-full bg-foreground text-background flex items-center justify-center text-sm font-medium">
                     {initials}
                   </div>
                 )}
-                <h1 className="text-xl font-bold text-foreground">{displayName}</h1>
-                <p className="text-sm text-secondary">{user?.email}</p>
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-sm font-semibold text-foreground truncate">{displayName}</h1>
+                  <p className="text-xs text-secondary truncate">{user?.email}</p>
+                </div>
               </div>
             </div>
 
             {/* Navigation */}
-            <nav className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <nav className="bg-white rounded-xl border border-gray-100 overflow-hidden">
               <ul>
                 {accountLinks.map((link) => {
-                  const isActive = pathname === link.href;
+                  const isActive = pathname === link.href || 
+                    (link.href !== "/account" && pathname?.startsWith(link.href));
                   const Icon = link.icon;
                   return (
                     <li key={link.href}>
                       <Link
                         href={link.href}
-                        className={`flex items-center justify-between px-4 py-3.5 border-b border-gray-100 last:border-b-0 transition-all ${
+                        className={`flex items-center gap-3 px-4 py-3 text-sm border-b border-gray-50 last:border-b-0 transition-colors ${
                           isActive 
-                            ? "bg-foreground/5 text-foreground font-medium" 
-                            : "text-foreground/70 hover:bg-foreground/5 hover:text-foreground"
+                            ? "bg-gray-50 text-foreground font-medium" 
+                            : "text-secondary hover:bg-gray-50 hover:text-foreground"
                         }`}
                       >
-                        <div className="flex items-center gap-3">
-                          <Icon className="h-5 w-5" strokeWidth={1.5} />
-                          <span>{link.label}</span>
-                        </div>
-                        <ChevronRight className={`h-4 w-4 ${isActive ? "text-foreground" : "text-gray-400"}`} />
+                        <Icon className="h-4 w-4" strokeWidth={1.5} />
+                        <span>{link.label}</span>
                       </Link>
                     </li>
                   );
                 })}
               </ul>
+              <div className="border-t border-gray-100">
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-3 px-4 py-3 text-sm text-secondary hover:bg-gray-50 hover:text-red-600 transition-colors w-full"
+                >
+                  <LogOut className="h-4 w-4" strokeWidth={1.5} />
+                  <span>Гарах</span>
+                </button>
+              </div>
             </nav>
           </aside>
 

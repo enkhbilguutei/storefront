@@ -2,11 +2,18 @@ import { z } from "zod";
 
 // Customer schemas
 export const customerSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  firstName: z.string().min(1, "First name is required").optional(),
-  lastName: z.string().min(1, "Last name is required").optional(),
-  phone: z.string().optional(),
+  email: z.string().email("И-мэйл хаяг буруу байна"),
+  password: z.string().min(8, "Нууц үг дор хаяж 8 тэмдэгттэй байх ёстой"),
+  firstName: z.string().min(1, "Нэр оруулна уу").optional(),
+  lastName: z.string().min(1, "Овог оруулна уу").optional(),
+  phone: z.string().length(8, "Утасны дугаар 8 оронтой байх ёстой").regex(/^\d{8}$/, "Утасны дугаар зөвхөн тоо байх ёстой").optional(),
+});
+
+// Profile update schema (without password)
+export const profileUpdateSchema = z.object({
+  firstName: z.string().min(1, "Нэр оруулна уу"),
+  lastName: z.string().min(1, "Овог оруулна уу"),
+  phone: z.string().regex(/^(\d{8})?$/, "Утасны дугаар 8 оронтой тоо байх ёстой").optional(),
 });
 
 export const loginSchema = customerSchema.pick({
@@ -25,14 +32,14 @@ export const registerSchema = customerSchema.extend({
 
 // Address schemas
 export const addressSchema = z.object({
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-  address1: z.string().min(1, "Address is required"),
+  firstName: z.string().min(1, "Нэр оруулна уу"),
+  lastName: z.string().min(1, "Овог оруулна уу"),
+  address1: z.string().min(1, "Хаяг оруулна уу"),
   address2: z.string().optional(),
-  city: z.string().min(1, "City is required"),
+  city: z.string().min(1, "Хот/Аймаг оруулна уу"),
   province: z.string().optional(),
-  countryCode: z.string().min(2, "Country is required"),
-  phone: z.string().optional(),
+  countryCode: z.string().min(2, "Улс оруулна уу"),
+  phone: z.string().length(8, "Утасны дугаар 8 оронтой байх ёстой").regex(/^\d{8}$/, "Утасны дугаар зөвхөн тоо байх ёстой"),
   company: z.string().optional(),
 });
 
@@ -94,7 +101,7 @@ export const checkoutAddressSchema = z.object({
   countryCode: z.string().default("mn"),
 });
 
-export const checkoutPaymentMethodSchema = z.enum(["bank_transfer", "cash_on_delivery"], {
+export const checkoutPaymentMethodSchema = z.enum(["bank_transfer", "cash_on_delivery", "qpay"], {
   message: "Төлбөрийн хэлбэр сонгоно уу",
 });
 
@@ -126,6 +133,7 @@ export const checkoutFormSchema = z.object({
 
 // Types
 export type CustomerInput = z.infer<typeof customerSchema>;
+export type ProfileUpdateInput = z.infer<typeof profileUpdateSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type AddressInput = z.infer<typeof addressSchema>;

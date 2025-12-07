@@ -1,6 +1,7 @@
 "use client";
 
 import { medusa } from "@/lib/medusa";
+import { z } from "zod";
 import type { Cart, DeliveryMethod, PaymentMethod } from "./types";
 
 interface CompleteCheckoutParams {
@@ -23,23 +24,32 @@ interface CompleteCheckoutParams {
   clearCart: () => void;
 }
 
+const checkoutSchema = z.object({
+  firstName: z.string().min(1, "Нэр оруулна уу"),
+  lastName: z.string().min(1, "Овог оруулна уу"),
+  email: z.string().email("Имэйл хаяг буруу байна"),
+  phone: z.string().min(8, "Утасны дугаар буруу байна"),
+  deliveryMethod: z.enum(["delivery", "pickup"]),
+  address: z.string().optional(),
+  apartment: z.string().optional(),
+  paymentMethod: z.enum(["bank_transfer", "cash_on_delivery", "qpay"]),
+});
+
+type CheckoutData = z.infer<typeof checkoutSchema>;
+
 // Minimal delay only where needed for API consistency
 const minDelay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Shipping options cache for checkout completion
-let cachedShippingOptions: { cartId: string; options: Array<{ id: string; name: string }> } | null = null;
-
-// Prevent duplicate completions
-const completionInProgress = new Set<string>();
-
 export async function completeCheckout({
   cartId,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   cart,
   firstName,
   lastName,
   email,
   phone,
   deliveryMethod,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   city,
   district,
   khoroo,
@@ -49,159 +59,162 @@ export async function completeCheckout({
   additionalInfo,
   paymentMethod,
   onSuccess,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   clearCart,
-}: CompleteCheckoutParams): Promise<void> {
-  // Prevent duplicate completion attempts
-  if (completionInProgress.has(cartId)) {
-    throw new Error("Захиалга боловсруулж байна...");
-  }
-  completionInProgress.add(cartId);
+}: CompleteCheckoutParams) {
+  console.log(`[Checkout] Starting completeCheckout for cart ${cartId}`);
+  
+  const data: CheckoutData = {
+    firstName,
+    lastName,
+    email,
+    phone,
+    deliveryMethod,
+    address: deliveryMethod === "delivery" 
+      ? [street, building && `${building}-р байр`, apartment].filter(Boolean).join(", ")
+      : "Дэлгүүрээс авах",
+    apartment: additionalInfo,
+    paymentMethod,
+  };
+
+  console.log(`[Checkout] Data:`, JSON.stringify(data, null, 2));
 
   try {
-    // Early validation - check if cart is already completed
-    if (cart.completed_at || cart.status === "completed") {
-      clearCart();
-      throw new Error("Энэ захиалга аль хэдийн баталгаажсан байна.");
-    }
-
-    // Validate required fields
-    if (!email || !firstName || !lastName || !phone) {
-      throw new Error("Холбоо барих мэдээлэл дутуу байна.");
-    }
-
-    const addressLine = deliveryMethod === "delivery" 
-      ? [street, building && `${building}-р байр`, apartment].filter(Boolean).join(", ")
-      : "Дэлгүүрээс авах";
-    const province = deliveryMethod === "delivery" ? `${district}, ${khoroo}` : "";
-
-    // Step 1: Determine shipping option - auto-select based on delivery method
-    let shippingOptionId: string;
+    // Step 1: Validate input
+    const validatedData = checkoutSchema.parse(data);
     
-    // Fetch shipping options (use cache if available)
-    let shippingOptions = cachedShippingOptions?.cartId === cartId 
-      ? cachedShippingOptions.options 
-      : null;
-    
-    if (!shippingOptions) {
-      const { shipping_options } = await medusa.store.fulfillment.listCartOptions({ cart_id: cartId });
-      shippingOptions = (shipping_options || []).map((o: { id: string; name: string }) => ({ id: o.id, name: o.name }));
-      cachedShippingOptions = { cartId, options: shippingOptions };
-    }
-    
-    if (deliveryMethod === "pickup") {
-      const pickupOption = shippingOptions.find((opt) => opt.name.toLowerCase().includes("авах"));
-      if (!pickupOption) {
-        throw new Error("Дэлгүүрээс авах сонголт олдсонгүй. Дэлгүүрийн тохиргоог шалгана уу.");
-      }
-      shippingOptionId = pickupOption.id;
-    } else {
-      // Auto-select first non-pickup delivery option (usually standard/cheapest)
-      const deliveryOption = shippingOptions.find((opt) => !opt.name.toLowerCase().includes("авах"));
-      if (!deliveryOption) {
-        throw new Error("Хүргэлтийн сонголт олдсонгүй.");
-      }
-      shippingOptionId = deliveryOption.id;
-    }
-
+    // Step 2: Update cart with addresses and email
+    console.log(`[Checkout] Updating cart...`);
     const addressPayload = {
-      first_name: firstName,
-      last_name: lastName,
-      address_1: addressLine,
-      address_2: deliveryMethod === "delivery" ? additionalInfo : "",
-      city: deliveryMethod === "delivery" ? city : "Улаанбаатар",
-      province,
-      postal_code: "",
+      first_name: validatedData.firstName,
+      last_name: validatedData.lastName,
+      address_1: validatedData.address,
+      city: "Ulaanbaatar",
       country_code: "mn",
-      phone,
+      phone: validatedData.phone,
+      company: validatedData.apartment, // Using company field for apartment/details
+      postal_code: "10000", // Default postal code
+      province: deliveryMethod === "delivery" ? `${district}, ${khoroo}` : "",
     };
 
-    // Step 2: Update cart and add shipping - run in parallel where possible
-    const needsShippingUpdate = !cart.shipping_methods?.length || 
-      cart.shipping_methods[0]?.shipping_option_id !== shippingOptionId;
-
-    // Update cart with addresses
-    const cartUpdatePromise = medusa.store.cart.update(cartId, {
-      email,
+    const { cart: updatedCart } = await medusa.store.cart.update(cartId, {
+      email: validatedData.email,
       shipping_address: addressPayload,
       billing_address: addressPayload,
+      metadata: {
+        payment_method: paymentMethod,
+        delivery_method: deliveryMethod,
+      },
     });
+    console.log(`[Checkout] Cart updated.`);
 
-    // If we need shipping update, do it right after cart update
-    if (needsShippingUpdate) {
-      await cartUpdatePromise;
-      await medusa.store.cart.addShippingMethod(cartId, { option_id: shippingOptionId });
-    } else {
-      await cartUpdatePromise;
-    }
-
-    // Step 3: Initialize payment session - only if needed
-    // Skip the retrieve step if we already have payment_collection info
-    const regionId = cart.region_id;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const existingPaymentSessions = (cart as any).payment_collection?.payment_sessions;
+    // Step 3: Add shipping method
+    console.log(`[Checkout] Fetching shipping options...`);
+    const { shipping_options } = await medusa.store.fulfillment.listCartOptions({
+      cart_id: cartId,
+    });
     
-    if (!existingPaymentSessions?.length) {
-      // Need to initialize payment - get providers and cart in parallel
-      const providersPromise = regionId 
-        ? medusa.store.payment.listPaymentProviders({ region_id: regionId })
-        : null;
-      
-      const { cart: cartForPayment } = await medusa.store.cart.retrieve(cartId, {
-        fields: "+payment_collection.payment_sessions,+region_id",
+    if (shipping_options.length > 0) {
+      let selectedOption;
+      if (deliveryMethod === "pickup") {
+        selectedOption = shipping_options.find((opt) => opt.name.toLowerCase().includes("авах"));
+      } else {
+        selectedOption = shipping_options.find((opt) => !opt.name.toLowerCase().includes("авах"));
+      }
+
+      if (!selectedOption) {
+        selectedOption = shipping_options[0]; // Fallback
+        console.warn(`[Checkout] Desired shipping option not found, using fallback: ${selectedOption.id}`);
+      }
+
+      console.log(`[Checkout] Adding shipping method: ${selectedOption.id}`);
+      await medusa.store.cart.addShippingMethod(cartId, {
+        option_id: selectedOption.id,
       });
-      
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const paymentCollection = (cartForPayment as any).payment_collection;
-      
-      if (!paymentCollection?.payment_sessions?.length) {
-        const finalRegionId = regionId || cartForPayment.region_id;
-        if (finalRegionId) {
-          const providersResult = providersPromise 
-            ? await providersPromise 
-            : await medusa.store.payment.listPaymentProviders({ region_id: finalRegionId });
-          const providerId = providersResult.payment_providers?.[0]?.id || "pp_system_default";
-          await medusa.store.payment.initiatePaymentSession(cartForPayment, { provider_id: providerId });
-        }
-      }
+      console.log(`[Checkout] Shipping method added.`);
+    } else {
+      console.warn(`[Checkout] No shipping options found for cart ${cartId}`);
     }
 
-    // Step 4: Complete order
+    // Step 4: Force payment session update/init
+    console.log(`[Checkout] Fetching regions...`);
+    const { regions } = await medusa.store.region.list();
+    const region = regions[0]; // Assuming single region for now
+    
+    // Use system default provider
+    const providerId = region.payment_providers?.find(p => p.id === "pp_system_default")?.id || "pp_system_default";
+    console.log(`[Checkout] Using payment provider: ${providerId}`);
+    
+    console.log(`[Checkout] Initiating payment session...`);
+    // Use updatedCart here as it has the latest address info
+    await medusa.store.payment.initiatePaymentSession(updatedCart, {
+      provider_id: providerId,
+      data: {
+        payment_method: paymentMethod,
+      },
+    });
+    console.log(`[Checkout] Payment session initiated with payment method: ${paymentMethod}`);
+
+    // Step 5: Complete order - SINGLE CALL
+    console.log(`[Checkout] Completing cart...`);
     const completeResult = await medusa.store.cart.complete(cartId);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = completeResult as any;
-    
-    // Try to extract order ID from various response formats
-    // SDK can return: { type: "order", order: { id } } or { data: { id } }
-    const orderId = result?.order?.id || result?.data?.id || result?.data?.order?.id || result?.id;
-    
-    // Check if successful order type
-    if (result?.type === "order" || orderId) {
-      if (orderId) {
-        clearCart();
-        onSuccess(orderId, paymentMethod);
-        return;
-      }
-    }
-    
-    if (result?.type === "cart" || result?.cart) {
-      const returnedCart = result?.cart || result;
-      const missingItems: string[] = [];
-      if (!returnedCart?.email) missingItems.push("email");
-      if (!returnedCart?.shipping_address) missingItems.push("shipping_address");
-      if (!returnedCart?.shipping_methods?.length) missingItems.push("shipping_method");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if (!(returnedCart as any)?.payment_collection?.payment_sessions?.length) missingItems.push("payment_session");
-      
-      if (missingItems.length > 0) {
-        throw new Error(`Захиалга дуусгахад дараах мэдээлэл дутуу байна: ${missingItems.join(", ")}`);
-      }
-      throw new Error("Захиалга дуусгахад алдаа гарлаа. Дахин оролдоно уу.");
+    console.log(`[Checkout] Cart completed. Result:`, JSON.stringify(completeResult, null, 2));
+
+    if (completeResult.type === "order") {
+      onSuccess(completeResult.order.id, paymentMethod);
+      return { success: true, orderId: completeResult.order.id };
     } else {
-      throw new Error(result?.error?.message || "Захиалга үүсгэхэд алдаа гарлаа");
+      // If it's not an order (e.g. cart), something went wrong
+      console.error(`[Checkout] Complete returned type: ${completeResult.type}`);
+      throw new Error("Order completion failed - returned cart instead of order");
     }
-  } finally {
-    completionInProgress.delete(cartId);
+  } catch (error: unknown) {
+    console.error("[Checkout] Error in completeCheckout:", error);
+    
+    // Check for 500 error which likely means invalid cart/region
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const err = error as any;
+    if (err.status === 500 || (err.message && err.message.includes("500"))) {
+       throw new Error("CART_INVALID");
+    }
+
+    // Ensure we throw a proper Error object
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error(typeof error === 'string' ? error : "Unknown error during checkout");
   }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function formatCheckoutError(error: any): string {
+  console.error("[Checkout] Detailed error:", JSON.stringify(error, null, 2));
+  
+  if (error instanceof z.ZodError) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (error as any).errors[0].message;
+  }
+  
+  const errorMessage = error?.message || "Unknown error";
+  
+  // Handle specific Medusa errors
+  if (errorMessage.includes("Inventory")) {
+    return "Зарим бараа агуулахад дууссан байна.";
+  }
+  
+  if (errorMessage.includes("shipping")) {
+    return "Хүргэлтийн сонголт буруу байна.";
+  }
+
+  if (errorMessage.includes("CART_INVALID")) {
+    return "CART_INVALID";
+  }
+
+  if (errorMessage.includes("500") || errorMessage.includes("Internal Server Error")) {
+    return "Сэрвэрт алдаа гарлаа. Түр хүлээгээд дахин оролдоно уу. (500)";
+  }
+
+  return "Захиалга үүсгэхэд алдаа гарлаа. Дахин оролдоно уу.";
 }
 
 export async function handleCheckoutError(
@@ -215,66 +228,56 @@ export async function handleCheckoutError(
   const isIdempotencyError = errorMessage.includes("Idempotency") || errorMessage.includes("conflicted");
   const isCartCompletedError = errorMessage.includes("already completed") || errorMessage.includes("being completed");
   
-  // Helper to try to find the order from a completed cart
-  const tryFindOrderFromCart = async (): Promise<string | null> => {
-    try {
-      // Try to get the order by cart ID first (most reliable)
-      const { orders } = await medusa.store.order.list({ 
-        limit: 5,
-        order: "-created_at",
-      });
-      
-      if (orders?.[0]?.id) {
-        return orders[0].id;
-      }
-    } catch {
-      // Orders API failed
-    }
-    return null;
-  };
-  
-  // Cart already completed or being completed - try to find the order
+  // Cart already completed or being completed - wait and check cart status
   if (isCartCompletedError) {
-    // Wait a moment for the completion to finish
-    await minDelay(500);
+    // Wait for the other completion request to finish
+    await minDelay(2000);
     
-    // Try to find the order
-    const orderId = await tryFindOrderFromCart();
-    if (orderId) {
-      clearCart();
-      onSuccess(orderId, paymentMethod);
-      return "";
-    }
-    
-    // Still try to check cart status
     try {
+      // Check if cart is now completed
       const { cart: currentCart } = await medusa.store.cart.retrieve(cartId, {
         fields: "+completed_at",
       });
       
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if ((currentCart as any).completed_at) {
-        // Cart was completed, order should exist
-        await minDelay(300);
-        const orderId2 = await tryFindOrderFromCart();
-        if (orderId2) {
-          clearCart();
-          onSuccess(orderId2, paymentMethod);
+        // Cart was completed successfully by the other request
+        clearCart();
+        // Redirect to confirmation - the page will show success even without order details
+        return "__redirect_confirmation__";
+      }
+      
+      // Cart not completed yet, try to complete it ourselves
+      const completeResult = await medusa.store.cart.complete(cartId);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = completeResult as any;
+      const orderId = result?.order?.id || result?.data?.id || result?.data?.order?.id || result?.id;
+      
+      if (result?.type === "order" || orderId) {
+        clearCart();
+        if (orderId) {
+          onSuccess(orderId, paymentMethod);
           return "";
         }
+        return "__redirect_confirmation__";
       }
-    } catch {
-      // Cart retrieve failed, it's probably completed
+    } catch (retryErr) {
+      const retryMsg = retryErr instanceof Error ? retryErr.message : String(retryErr);
+      // If cart retrieve fails or is already completed, assume success
+      if (retryMsg.includes("completed") || retryMsg.includes("not found") || retryMsg.includes("404")) {
+        clearCart();
+        return "__redirect_confirmation__";
+      }
     }
     
-    // As a last resort, clear cart and redirect to confirmation with placeholder
+    // As a last resort, clear cart and redirect to confirmation
     clearCart();
     return "__redirect_confirmation__";
   }
   
-  // Idempotency error - wait and check
+  // Idempotency error - wait and check cart status
   if (isIdempotencyError) {
-    await minDelay(500);
+    await minDelay(1000);
     
     try {
       const { cart: currentCart } = await medusa.store.cart.retrieve(cartId, {
@@ -285,58 +288,65 @@ export async function handleCheckoutError(
       const cartCompleted = (currentCart as any).completed_at;
       
       if (cartCompleted) {
-        const orderId = await tryFindOrderFromCart();
-        if (orderId) {
-          clearCart();
-          onSuccess(orderId, paymentMethod);
-          return "";
-        }
+        // Cart is completed, redirect to confirmation
         clearCart();
-        return "__redirect_home__";
+        return "__redirect_confirmation__";
       }
       
-      await minDelay(300);
+      // Cart not completed, try to complete it
+      await minDelay(500);
       
       try {
         const retryResult = await medusa.store.cart.complete(cartId);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const retryData = retryResult as any;
+        const orderId = retryData?.order?.id || retryData?.data?.id;
         
-        if (retryData?.type === "order" && retryData?.order?.id) {
+        if (retryData?.type === "order" || orderId) {
           clearCart();
-          onSuccess(retryData.order.id, paymentMethod);
-          return "";
-        } else if (retryData?.order?.id) {
-          clearCart();
-          onSuccess(retryData.order.id, paymentMethod);
-          return "";
+          if (orderId) {
+            onSuccess(orderId, paymentMethod);
+            return "";
+          }
+          return "__redirect_confirmation__";
         }
       } catch (retryCompleteErr) {
         const retryMsg = retryCompleteErr instanceof Error ? retryCompleteErr.message : String(retryCompleteErr);
+        // If it says already completed or being completed, that's a success
+        if (retryMsg.includes("completed") || retryMsg.includes("being completed")) {
+          clearCart();
+          return "__redirect_confirmation__";
+        }
         if (retryMsg.includes("Idempotency") || retryMsg.includes("conflicted")) {
-          return "__refresh_5s__";
+          // Wait and redirect to confirmation
+          await minDelay(2000);
+          clearCart();
+          return "__redirect_confirmation__";
         }
       }
       
       return "Захиалга үүсгэхэд алдаа гарлаа. Дахин оролдоно уу.";
     } catch {
-      const orderId = await tryFindOrderFromCart();
-      if (orderId) {
-        clearCart();
-        onSuccess(orderId, paymentMethod);
-        return "";
-      }
+      // Cart retrieve failed, probably completed
       clearCart();
       return "__redirect_confirmation__";
     }
   }
   
-  // Specific error messages
-  if (errorMessage.includes("email")) return "И-мэйл хаяг буруу байна";
-  if (errorMessage.includes("shipping") || errorMessage.includes("address")) return "Хүргэлтийн хаяг буруу байна";
-  if (errorMessage.includes("payment")) return "Төлбөрийн алдаа гарлаа";
-  if (errorMessage.includes("inventory") || errorMessage.includes("stock")) return "Бараа дууссан байна";
-  if (err instanceof Error) return err.message;
+  // Handle success without order ID
+  if (errorMessage.includes("__success_no_id__")) {
+    clearCart();
+    return "__redirect_confirmation__";
+  }
   
-  return "Захиалга үүсгэхэд алдаа гарлаа";
+  // Handle lock message - someone else is processing
+  if (errorMessage.includes("боловсруулж байна")) {
+    // Wait a bit and redirect to confirmation
+    await minDelay(3000);
+    clearCart();
+    return "__redirect_confirmation__";
+  }
+  
+  // Use formatCheckoutError for standard messages
+  return formatCheckoutError(err);
 }

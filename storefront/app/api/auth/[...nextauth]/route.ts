@@ -61,9 +61,19 @@ export const authOptions: NextAuthOptions = {
           const data = await response.json();
 
           if (data.token) {
-            // Get customer details
+            // If customer data is returned with token, use it
+            if (data.customer) {
+              return {
+                id: data.customer.id,
+                email: data.customer.email,
+                name: `${data.customer.first_name || ""} ${data.customer.last_name || ""}`.trim(),
+                accessToken: data.token,
+              };
+            }
+
+            // Fallback: Get customer details
             const customerResponse = await fetch(
-              `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/customers/me`,
+              `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/custom/me`,
               {
                 headers: {
                   Authorization: `Bearer ${data.token}`,

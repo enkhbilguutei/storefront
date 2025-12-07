@@ -57,21 +57,35 @@ export function SearchModal() {
   // Fetch recommended products on mount
   useEffect(() => {
     const fetchRecommended = async () => {
+      // Only run on client side
+      if (typeof window === 'undefined') return;
+      
+      const backendUrl = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL;
+      const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY;
+      
+      if (!backendUrl) {
+        console.error("NEXT_PUBLIC_MEDUSA_BACKEND_URL is not defined");
+        return;
+      }
+      
       try {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/search?q=&limit=4`,
+          `${backendUrl}/store/search?q=&limit=4`,
           {
             headers: {
-              "x-publishable-api-key": process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "",
+              "x-publishable-api-key": publishableKey || "",
             },
           }
         );
         if (response.ok) {
           const data = await response.json();
           setRecommendedProducts(data.hits || []);
+        } else {
+          console.error("Failed to fetch recommended products:", response.statusText);
         }
       } catch (error) {
         console.error("Failed to fetch recommended products:", error);
+        // Silently fail - recommended products are optional
       }
     };
     fetchRecommended();
@@ -116,19 +130,29 @@ export function SearchModal() {
       return;
     }
 
+    const backendUrl = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL;
+    const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY;
+    
+    if (!backendUrl) {
+      console.error("NEXT_PUBLIC_MEDUSA_BACKEND_URL is not defined");
+      return;
+    }
+
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/search?q=${encodeURIComponent(searchQuery)}&limit=8`,
+        `${backendUrl}/store/search?q=${encodeURIComponent(searchQuery)}&limit=8`,
         {
           headers: {
-            "x-publishable-api-key": process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "",
+            "x-publishable-api-key": publishableKey || "",
           },
         }
       );
       if (response.ok) {
         const data = await response.json();
         setResults(data);
+      } else {
+        console.error("Search request failed:", response.statusText);
       }
     } catch (error) {
       console.error("Search error:", error);

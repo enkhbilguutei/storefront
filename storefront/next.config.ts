@@ -23,6 +23,16 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "store.storeimages.cdn-apple.com",
       },
+      // QPay logo
+      {
+        protocol: "https",
+        hostname: "qpay.mn",
+      },
+      // Bank app logos from Google Play Store
+      {
+        protocol: "https",
+        hostname: "play-lh.googleusercontent.com",
+      },
     ],
   },
 };

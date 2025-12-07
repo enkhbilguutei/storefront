@@ -20,7 +20,7 @@ export interface ShippingOption {
 }
 
 export type DeliveryMethod = "delivery" | "pickup";
-export type PaymentMethod = "bank_transfer" | "cash_on_delivery";
+export type PaymentMethod = "bank_transfer" | "cash_on_delivery" | "qpay";
 
 export interface CheckoutFormData {
   firstName: string;

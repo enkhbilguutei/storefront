@@ -203,7 +203,7 @@ export function CartContent() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10">
         {/* Header */}
         <div className="mb-6 sm:mb-8 lg:mb-10">
-          <h1 className="text-[28px] sm:text-[32px] md:text-[40px] font-semibold text-[#1d1d1f] tracking-tight">
+          <h1 className="text-[18px] font-semibold text-[#1d1d1f] tracking-tight" style={{ fontFamily: "'SF Pro Text', -apple-system, BlinkMacSystemFont, sans-serif" }}>
             Сагс
           </h1>
           <p className="text-[#86868b] text-[15px] sm:text-[17px] mt-1 sm:mt-2">

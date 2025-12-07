@@ -1,7 +1,8 @@
 "use client";
 
 import { Building2, Banknote, Check, ChevronDown, ChevronUp, Info, Copy, CheckCheck } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Image from "next/image";
 import type { CheckoutPaymentMethod } from "@/lib/validations";
 
 // Bank transfer info
@@ -11,6 +12,9 @@ const BANK_INFO = {
   accountName: "Алимхан ХХК",
   note: "Гүйлгээний утга дээр захиалгын дугаар бичнэ үү",
 };
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000";
+const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "";
 
 interface PaymentStepProps {
   paymentMethod: CheckoutPaymentMethod | null;
@@ -30,6 +34,30 @@ export function PaymentStep({
   isDisabled,
 }: PaymentStepProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [isQPayAvailable, setIsQPayAvailable] = useState<boolean | null>(null);
+  const [isQPayLoading, setIsQPayLoading] = useState(true);
+
+  // Check if QPay is available on mount
+  useEffect(() => {
+    const checkQPay = async () => {
+      setIsQPayLoading(true);
+      try {
+        const response = await fetch(`${BACKEND_URL}/store/qpay`, {
+          headers: {
+            "x-publishable-api-key": PUBLISHABLE_KEY,
+          },
+        });
+        const data = await response.json();
+        setIsQPayAvailable(data.available);
+      } catch {
+        // Even if API fails, show QPay option (will show error on use)
+        setIsQPayAvailable(true);
+      } finally {
+        setIsQPayLoading(false);
+      }
+    };
+    checkQPay();
+  }, []);
 
   const copyToClipboard = async (text: string, field: string) => {
     try {
@@ -68,7 +96,8 @@ export function PaymentStep({
             </h3>
             {isCompleted && !isExpanded && paymentMethod && (
               <p className="text-[13px] text-[#86868b] mt-0.5">
-                {paymentMethod === "bank_transfer" ? "Банкны шилжүүлэг" : "Хүргэлтээр төлөх"}
+                {paymentMethod === "bank_transfer" ? "Банкны шилжүүлэг" : 
+                 paymentMethod === "qpay" ? "QPay" : "Хүргэлтээр төлөх"}
               </p>
             )}
           </div>
@@ -174,6 +203,78 @@ export function PaymentStep({
               <p className="text-[12px] text-[#86868b] pt-2 border-t border-gray-200">
                 {BANK_INFO.note}
               </p>
+            </div>
+          )}
+
+          {/* QPay Option - Always show */}
+          <button
+            type="button"
+            onClick={() => onPaymentMethodChange("qpay")}
+            className={`w-full flex items-start gap-4 p-4 rounded-xl border-2 transition-all ${
+              paymentMethod === "qpay"
+                ? "border-[#00D4AA] bg-[#00D4AA]/5"
+                : "border-gray-200 hover:border-gray-300"
+            }`}
+          >
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 overflow-hidden ${
+              paymentMethod === "qpay" ? "bg-[#00D4AA]" : "bg-[#f5f5f7]"
+            }`}>
+              {isQPayLoading ? (
+                <div className="w-5 h-5 border-2 border-gray-300 border-t-[#00D4AA] rounded-full animate-spin" />
+              ) : (
+                <Image
+                  src="https://qpay.mn/q-logo.png"
+                  alt="QPay"
+                  width={paymentMethod === "qpay" ? 28 : 32}
+                  height={paymentMethod === "qpay" ? 28 : 32}
+                  className={`object-contain ${paymentMethod === "qpay" ? "brightness-0 invert" : ""}`}
+                  unoptimized
+                />
+              )}
+            </div>
+            <div className="flex-1 text-left">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-[15px] font-semibold text-[#1d1d1f]">
+                    QPay
+                  </span>
+                  <span className="px-2 py-0.5 bg-[#00D4AA]/20 text-[#00A080] text-[10px] font-medium rounded-full">
+                    Түгээмэл
+                  </span>
+                </div>
+                {paymentMethod === "qpay" && (
+                  <Check className="w-5 h-5 text-[#00D4AA]" />
+                )}
+              </div>
+              <p className="text-[13px] text-[#86868b] mt-1">
+                QR код эсвэл банкны апп-аар төлнө
+              </p>
+            </div>
+          </button>
+
+          {paymentMethod === "qpay" && (
+            <div className="mt-3 p-4 bg-[#00D4AA]/5 border border-[#00D4AA]/20 rounded-xl">
+              <div className="flex items-start gap-3">
+                <Image
+                  src="https://qpay.mn/q-logo.png"
+                  alt="QPay"
+                  width={20}
+                  height={20}
+                  className="mt-0.5"
+                  unoptimized
+                />
+                <div>
+                  <p className="text-[13px] text-[#1d1d1f] font-medium">
+                    QPay-ээр төлөх
+                  </p>
+                  <p className="text-[12px] text-[#86868b] mt-1">
+                    {isQPayAvailable 
+                      ? "Захиалга үүсгэснийхээ дараа QR код гарч ирнэ. Дурын банкны апп-аар уншуулж төлнө үү."
+                      : "QPay тохиргоо хийгдээгүй байна. Дэлгүүрт хандана уу."
+                    }
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 

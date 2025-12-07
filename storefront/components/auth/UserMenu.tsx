@@ -72,7 +72,7 @@ export function UserMenu() {
     <div className="relative hidden lg:block" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center gap-1 p-1 rounded-full transition-all ${
+        className={`flex items-center p-1.5 rounded-full transition-all ${
           isOpen 
             ? "bg-foreground/10" 
             : "hover:bg-foreground/5"
@@ -85,14 +85,13 @@ export function UserMenu() {
           <img 
             src={user.image} 
             alt={user.name || user.email}
-            className="w-7 h-7 rounded-full object-cover"
+            className="w-6 h-6 rounded-full object-cover"
           />
         ) : (
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center text-xs font-medium">
+          <div className="w-6 h-6 rounded-full bg-foreground text-background flex items-center justify-center text-[10px] font-medium">
             {initials}
           </div>
         )}
-        <ChevronDown className={`h-3 w-3 text-foreground/50 transition-transform ${isOpen ? "rotate-180" : ""}`} />
       </button>
 
       {/* Dropdown Menu */}
@@ -109,7 +108,7 @@ export function UserMenu() {
                   className="w-10 h-10 rounded-full object-cover"
                 />
               ) : (
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center text-sm font-medium">
+                <div className="w-10 h-10 rounded-full bg-foreground text-background flex items-center justify-center text-sm font-medium">
                   {initials}
                 </div>
               )}

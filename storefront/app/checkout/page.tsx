@@ -29,14 +29,26 @@ export default function CheckoutPage() {
 
   // Handle form submission
   const handleSubmit = async () => {
-    if (checkout.isSubmitting || checkout.isCompletingRef.current) {
-      console.log("Submission already in progress, ignoring duplicate click");
+    // IMMEDIATE blocking check - must be first
+    if (checkout.isCompletingRef.current) {
+      console.log("[Checkout] Ref lock active, ignoring duplicate click");
+      return;
+    }
+    
+    // Set ref lock IMMEDIATELY before any async work
+    checkout.isCompletingRef.current = true;
+    
+    // Secondary check with state
+    if (checkout.isSubmitting) {
+      console.log("[Checkout] State lock active, ignoring");
+      checkout.isCompletingRef.current = false;
       return;
     }
 
     const now = Date.now();
-    if (now - checkout.lastSubmitAttempt.current < 3000) {
-      console.log("Too soon after last submission attempt, ignoring");
+    if (now - checkout.lastSubmitAttempt.current < 5000) {
+      console.log("[Checkout] Debounce: too soon after last attempt");
+      checkout.isCompletingRef.current = false;
       return;
     }
     checkout.lastSubmitAttempt.current = now;
@@ -46,6 +58,7 @@ export default function CheckoutPage() {
     if (!checkout.validate() || !checkout.cartId || !checkout.cart) {
       const firstError = document.querySelector('[data-error="true"]');
       firstError?.scrollIntoView({ behavior: "smooth", block: "center" });
+      checkout.isCompletingRef.current = false;
       return;
     }
 
@@ -53,10 +66,10 @@ export default function CheckoutPage() {
     if (checkout.cart.completed_at || checkout.cart.status === "completed") {
       checkout.clearCart();
       checkout.router.push("/");
+      checkout.isCompletingRef.current = false;
       return;
     }
 
-    checkout.isCompletingRef.current = true;
     checkout.setIsSubmitting(true);
     checkout.setError(null);
 
@@ -86,6 +99,7 @@ export default function CheckoutPage() {
         clearCart: checkout.clearCart,
       });
     } catch (err) {
+      console.error("[CheckoutPage] Caught error during checkout:", err);
       const result = await handleCheckoutError(
         err,
         checkout.cartId!,
@@ -99,12 +113,8 @@ export default function CheckoutPage() {
       
       if (result === "__redirect_confirmation__") {
         shouldResetState = false;
-        // Redirect to confirmation - it will try to find the recent order
+        // Redirect to confirmation - order was successfully created
         checkout.router.push(`/checkout/confirmation?payment_method=${checkout.paymentMethod}`);
-        return;
-      } else if (result === "__refresh_5s__") {
-        checkout.setError("Захиалга боловсруулж байна. 5 секундын дараа автоматаар шинэчлэгдэнэ...");
-        setTimeout(() => window.location.reload(), 5000);
         return;
       } else if (result) {
         checkout.setError(result);
@@ -190,9 +200,24 @@ export default function CheckoutPage() {
           {checkout.error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
-              <div>
+              <div className="flex-1">
                 <p className="text-red-800 font-medium">Алдаа гарлаа</p>
-                <p className="text-red-600 text-sm mt-1">{checkout.error}</p>
+                <p className="text-red-600 text-sm mt-1">
+                  {checkout.error === "CART_INVALID" 
+                    ? "Таны сагсны мэдээлэл хуучирсан байна. Сагсаа шинэчлээд дахин оролдоно уу." 
+                    : checkout.error}
+                </p>
+                {checkout.error === "CART_INVALID" && (
+                  <button
+                    onClick={() => {
+                      checkout.clearCart();
+                      window.location.reload();
+                    }}
+                    className="mt-3 px-4 py-2 bg-red-100 text-red-700 text-sm font-medium rounded-lg hover:bg-red-200 transition-colors"
+                  >
+                    Сагс шинэчлэх
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -275,7 +300,12 @@ export default function CheckoutPage() {
                 </div>
 
                 <div className="mt-4" data-error={!!checkout.getError("phone")}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Утас *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Утас *
+                    {checkout.customerData?.phone && checkout.phone === checkout.customerData.phone && (
+                      <span className="ml-2 text-xs text-green-600">(Бүртгэлээс авсан)</span>
+                    )}
+                  </label>
                   <div className="relative">
                     <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
@@ -375,6 +405,30 @@ export default function CheckoutPage() {
                     </div>
                     <h2 className="text-lg font-semibold text-gray-900">Хүргэлтийн хаяг</h2>
                   </div>
+
+                  {/* Saved addresses selector */}
+                  {checkout.savedAddresses && checkout.savedAddresses.length > 0 && (
+                    <div className="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-xl">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Хадгалагдсан хаяг сонгох
+                      </label>
+                      <select
+                        onChange={(e) => {
+                          const address = checkout.savedAddresses.find((a: any) => a.id === e.target.value);
+                          if (address) checkout.fillFromAddress(address);
+                        }}
+                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20 focus:border-[#0071e3] transition-all appearance-none cursor-pointer"
+                      >
+                        <option value="">Шинэ хаяг оруулах</option>
+                        {checkout.savedAddresses.map((addr: any) => (
+                          <option key={addr.id} value={addr.id}>
+                            {addr.address_1}, {addr.city}
+                            {addr.first_name && ` - ${addr.first_name} ${addr.last_name}`}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -542,6 +596,41 @@ export default function CheckoutPage() {
                     </div>
                     {checkout.paymentMethod === "bank_transfer" && (
                       <CheckCircle className="w-5 h-5 text-[#0071e3]" />
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => checkout.setPaymentMethod("qpay")}
+                    className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left ${
+                      checkout.paymentMethod === "qpay"
+                        ? "border-[#00D4AA] bg-[#00D4AA]/5"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 overflow-hidden ${
+                      checkout.paymentMethod === "qpay" ? "bg-[#00D4AA]" : "bg-gray-100"
+                    }`}>
+                      <Image
+                        src="https://qpay.mn/q-logo.png"
+                        alt="QPay"
+                        width={28}
+                        height={28}
+                        className={`object-contain ${checkout.paymentMethod === "qpay" ? "brightness-0 invert" : ""}`}
+                        unoptimized
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-gray-900">QPay</p>
+                        <span className="px-2 py-0.5 bg-[#00D4AA]/20 text-[#00A080] text-[10px] font-medium rounded-full">
+                          Түгээмэл
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5">QR код эсвэл банкны апп-аар</p>
+                    </div>
+                    {checkout.paymentMethod === "qpay" && (
+                      <CheckCircle className="w-5 h-5 text-[#00D4AA]" />
                     )}
                   </button>
 

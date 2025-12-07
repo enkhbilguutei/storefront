@@ -3,14 +3,30 @@ import { ProductDetails } from "@/components/products/ProductDetails";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { notFound } from "next/navigation";
+import { getDefaultRegion } from "@/lib/data/regions";
 
 async function getProduct(handle: string) {
   try {
-    const { products } = await medusa.store.product.list({
+    // Get default region for calculated prices (promotions)
+    const region = await getDefaultRegion();
+    
+    const query: {
+      handle: string;
+      limit: number;
+      fields: string;
+      region_id?: string;
+    } = {
       handle,
       limit: 1,
-      fields: "+variants.thumbnail,+variants.images.*,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder,id,title,handle,description,thumbnail,images.*,options.*,options.values.*,variants.id,variants.title,variants.options.*,variants.prices.amount,variants.prices.currency_code",
-    });
+      fields: "+variants.thumbnail,+variants.images.*,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder,+variants.calculated_price,id,title,handle,description,thumbnail,images.*,options.*,options.values.*,variants.id,variants.title,variants.options.*,variants.prices.amount,variants.prices.currency_code",
+    };
+    
+    // Add region_id to get calculated prices with promotions
+    if (region?.id) {
+      query.region_id = region.id;
+    }
+    
+    const { products } = await medusa.store.product.list(query);
     
     if (!products || products.length === 0) {
       return null;

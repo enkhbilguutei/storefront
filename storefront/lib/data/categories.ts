@@ -1,5 +1,6 @@
 import { medusa } from "@/lib/medusa";
 import { cache } from "react";
+import { getDefaultRegion } from "./regions";
 
 export interface Category {
   id: string;
@@ -49,11 +50,26 @@ export const getCategoryByHandle = cache(async (handle: string): Promise<Categor
 
 export const getProductsByCategory = cache(async (categoryId: string) => {
   try {
-    const { products } = await medusa.store.product.list({
+    // Get default region for calculated prices (promotions)
+    const region = await getDefaultRegion();
+    
+    const query: {
+      category_id: string[];
+      limit: number;
+      fields: string;
+      region_id?: string;
+    } = {
       category_id: [categoryId],
       limit: 50,
-      fields: "id,title,handle,thumbnail,options.*,options.values.*,variants.id,variants.title,variants.options.*,variants.prices.amount,variants.prices.currency_code,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder",
-    });
+      fields: "id,title,handle,thumbnail,options.*,options.values.*,variants.id,variants.title,variants.options.*,variants.prices.amount,variants.prices.currency_code,+variants.calculated_price,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder",
+    };
+    
+    // Add region_id to get calculated prices with promotions
+    if (region?.id) {
+      query.region_id = region.id;
+    }
+    
+    const { products } = await medusa.store.product.list(query);
     
     return products;
   } catch (error) {

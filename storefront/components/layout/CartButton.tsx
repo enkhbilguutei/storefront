@@ -19,10 +19,10 @@ export function CartButton() {
     return (
       <Link 
         href="/cart" 
-        className="text-foreground hover:text-foreground/80 transition-colors p-2 rounded-full w-10 h-10 flex items-center justify-center relative"
+        className="text-foreground/80 hover:text-foreground transition-colors p-2 rounded-full w-10 h-10 flex items-center justify-center relative"
         aria-label="Сагс"
       >
-        <ShoppingCart className="h-[22px] w-[22px]" />
+        <ShoppingCart className="h-5 w-5" strokeWidth={1.5} />
       </Link>
     );
   }
@@ -30,12 +30,12 @@ export function CartButton() {
   return (
     <Link 
       href="/cart" 
-      className="text-foreground hover:text-foreground/80 transition-colors p-2 rounded-full w-10 h-10 flex items-center justify-center relative"
+      className="text-foreground/80 hover:text-foreground transition-colors p-2 rounded-full w-10 h-10 flex items-center justify-center relative"
       aria-label="Сагс"
     >
-      <ShoppingCart className="h-[22px] w-[22px]" strokeWidth={2.5} />
+      <ShoppingCart className="h-5 w-5" strokeWidth={1.5} />
       {itemCount > 0 && (
-        <span className="absolute -top-0.5 -right-0.5 h-[18px] w-[18px] rounded-full bg-[#0071e3] text-white text-[10px] flex items-center justify-center font-semibold">
+        <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-foreground text-background text-[10px] flex items-center justify-center font-medium">
           {itemCount > 9 ? "9+" : itemCount}
         </span>
       )}

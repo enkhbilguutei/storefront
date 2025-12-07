@@ -7,12 +7,23 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight, Package } from "lucide-react";
 
+// Calculated price from promotions/price lists
+interface CalculatedPrice {
+  id?: string;
+  calculated_amount: number;
+  original_amount: number;
+  currency_code: string;
+  is_calculated_price_price_list?: boolean;
+  is_calculated_price_tax_inclusive?: boolean;
+}
+
 // Extended variant type that includes prices
 interface VariantWithPrices {
   id: string;
   title: string | null;
   options?: { option_id: string; value: string }[];
   prices?: { amount: number; currency_code: string }[];
+  calculated_price?: CalculatedPrice;
   inventory_quantity?: number;
   manage_inventory?: boolean;
   allow_backorder?: boolean;
@@ -58,14 +69,18 @@ export default async function CategoryPage({
   
   if (sortOrder === 'price_asc') {
     sortedProducts.sort((a, b) => {
-      const priceA = a.variants?.[0]?.prices?.[0]?.amount || 0;
-      const priceB = b.variants?.[0]?.prices?.[0]?.amount || 0;
+      const variantA = a.variants?.[0];
+      const variantB = b.variants?.[0];
+      const priceA = variantA?.calculated_price?.calculated_amount ?? variantA?.prices?.[0]?.amount ?? 0;
+      const priceB = variantB?.calculated_price?.calculated_amount ?? variantB?.prices?.[0]?.amount ?? 0;
       return priceA - priceB;
     });
   } else if (sortOrder === 'price_desc') {
     sortedProducts.sort((a, b) => {
-      const priceA = a.variants?.[0]?.prices?.[0]?.amount || 0;
-      const priceB = b.variants?.[0]?.prices?.[0]?.amount || 0;
+      const variantA = a.variants?.[0];
+      const variantB = b.variants?.[0];
+      const priceA = variantA?.calculated_price?.calculated_amount ?? variantA?.prices?.[0]?.amount ?? 0;
+      const priceB = variantB?.calculated_price?.calculated_amount ?? variantB?.prices?.[0]?.amount ?? 0;
       return priceB - priceA;
     });
   } else if (sortOrder === 'newest') {
@@ -125,7 +140,14 @@ export default async function CategoryPage({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {sortedProducts.map((product) => {
                 const firstVariant = product.variants?.[0];
+                const calculatedPrice = firstVariant?.calculated_price;
                 const firstPrice = firstVariant?.prices?.[0];
+                
+                // Use calculated price if available (includes promotions)
+                const displayPrice = calculatedPrice?.calculated_amount ?? firstPrice?.amount;
+                const originalPrice = calculatedPrice?.original_amount;
+                const currencyCode = calculatedPrice?.currency_code ?? firstPrice?.currency_code ?? "MNT";
+                const isOnSale = calculatedPrice && calculatedPrice.calculated_amount < calculatedPrice.original_amount;
                 
                 return (
                   <ProductCard
@@ -148,10 +170,18 @@ export default async function CategoryPage({
                       allow_backorder: v.allow_backorder
                     }))}
                     price={
-                      firstPrice
+                      displayPrice
                         ? {
-                            amount: firstPrice.amount,
-                            currencyCode: firstPrice.currency_code,
+                            amount: displayPrice,
+                            currencyCode: currencyCode,
+                          }
+                        : undefined
+                    }
+                    originalPrice={
+                      isOnSale && originalPrice
+                        ? {
+                            amount: originalPrice,
+                            currencyCode: currencyCode,
                           }
                         : undefined
                     }

@@ -190,7 +190,7 @@ export const useCartStore = create<CartStore>()(
           } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.message : String(error);
             
-            if (errorMessage.includes("completed") || errorMessage.includes("not found") || errorMessage.includes("404")) {
+            if (errorMessage.includes("completed") || errorMessage.includes("not found") || errorMessage.includes("404") || errorMessage.includes("Internal Server Error") || errorMessage.includes("500")) {
               get().clearCart();
               return null;
             }

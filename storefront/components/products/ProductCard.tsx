@@ -40,6 +40,10 @@ interface ProductCardProps {
     amount: number;
     currencyCode: string;
   };
+  originalPrice?: {
+    amount: number;
+    currencyCode: string;
+  };
   options?: ProductOption[];
   variants?: ProductVariant[];
 }
@@ -69,7 +73,7 @@ const colorMap: Record<string, string> = {
   "black titanium": "#2d2d2d",
 };
 
-export function ProductCard({ id, title, handle, thumbnail, price, options, variants }: ProductCardProps) {
+export function ProductCard({ id, title, handle, thumbnail, price, originalPrice, options, variants }: ProductCardProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [showVariantModal, setShowVariantModal] = useState(false);
@@ -77,6 +81,12 @@ export function ProductCard({ id, title, handle, thumbnail, price, options, vari
   const modalRef = useRef<HTMLDivElement>(null);
   const { cartId, setCartId, addItem, syncCart } = useCartStore();
   const { openCartNotification } = useUIStore();
+
+  // Check if product is on sale
+  const isOnSale = originalPrice && price && originalPrice.amount > price.amount;
+  const discountPercentage = isOnSale 
+    ? Math.round(((originalPrice.amount - price.amount) / originalPrice.amount) * 100)
+    : 0;
 
   const formatPrice = (amount: number, currencyCode: string) => {
     const formatted = new Intl.NumberFormat("en-US", {
@@ -301,7 +311,7 @@ export function ProductCard({ id, title, handle, thumbnail, price, options, vari
 
   return (
     <>
-      <div className="group block bg-white rounded-2xl md:rounded-3xl transition-all duration-300 hover:shadow-lg hover:shadow-black/5 relative overflow-hidden">
+      <div className="group block bg-white rounded-2xl md:rounded-3xl shadow-sm shadow-black/5 transition-all duration-300 hover:shadow-lg hover:shadow-black/8 relative overflow-hidden">
         <Link 
           href={`/products/${handle}`} 
           className="block"
@@ -309,14 +319,23 @@ export function ProductCard({ id, title, handle, thumbnail, price, options, vari
           onMouseLeave={() => setIsHovered(false)}
         >
           {/* Image Container - Clean white background */}
-          <div className="relative aspect-square overflow-hidden bg-[#f5f5f7] rounded-t-2xl md:rounded-t-3xl">
+          <div className="relative aspect-square overflow-hidden bg-white rounded-t-2xl md:rounded-t-3xl">
+            {/* Sale Badge */}
+            {isOnSale && (
+              <div className="absolute top-2 left-2 z-10">
+                <span className="bg-[#e53935] text-white text-[10px] md:text-xs font-semibold px-2 py-1 rounded-full shadow-md">
+                  -{discountPercentage}%
+                </span>
+              </div>
+            )}
+            
             {thumbnail ? (
               <CloudinaryImage
                 src={thumbnail}
                 alt={title}
                 width={400}
                 height={400}
-                className={`h-full w-full object-contain p-4 md:p-8 transition-transform duration-500 ${
+                className={`h-full w-full object-contain p-3 transition-transform duration-500 ${
                   isHovered ? "scale-105" : "scale-100"
                 }`}
               />
@@ -362,9 +381,27 @@ export function ProductCard({ id, title, handle, thumbnail, price, options, vari
             
             {/* Price */}
             {price ? (
-              <p className="text-[15px] md:text-[17px] font-semibold text-[#1d1d1f]">
-                {formatPrice(price.amount, price.currencyCode)}
-              </p>
+              <div className="flex flex-col gap-0.5">
+                {isOnSale ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <p className="text-[15px] md:text-[17px] font-semibold text-[#e53935]">
+                        {formatPrice(price.amount, price.currencyCode)}
+                      </p>
+                      <span className="bg-[#e53935] text-white text-[10px] md:text-[11px] font-medium px-1.5 py-0.5 rounded">
+                        -{discountPercentage}%
+                      </span>
+                    </div>
+                    <p className="text-[12px] md:text-[13px] text-[#86868b] line-through">
+                      {formatPrice(originalPrice!.amount, originalPrice!.currencyCode)}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-[15px] md:text-[17px] font-semibold text-[#1d1d1f]">
+                    {formatPrice(price.amount, price.currencyCode)}
+                  </p>
+                )}
+              </div>
             ) : (
               <p className="text-[14px] text-[#86868b]">
                 Үнэ тодорхойгүй
@@ -392,9 +429,8 @@ export function ProductCard({ id, title, handle, thumbnail, price, options, vari
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <>
-                  <ShoppingCart className="w-4 h-4 md:w-[18px] md:h-[18px]" strokeWidth={2.5} />
-                  <span className="hidden sm:inline">Сагсанд нэмэх</span>
-                  <span className="sm:hidden">Нэмэх</span>
+                  <ShoppingCart className="w-4 h-4" strokeWidth={1.5} />
+                  <span>Сагсанд нэмэх</span>
                 </>
               )}
             </button>
@@ -559,7 +595,7 @@ export function ProductCard({ id, title, handle, thumbnail, price, options, vari
                   <span>Дууссан</span>
                 ) : (
                   <>
-                    <ShoppingCart className="w-5 h-5" strokeWidth={2.5} />
+                    <ShoppingCart className="w-5 h-5" strokeWidth={1.5} />
                     <span>Сагсанд нэмэх</span>
                   </>
                 )}

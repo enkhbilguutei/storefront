@@ -8,7 +8,7 @@ import { z } from "zod";
 const addressSchema = z.object({
   firstName: z.string().min(1, "Нэр оруулна уу"),
   lastName: z.string().min(1, "Овог оруулна уу"),
-  phone: z.string().min(8, "Утасны дугаар оруулна уу"),
+  phone: z.string().length(8, "Утасны дугаар 8 оронтой байх ёстой").regex(/^\d{8}$/, "Утасны дугаар зөвхөн тоо байх ёстой"),
   address1: z.string().min(1, "Хаяг оруулна уу"),
   address2: z.string().optional(),
   city: z.string().min(1, "Хот/Аймаг оруулна уу"),
@@ -56,15 +56,22 @@ export default function AddressesPage() {
   async function fetchAddresses() {
     if (!session) return;
     
+    const accessToken = (session as { accessToken?: string }).accessToken;
+    if (!accessToken) {
+      setError("Нэвтрэх эрх дууссан байна");
+      setIsLoading(false);
+      return;
+    }
+    
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/customers/me/addresses`,
+        `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/custom/addresses`,
         {
           credentials: "include",
           headers: {
             "Content-Type": "application/json",
             "x-publishable-api-key": process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "",
-            Authorization: `Bearer ${(session as { accessToken?: string }).accessToken}`,
+            Authorization: `Bearer ${accessToken}`,
           },
         }
       );
@@ -89,11 +96,18 @@ export default function AddressesPage() {
     try {
       const validatedData = addressSchema.parse(formData);
       
-      const url = editingAddress 
-        ? `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/customers/me/addresses/${editingAddress.id}`
-        : `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/customers/me/addresses`;
+      const accessToken = (session as { accessToken?: string })?.accessToken;
+      if (!accessToken) {
+        setError("Нэвтрэх эрх дууссан байна. Дахин нэвтэрнэ үү.");
+        setIsSubmitting(false);
+        return;
+      }
       
-      const method = editingAddress ? "POST" : "POST";
+      const url = editingAddress 
+        ? `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/custom/addresses/${editingAddress.id}`
+        : `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/custom/addresses`;
+      
+      const method = "POST";
 
       const response = await fetch(url, {
         method,
@@ -101,7 +115,7 @@ export default function AddressesPage() {
         headers: {
           "Content-Type": "application/json",
           "x-publishable-api-key": process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "",
-          Authorization: `Bearer ${(session as { accessToken?: string }).accessToken}`,
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           first_name: validatedData.firstName,
@@ -115,8 +129,13 @@ export default function AddressesPage() {
         }),
       });
 
+      if (response.status === 401) {
+        throw new Error("Нэвтрэх эрх дууссан байна. Дахин нэвтэрнэ үү.");
+      }
+
       if (!response.ok) {
-        throw new Error("Хаяг хадгалахад алдаа гарлаа");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Хаяг хадгалахад алдаа гарлаа");
       }
 
       setSuccess(editingAddress ? "Хаяг амжилттай шинэчлэгдлээ" : "Хаяг амжилттай нэмэгдлээ");
@@ -140,15 +159,21 @@ export default function AddressesPage() {
     if (!confirm("Энэ хаягийг устгах уу?")) return;
 
     try {
+      const accessToken = (session as { accessToken?: string })?.accessToken;
+      if (!accessToken) {
+        setError("Нэвтрэх эрх дууссан байна. Дахин нэвтэрнэ үү.");
+        return;
+      }
+
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/customers/me/addresses/${addressId}`,
+        `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/custom/addresses/${addressId}`,
         {
           method: "DELETE",
           credentials: "include",
           headers: {
             "Content-Type": "application/json",
             "x-publishable-api-key": process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "",
-            Authorization: `Bearer ${(session as { accessToken?: string }).accessToken}`,
+            Authorization: `Bearer ${accessToken}`,
           },
         }
       );
@@ -200,7 +225,7 @@ export default function AddressesPage() {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-2xl p-12 shadow-sm flex flex-col items-center justify-center">
+      <div className="bg-white rounded-xl border border-gray-100 p-12 flex flex-col items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-foreground/40 mb-4" />
         <p className="text-secondary">Хаягуудыг татаж байна...</p>
       </div>
@@ -210,9 +235,9 @@ export default function AddressesPage() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm flex items-center justify-between">
+      <div className="bg-white rounded-xl border border-gray-100 p-4 flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-foreground mb-1">Миний хаягууд</h2>
+          <h2 className="font-semibold text-foreground">Миний хаягууд</h2>
           <p className="text-secondary text-sm">Хүргэлтийн хаягуудаа удирдах</p>
         </div>
         {!showForm && (
@@ -222,36 +247,36 @@ export default function AddressesPage() {
               setEditingAddress(null);
               setShowForm(true);
             }}
-            className="flex items-center gap-2 px-4 py-2.5 bg-foreground text-background rounded-xl font-medium hover:bg-foreground/90 transition-all"
+            className="flex items-center gap-2 px-4 py-2.5 bg-foreground text-background rounded-lg font-medium hover:bg-foreground/90 transition-all text-sm"
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="h-4 w-4" />
             <span className="hidden sm:inline">Хаяг нэмэх</span>
           </button>
         )}
       </div>
 
       {success && (
-        <div className="flex items-center gap-2 p-4 bg-green-50 text-green-700 rounded-xl">
-          <Check className="h-5 w-5" />
+        <div className="flex items-center gap-2 p-4 bg-green-50 text-green-700 rounded-lg text-sm">
+          <Check className="h-4 w-4" />
           {success}
         </div>
       )}
 
       {error && !showForm && (
-        <div className="p-4 bg-red-50 text-red-600 rounded-xl">
+        <div className="p-4 bg-red-50 text-red-600 rounded-lg text-sm">
           {error}
         </div>
       )}
 
       {/* Address Form */}
       {showForm && (
-        <div className="bg-white rounded-2xl p-6 shadow-sm">
-          <h3 className="text-lg font-bold text-foreground mb-6">
+        <div className="bg-white rounded-xl border border-gray-100 p-4">
+          <h3 className="font-semibold text-foreground mb-4">
             {editingAddress ? "Хаяг засах" : "Шинэ хаяг нэмэх"}
           </h3>
 
           {error && (
-            <div className="p-4 bg-red-50 text-red-600 rounded-xl mb-6">
+            <div className="p-3 bg-red-50 text-red-600 rounded-lg mb-4 text-sm">
               {error}
             </div>
           )}
@@ -259,78 +284,84 @@ export default function AddressesPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-foreground/70 mb-2">
+                <label className="block text-xs text-secondary mb-1.5">
                   Нэр *
                 </label>
                 <input
                   type="text"
                   value={formData.firstName}
                   onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:border-foreground/40 transition-all"
+                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground/10 focus:border-foreground/30 transition-all"
                   placeholder="Нэр"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-foreground/70 mb-2">
+                <label className="block text-xs text-secondary mb-1.5">
                   Овог *
                 </label>
                 <input
                   type="text"
                   value={formData.lastName}
                   onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:border-foreground/40 transition-all"
+                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground/10 focus:border-foreground/30 transition-all"
                   placeholder="Овог"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-foreground/70 mb-2">
+              <label className="block text-xs text-secondary mb-1.5">
                 Утас *
               </label>
               <input
                 type="tel"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:border-foreground/40 transition-all"
-                placeholder="9911 2233"
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '').slice(0, 8);
+                  setFormData({ ...formData, phone: value });
+                }}
+                maxLength={8}
+                pattern="[0-9]{8}"
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground/10 focus:border-foreground/30 transition-all"
+                placeholder="99112233"
               />
+              <p className="text-xs text-secondary mt-1">8 оронтой тоо оруулна уу</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-foreground/70 mb-2">
+              <label className="block text-xs text-secondary mb-1.5">
                 Хаяг *
               </label>
               <input
                 type="text"
                 value={formData.address1}
                 onChange={(e) => setFormData({ ...formData, address1: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:border-foreground/40 transition-all"
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground/10 focus:border-foreground/30 transition-all"
                 placeholder="Дүүрэг, хороо, гудамж, байр"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-foreground/70 mb-2">
+              <label className="block text-xs text-secondary mb-1.5">
                 Нэмэлт хаяг
               </label>
               <input
                 type="text"
                 value={formData.address2}
                 onChange={(e) => setFormData({ ...formData, address2: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:border-foreground/40 transition-all"
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground/10 focus:border-foreground/30 transition-all"
                 placeholder="Орц, давхар, тоот"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-foreground/70 mb-2">
+              <label className="block text-xs text-secondary mb-1.5">
                 Хот/Аймаг *
               </label>
               <select
                 value={formData.city}
                 onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:border-foreground/40 transition-all appearance-none cursor-pointer bg-white"
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground/10 focus:border-foreground/30 transition-all appearance-none cursor-pointer bg-white"
               >
                 <option value="">Сонгоно уу</option>
                 <option value="Улаанбаатар">Улаанбаатар</option>
@@ -358,22 +389,22 @@ export default function AddressesPage() {
               </select>
             </div>
 
-            <div className="flex gap-3 pt-4">
+            <div className="flex gap-2 pt-2">
               <button
                 type="button"
                 onClick={cancelForm}
-                className="flex-1 px-6 py-3 border border-gray-200 text-foreground rounded-xl font-medium hover:bg-gray-50 transition-all"
+                className="flex-1 px-4 py-2.5 text-sm border border-gray-200 text-foreground rounded-lg hover:bg-gray-50 transition-all"
               >
                 Цуцлах
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-foreground text-background rounded-xl font-medium hover:bg-foreground/90 transition-all disabled:opacity-50"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-all disabled:opacity-50"
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Хадгалж байна...
                   </>
                 ) : (
@@ -387,13 +418,13 @@ export default function AddressesPage() {
 
       {/* Addresses List */}
       {!showForm && addresses.length === 0 && (
-        <div className="bg-white rounded-2xl p-12 shadow-sm">
+        <div className="bg-white rounded-xl border border-gray-100 p-12">
           <div className="text-center">
             <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-6">
               <MapPin className="h-10 w-10 text-gray-400" />
             </div>
-            <h2 className="text-xl font-bold text-foreground mb-2">Хаяг байхгүй</h2>
-            <p className="text-secondary mb-6">
+            <h2 className="font-semibold text-foreground mb-2">Хаяг байхгүй</h2>
+            <p className="text-secondary text-sm mb-4">
               Хүргэлтийн хаяг нэмэх бол дээрх товчлуур дарна уу.
             </p>
           </div>
@@ -403,45 +434,45 @@ export default function AddressesPage() {
       {!showForm && addresses.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {addresses.map((address) => (
-            <div key={address.id} className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-start justify-between mb-4">
+            <div key={address.id} className="bg-white rounded-xl border border-gray-100 p-4 hover:border-gray-200 transition-colors">
+              <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">
                   {address.is_default_shipping ? (
-                    <Home className="h-5 w-5 text-accent" />
+                    <Home className="h-4 w-4 text-accent" />
                   ) : (
-                    <Building2 className="h-5 w-5 text-foreground/40" />
+                    <Building2 className="h-4 w-4 text-foreground/40" />
                   )}
-                  <span className="font-semibold text-foreground">
+                  <span className="font-medium text-foreground text-sm">
                     {address.first_name} {address.last_name}
                   </span>
                 </div>
                 {address.is_default_shipping && (
-                  <span className="px-2 py-1 bg-accent/10 text-accent text-xs font-medium rounded-full">
+                  <span className="px-2 py-0.5 bg-accent/10 text-accent text-xs font-medium rounded-full">
                     Үндсэн
                   </span>
                 )}
               </div>
 
-              <div className="space-y-1 text-sm text-secondary mb-4">
+              <div className="space-y-0.5 text-sm text-secondary mb-3">
                 <p>{address.address_1}</p>
                 {address.address_2 && <p>{address.address_2}</p>}
                 <p>{address.city}</p>
                 {address.phone && <p className="text-foreground">{address.phone}</p>}
               </div>
 
-              <div className="flex items-center gap-2 pt-4 border-t border-gray-100">
+              <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
                 <button
                   onClick={() => startEdit(address)}
-                  className="flex items-center gap-1.5 px-3 py-2 text-sm text-foreground/70 hover:text-foreground hover:bg-gray-50 rounded-lg transition-all"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-secondary hover:text-foreground hover:bg-gray-50 rounded-lg transition-all"
                 >
-                  <Edit2 className="h-4 w-4" />
+                  <Edit2 className="h-3.5 w-3.5" />
                   Засах
                 </button>
                 <button
                   onClick={() => handleDelete(address.id)}
-                  className="flex items-center gap-1.5 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-red-600 hover:bg-red-50 rounded-lg transition-all"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-3.5 w-3.5" />
                   Устгах
                 </button>
               </div>

@@ -14,6 +14,10 @@ module.exports = defineConfig({
       authCors: process.env.AUTH_CORS!,
       jwtSecret: process.env.JWT_SECRET || "supersecret",
       cookieSecret: process.env.COOKIE_SECRET || "supersecret",
+      jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d", // Admin session expires in 7 days
+      cookieOptions: {
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+      },
     },
     workerMode: process.env.MEDUSA_WORKER_MODE as "shared" | "worker" | "server" || "shared",
   },
@@ -45,5 +49,46 @@ module.exports = defineConfig({
     {
       resolve: "./src/modules/banner",
     },
+    {
+      resolve: "./src/modules/qpay",
+      options: {
+        clientId: process.env.QPAY_CLIENT_ID,
+        clientSecret: process.env.QPAY_CLIENT_SECRET,
+        invoiceCode: process.env.QPAY_INVOICE_CODE,
+        callbackUrl: process.env.QPAY_CALLBACK_URL,
+        isSandbox: process.env.QPAY_SANDBOX !== "false",
+      },
+    },
+    // Redis modules - only enabled when REDIS_URL is set
+    ...(process.env.REDIS_URL ? [
+      {
+        resolve: "@medusajs/medusa/event-bus-redis",
+        options: {
+          redisUrl: process.env.REDIS_URL,
+        },
+      },
+      {
+        resolve: "@medusajs/medusa/cache-redis",
+        options: {
+          redisUrl: process.env.REDIS_URL,
+          ttl: 30, // 30 seconds default TTL
+        },
+      },
+      {
+        resolve: "@medusajs/medusa/locking",
+        options: {
+          providers: [
+            {
+              resolve: "@medusajs/medusa/locking-redis",
+              id: "locking-redis",
+              is_default: true,
+              options: {
+                redisUrl: process.env.REDIS_URL,
+              },
+            },
+          ],
+        },
+      },
+    ] : []),
   ],
 })

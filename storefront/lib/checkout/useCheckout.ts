@@ -92,6 +92,13 @@ export function useCheckout() {
     { isSubmitting: false, error: null }
   );
   
+  // Customer data from backend
+  const [customerData, setCustomerData] = useReducer(
+    (state: { customer: any; addresses: any[]; isFetching: boolean }, 
+     action: Partial<typeof state>) => ({ ...state, ...action }),
+    { customer: null, addresses: [], isFetching: true }
+  );
+  
   // Refs for preventing duplicate submissions
   const isCompletingRef = useRef(false);
   const lastSubmitAttempt = useRef<number>(0);
@@ -103,6 +110,26 @@ export function useCheckout() {
       currency: cart?.currency_code?.toUpperCase() || "MNT",
     }).format(amount);
   }, [cart?.currency_code]);
+  
+  // Fill form from saved address
+  const fillFromAddress = useCallback((address: any) => {
+    if (!address) return;
+    
+    dispatch({ type: "SET_FIELD", field: "city", value: address.city || "Улаанбаатар" });
+    dispatch({ type: "SET_FIELD", field: "district", value: address.province || "" });
+    dispatch({ type: "SET_FIELD", field: "khoroo", value: address.address_2 || "" });
+    dispatch({ type: "SET_FIELD", field: "street", value: address.address_1 || "" });
+    
+    // Try to parse building/apartment from address_1 if available
+    const addressParts = (address.address_1 || "").split(",").map((s: string) => s.trim());
+    if (addressParts.length > 1) {
+      dispatch({ type: "SET_FIELD", field: "building", value: addressParts[addressParts.length - 1] || "" });
+    }
+    
+    if (address.phone && !formState.phone) {
+      dispatch({ type: "SET_FIELD", field: "phone", value: address.phone });
+    }
+  }, [formState.phone]);
 
   // Fetch cart on mount
   useEffect(() => {
@@ -118,10 +145,111 @@ export function useCheckout() {
     }).catch(() => {}); // Ignore errors, this is just a warmup
   }, [fetchCart]);
 
-  // Pre-fill user data from session
+  // Pre-fetch shipping options when cart is available (reduces checkout latency)
+  useEffect(() => {
+    if (!cartId) return;
+    
+    const prefetchCheckoutData = async () => {
+      const headers = {
+        "Content-Type": "application/json",
+        "x-publishable-api-key": process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "",
+      };
+      
+      // Pre-fetch shipping options and payment providers in parallel
+      await Promise.allSettled([
+        fetch(`${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/shipping-options?cart_id=${cartId}`, { headers }),
+        cart?.region_id 
+          ? fetch(`${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/payment-providers?region_id=${cart.region_id}`, { headers })
+          : Promise.resolve(),
+      ]);
+    };
+    
+    prefetchCheckoutData().catch(() => {}); // Ignore errors, this is just pre-fetching
+  }, [cartId, cart?.region_id]);
+
+  // Fetch customer data (addresses, phone) from backend
+  useEffect(() => {
+    async function fetchCustomerData() {
+      if (sessionStatus !== "authenticated" || !session) {
+        setCustomerData({ isFetching: false });
+        return;
+      }
+      
+      const accessToken = (session as { accessToken?: string }).accessToken;
+      if (!accessToken) {
+        setCustomerData({ isFetching: false });
+        return;
+      }
+      
+      try {
+        // Fetch customer profile with phone
+        const customerRes = await fetch(
+          `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/custom/me`,
+          {
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+              "x-publishable-api-key": process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "",
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
+        
+        // Fetch saved addresses
+        const addressesRes = await fetch(
+          `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/custom/addresses`,
+          {
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+              "x-publishable-api-key": process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "",
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
+        
+        let customer = null;
+        let addresses: any[] = [];
+        
+        if (customerRes.ok) {
+          const data = await customerRes.json();
+          customer = data.customer;
+        }
+        
+        if (addressesRes.ok) {
+          const data = await addressesRes.json();
+          addresses = data.addresses || [];
+        }
+        
+        setCustomerData({ customer, addresses, isFetching: false });
+        
+        // Pre-fill form with customer data
+        if (customer) {
+          dispatch({
+            type: "PREFILL_USER",
+            firstName: customer.first_name || "",
+            lastName: customer.last_name || "",
+            email: customer.email || "",
+          });
+          
+          // Auto-fill phone if saved
+          if (customer.phone && !formState.phone) {
+            dispatch({ type: "SET_FIELD", field: "phone", value: customer.phone });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch customer data:", err);
+        setCustomerData({ isFetching: false });
+      }
+    }
+    
+    fetchCustomerData();
+  }, [session, sessionStatus]);
+  
+  // Pre-fill user data from session (fallback)
   useEffect(() => {
     const user = session?.user;
-    if (user) {
+    if (user && !customerData.customer) {
       const nameParts = user.name?.split(" ") || [];
       dispatch({
         type: "PREFILL_USER",
@@ -130,7 +258,7 @@ export function useCheckout() {
         email: user.email || "",
       });
     }
-  }, [session]);
+  }, [session, customerData.customer]);
 
   // Pre-fill email from cart
   useEffect(() => {
@@ -249,6 +377,12 @@ export function useCheckout() {
     setAdditionalInfo: (v: string) => setField("additionalInfo", v),
     paymentMethod: formState.paymentMethod as PaymentMethod,
     setPaymentMethod: (v: PaymentMethod) => setField("paymentMethod", v),
+    
+    // Customer data
+    customerData: customerData.customer,
+    savedAddresses: customerData.addresses,
+    isCustomerFetching: customerData.isFetching,
+    fillFromAddress,
     
     // Submission
     isSubmitting: submissionState.isSubmitting,

@@ -27,6 +27,13 @@ interface ProductVariant {
     amount: number;
     currency_code: string;
   }[];
+  calculated_price?: {
+    calculated_amount: number;
+    original_amount: number;
+    currency_code: string;
+    is_calculated_price_price_list?: boolean;
+    is_calculated_price_tax_inclusive?: boolean;
+  };
   options?: {
     id: string;
     option_id?: string | null;
@@ -188,13 +195,40 @@ export function ProductDetails({ product }: ProductDetailsProps) {
     return `${symbol}${formatted}`;
   };
 
-  const price = useMemo(() => {
-    if (!selectedVariant?.prices?.[0]) return null;
-    return formatPrice(
-      selectedVariant.prices[0].amount,
-      selectedVariant.prices[0].currency_code
-    );
+  // Get price info including sale prices from calculated_price
+  const priceInfo = useMemo(() => {
+    if (!selectedVariant) return null;
+    
+    const calculatedPrice = selectedVariant.calculated_price;
+    const regularPrice = selectedVariant.prices?.[0];
+    
+    if (calculatedPrice) {
+      const isOnSale = calculatedPrice.calculated_amount < calculatedPrice.original_amount;
+      return {
+        currentPrice: formatPrice(calculatedPrice.calculated_amount, calculatedPrice.currency_code),
+        originalPrice: isOnSale 
+          ? formatPrice(calculatedPrice.original_amount, calculatedPrice.currency_code)
+          : null,
+        discountPercentage: isOnSale 
+          ? Math.round(((calculatedPrice.original_amount - calculatedPrice.calculated_amount) / calculatedPrice.original_amount) * 100)
+          : 0,
+        isOnSale,
+      };
+    }
+    
+    if (regularPrice) {
+      return {
+        currentPrice: formatPrice(regularPrice.amount, regularPrice.currency_code),
+        originalPrice: null,
+        discountPercentage: 0,
+        isOnSale: false,
+      };
+    }
+    
+    return null;
   }, [selectedVariant]);
+
+  const price = priceInfo?.currentPrice ?? null;
 
   // Check if the selected variant is in stock
   const isInStock = useMemo(() => {
@@ -408,11 +442,23 @@ export function ProductDetails({ product }: ProductDetailsProps) {
               {product.title}
             </h1>
             
-            {price && (
-              <div className="flex items-baseline gap-3">
-                <p className="text-2xl md:text-3xl text-[#1d1d1f] font-semibold">{price}</p>
-                {/* Optional: Show original price if on sale */}
-                {/* <p className="text-lg text-[#86868b] line-through">₮1,500,000</p> */}
+            {priceInfo && (
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-3">
+                  <p className={`text-2xl md:text-3xl font-semibold ${priceInfo.isOnSale ? 'text-[#e53935]' : 'text-[#1d1d1f]'}`}>
+                    {priceInfo.currentPrice}
+                  </p>
+                  {priceInfo.isOnSale && (
+                    <span className="bg-[#e53935] text-white text-xs font-medium px-2 py-1 rounded">
+                      -{priceInfo.discountPercentage}%
+                    </span>
+                  )}
+                </div>
+                {priceInfo.isOnSale && priceInfo.originalPrice && (
+                  <p className="text-lg text-[#86868b] line-through">
+                    {priceInfo.originalPrice}
+                  </p>
+                )}
               </div>
             )}
 
