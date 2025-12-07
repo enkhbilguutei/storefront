@@ -43,7 +43,10 @@ export async function POST(
     });
     
     // Fetch updated address
-    const address = await customerModuleService.retrieveCustomerAddress(addressId);
+    const customer = await customerModuleService.retrieveCustomer(authContext.actor_id, {
+      relations: ["addresses"]
+    });
+    const address = customer.addresses?.find((a: any) => a.id === addressId);
     
     return res.json({ address });
   } catch (error) {

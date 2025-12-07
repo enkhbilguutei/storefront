@@ -44,7 +44,7 @@ export default async function saveCheckoutAddressHandler({
     }
 
     // Create new address for customer
-    await (customerModuleService as any).createAddresses([{
+    await customerModuleService.createCustomerAddresses({
       customer_id: order.customer_id,
       first_name: shippingAddr.first_name,
       last_name: shippingAddr.last_name,
@@ -56,7 +56,7 @@ export default async function saveCheckoutAddressHandler({
       phone: shippingAddr.phone,
       company: shippingAddr.company,
       postal_code: shippingAddr.postal_code,
-    }]);
+    });
 
     logger.info(`[SaveAddress] Saved checkout address for customer ${order.customer_id}`);
   } catch (error) {
