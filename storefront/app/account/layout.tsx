@@ -1,5 +1,6 @@
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { MobileAccountHeader } from "@/components/account/MobileAccountHeader";
 import { AccountLayoutClient } from "./AccountLayoutClient";
 import type { Metadata } from "next";
 
@@ -17,6 +18,7 @@ export default function AccountLayout({
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
+      <MobileAccountHeader />
       <AccountLayoutClient>
         {children}
       </AccountLayoutClient>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Roboto_Mono, Playfair_Display } from "next/font/google";
 import { Providers } from "@/components/Providers";
 import { CartNotification } from "@/components/cart/CartNotification";
+import { WishlistNotification } from "@/components/layout/WishlistNotification";
 import { CartInitializer } from "@/components/cart/CartInitializer";
 import "./globals.css";
 
@@ -87,6 +88,7 @@ export default function RootLayout({
           <CartInitializer />
           {children}
           <CartNotification />
+          <WishlistNotification />
         </Providers>
       </body>
     </html>

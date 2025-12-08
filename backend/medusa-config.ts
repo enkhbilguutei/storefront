@@ -62,6 +62,9 @@ module.exports = defineConfig({
     {
       resolve: "./src/modules/email-notifications",
     },
+    {
+      resolve: "./src/modules/wishlist",
+    },
     // Redis modules - only enabled when REDIS_URL is set
     ...(process.env.REDIS_URL ? [
       {

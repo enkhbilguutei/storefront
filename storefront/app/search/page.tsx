@@ -1,6 +1,5 @@
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { SearchResults } from "./SearchResults";
 import type { Metadata } from "next";
 
 interface SearchPageProps {
@@ -46,7 +45,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             </p>
           </div>
 
-          <SearchResults initialQuery={query} />
+          
         </div>
       </main>
 

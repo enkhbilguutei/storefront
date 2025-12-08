@@ -5,6 +5,7 @@
 - **NEVER restart dev servers** - User manages servers manually; watch terminal for errors
 - **Mongolian UI** - All user-facing text in Cyrillic (see Localization section)
 - **Use pnpm** - This is a pnpm workspace (see `pnpm-workspace.yaml`)
+- **Always recommend me something I have forgotten, or any implmentation that needs to be done, or improved**
 
 ## Architecture
 

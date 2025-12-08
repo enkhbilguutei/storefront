@@ -358,6 +358,8 @@ interface UIStore {
   isMobileMenuOpen: boolean;
   isSearchOpen: boolean;
   isCartNotificationOpen: boolean;
+  isWishlistNotificationOpen: boolean;
+  wishlistNotificationMessage: string | null;
   isAuthModalOpen: boolean;
   authModalAction: AuthAction | null;
   authModalView: "login" | "register";
@@ -369,6 +371,8 @@ interface UIStore {
   toggleSearch: () => void;
   openCartNotification: () => void;
   closeCartNotification: () => void;
+  openWishlistNotification: (message: string) => void;
+  closeWishlistNotification: () => void;
   openAuthModal: (action?: AuthAction, view?: "login" | "register") => void;
   closeAuthModal: () => void;
   setAuthModalView: (view: "login" | "register") => void;
@@ -378,6 +382,8 @@ export const useUIStore = create<UIStore>((set) => ({
   isMobileMenuOpen: false,
   isSearchOpen: false,
   isCartNotificationOpen: false,
+  isWishlistNotificationOpen: false,
+  wishlistNotificationMessage: null,
   isAuthModalOpen: false,
   authModalAction: null,
   authModalView: "login",
@@ -389,6 +395,11 @@ export const useUIStore = create<UIStore>((set) => ({
   toggleSearch: () => set((state) => ({ isSearchOpen: !state.isSearchOpen })),
   openCartNotification: () => set({ isCartNotificationOpen: true }),
   closeCartNotification: () => set({ isCartNotificationOpen: false }),
+  openWishlistNotification: (message) => {
+    set({ isWishlistNotificationOpen: true, wishlistNotificationMessage: message });
+    setTimeout(() => set({ isWishlistNotificationOpen: false, wishlistNotificationMessage: null }), 3000);
+  },
+  closeWishlistNotification: () => set({ isWishlistNotificationOpen: false, wishlistNotificationMessage: null }),
   openAuthModal: (action = undefined, view = "login") => set({ 
     isAuthModalOpen: true, 
     authModalAction: action,
