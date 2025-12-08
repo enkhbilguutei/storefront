@@ -8,6 +8,8 @@ import Link from "next/link";
 import { Check, Loader2, Pencil, Mail, Phone, User, Shield, ChevronRight, Package, Clock } from "lucide-react";
 import { profileUpdateSchema } from "@/lib/validations";
 
+// Metadata is set in parent layout
+
 interface RecentOrder {
   id: string;
   display_id: number;
@@ -27,7 +29,7 @@ interface CustomerData {
 
 export default function AccountPage() {
   const { user } = useUserStore();
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingCustomer, setIsFetchingCustomer] = useState(true);
@@ -41,6 +43,28 @@ export default function AccountPage() {
     lastName: "",
     phone: "",
   });
+  const [tokenRefreshed, setTokenRefreshed] = useState(false);
+
+  // Auto-refresh session for OAuth users without token
+  useEffect(() => {
+    async function refreshSessionIfNeeded() {
+      if (!session || tokenRefreshed) return;
+      
+      const accessToken = (session as { accessToken?: string }).accessToken;
+      const provider = (session as { user?: { provider?: string } }).user?.provider;
+      
+      if (!accessToken && provider === "google") {
+        try {
+          await update();
+          setTokenRefreshed(true);
+        } catch (error) {
+          console.error("Session refresh failed:", error);
+        }
+      }
+    }
+    
+    refreshSessionIfNeeded();
+  }, [session, update, tokenRefreshed]);
 
   // Fetch customer data from backend
   useEffect(() => {
@@ -52,7 +76,7 @@ export default function AccountPage() {
       
       const accessToken = (session as { accessToken?: string }).accessToken;
       if (!accessToken) {
-        setError("Нэвтрэх эрх дууссан байна. Дахин нэвтэрнэ үү.");
+        // Silently wait for token refresh, no error shown
         setIsFetchingCustomer(false);
         return;
       }
@@ -78,8 +102,11 @@ export default function AccountPage() {
             lastName: data.customer.last_name || "",
             phone: data.customer.phone || "",
           });
+          setError(""); // Clear any previous errors
         } else if (response.status === 401) {
-          setError("Нэвтрэх эрх дууссан байна. Дахин нэвтэрнэ үү.");
+          // Silently redirect to login instead of showing error
+          window.location.href = "/auth/login";
+          return;
         }
       } catch (err) {
         console.error("Failed to fetch customer data:", err);
@@ -137,8 +164,7 @@ export default function AccountPage() {
       
       const accessToken = (session as { accessToken?: string })?.accessToken;
       if (!accessToken) {
-        setError("Нэвтрэх эрх дууссан байна. Дахин нэвтэрнэ үү.");
-        setIsLoading(false);
+        window.location.href = "/auth/login";
         return;
       }
       
@@ -174,7 +200,7 @@ export default function AccountPage() {
       );
       
       if (response.status === 401) {
-        setError("Нэвтрэх эрх дууссан байна. Дахин нэвтэрнэ үү.");
+        window.location.href = "/auth/login";
         return;
       }
       

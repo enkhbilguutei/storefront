@@ -22,10 +22,32 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Алимхан Дэлгүүр",
+  metadataBase: new URL("https://alimhan.mn"),
+  title: {
+    default: "Алимхан Дэлгүүр",
+    template: "%s | Алимхан Дэлгүүр",
+  },
   description: "Технологийн сүүлийн үеийн бүтээгдэхүүнүүдийг баталгаат хугацаатай хэрэглэгчдэд нийлүүлж байна",
+  keywords: ["технологи", "утас", "дрон", "камер", "дугуй", "онлайн дэлгүүр", "Монгол"],
+  authors: [{ name: "Алимхан Дэлгүүр" }],
   icons: {
     icon: "/icon.jpg",
+  },
+  openGraph: {
+    type: "website",
+    locale: "mn_MN",
+    url: "https://alimhan.mn",
+    siteName: "Алимхан Дэлгүүр",
+    title: "Алимхан Дэлгүүр",
+    description: "Технологийн сүүлийн үеийн бүтээгдэхүүнүүдийг баталгаат хугацаатай хэрэглэгчдэд нийлүүлж байна",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Алимхан Дэлгүүр",
+    description: "Технологийн сүүлийн үеийн бүтээгдэхүүнүүдийг баталгаат хугацаатай хэрэглэгчдэд нийлүүлж байна",
+  },
+  verification: {
+    google: "google-site-verification-code",
   },
 };
 
@@ -34,11 +56,33 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Organization structured data for SEO
+  const organizationJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "Алимхан Дэлгүүр",
+    url: "https://alimhan.mn",
+    logo: "https://alimhan.mn/icon.jpg",
+    description: "Технологийн сүүлийн үеийн бүтээгдэхүүнүүдийг баталгаат хугацаатай хэрэглэгчдэд нийлүүлж байна",
+    address: {
+      "@type": "PostalAddress",
+      addressCountry: "MN",
+      addressLocality: "Улаанбаатар",
+    },
+    sameAs: [
+      // Add social media links when available
+    ],
+  };
+
   return (
     <html lang="mn">
       <body
         className={`${inter.variable} ${robotoMono.variable} ${playfair.variable} antialiased`}
       >
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
         <Providers>
           <CartInitializer />
           {children}

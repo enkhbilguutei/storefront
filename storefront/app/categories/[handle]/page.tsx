@@ -6,6 +6,42 @@ import { getCategoryByHandle, getProductsByCategory } from "@/lib/data/categorie
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight, Package } from "lucide-react";
+import type { Metadata } from "next";
+
+export async function generateMetadata({ params }: { params: Promise<{ handle: string }> }): Promise<Metadata> {
+  const { handle } = await params;
+  const category = await getCategoryByHandle(handle);
+
+  if (!category) {
+    return {
+      title: "Ангилал олдсонгүй",
+    };
+  }
+
+  const description = category.description || `${category.name} ангиллын бүтээгдэхүүнүүд. Алимхан дэлгүүрээс онлайнаар захиалаарай.`;
+  const url = `https://alimhan.mn/categories/${handle}`;
+
+  return {
+    title: category.name,
+    description,
+    openGraph: {
+      title: `${category.name} | Алимхан Дэлгүүр`,
+      description,
+      url,
+      siteName: "Алимхан Дэлгүүр",
+      locale: "mn_MN",
+      type: "website",
+    },
+    twitter: {
+      card: "summary",
+      title: category.name,
+      description,
+    },
+    alternates: {
+      canonical: url,
+    },
+  };
+}
 
 // Calculated price from promotions/price lists
 interface CalculatedPrice {

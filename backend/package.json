@@ -31,9 +31,12 @@
     "@medusajs/framework": "2.12.0",
     "@medusajs/locking-redis": "^2.12.1",
     "@medusajs/medusa": "2.12.0",
+    "@react-email/components": "^1.0.1",
+    "@react-email/render": "^2.0.0",
     "cloudinary": "^2.8.0",
     "jsonwebtoken": "^9.0.3",
     "meilisearch": "^0.54.0",
+    "resend": "^6.5.2",
     "scrypt-kdf": "^2.0.1"
   },
   "devDependencies": {

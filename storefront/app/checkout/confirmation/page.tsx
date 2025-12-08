@@ -27,6 +27,8 @@ import { medusa } from "@/lib/medusa";
 import { QPayPayment } from "@/components/checkout/QPayPayment";
 import { useCartStore } from "@/lib/store";
 
+// Metadata: Захиалга баталгаажлаа | Алимхан Дэлгүүр (client component - add layout)
+
 // Bank transfer info - should match PaymentStep
 const BANK_INFO = {
   bankName: "Хаан Банк",

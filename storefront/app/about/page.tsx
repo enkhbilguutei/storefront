@@ -2,6 +2,28 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ChevronRight, Heart, Shield, Truck, Users, Leaf, Award } from "lucide-react";
 import Link from "next/link";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Бидний тухай",
+  description: "Алимхан дэлгүүр нь хүүхдүүдэд зориулсан чанартай, аюулгүй бүтээгдэхүүнүүдийг санал болгодог итгэмжлэгдсэн дэлгүүр юм. Бид хайр, халамжаар сонгосон бүтээгдэхүүнүүдийг хүргэнэ.",
+  openGraph: {
+    title: "Бидний тухай",
+    description: "Алимхан дэлгүүр нь хүүхдүүдэд зориулсан чанартай, аюулгүй бүтээгдэхүүнүүдийг санал болгодог итгэмжлэгдсэн дэлгүүр юм.",
+    url: "https://alimhan.mn/about",
+    siteName: "Алимхан Дэлгүүр",
+    locale: "mn_MN",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Бидний тухай",
+    description: "Алимхан дэлгүүр нь хүүхдүүдэд зориулсан чанартай, аюулгүй бүтээгдэхүүнүүдийг санал болгодог итгэмжлэгдсэн дэлгүүр юм.",
+  },
+  alternates: {
+    canonical: "https://alimhan.mn/about",
+  },
+};
 
 export default function AboutPage() {
   const values = [

@@ -2,24 +2,36 @@ import type {
   SubscriberConfig,
   SubscriberArgs,
 } from "@medusajs/framework";
-import { Modules, ContainerRegistrationKeys } from "@medusajs/framework/utils";
-import { IOrderModuleService, ICustomerModuleService } from "@medusajs/framework/types";
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils";
+import { ICustomerModuleService } from "@medusajs/framework/types";
+import { Modules } from "@medusajs/framework/utils";
 
 export default async function saveCheckoutAddressHandler({
   event: { data },
   container,
 }: SubscriberArgs<{ id: string }>) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER);
-  const orderModuleService: IOrderModuleService = container.resolve(Modules.ORDER);
+  const query = container.resolve(ContainerRegistrationKeys.QUERY);
   const customerModuleService: ICustomerModuleService = container.resolve(Modules.CUSTOMER);
 
   try {
-    // Fetch the order with addresses
-    const order = await orderModuleService.retrieveOrder(data.id, {
-      relations: ["shipping_address", "customer"],
+    // Fetch the order with addresses using Query Graph (correct for v2 cross-module)
+    const { data: orders } = await query.graph({
+      entity: "order",
+      fields: ["*", "shipping_address.*", "customer.*"],
+      filters: {
+        id: data.id,
+      },
     });
 
-    if (!order || !order.customer_id || !order.shipping_address) {
+    if (!orders.length) {
+      logger.info(`[SaveAddress] Order ${data.id} not found`);
+      return;
+    }
+
+    const order = orders[0];
+
+    if (!order.customer_id || !order.shipping_address) {
       logger.info(`[SaveAddress] Order ${data.id} has no customer or shipping address, skipping`);
       return;
     }

@@ -5,6 +5,28 @@ import { ProductFilters } from "@/components/products/ProductFilters";
 import { medusa } from "@/lib/medusa";
 import { getCategories } from "@/lib/data/categories";
 import { getDefaultRegion } from "@/lib/data/regions";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Бүх бүтээгдэхүүн",
+  description: "Технологийн сүүлийн үеийн бүтээгдэхүүнүүдийг баталгаат хугацаатай хэрэглэгчдэд нийлүүлж байна. Утас, дрон, камер, дугуй болон бусад бүтээгдэхүүнүүд.",
+  openGraph: {
+    title: "Бүх бүтээгдэхүүн",
+    description: "Технологийн сүүлийн үеийн бүтээгдэхүүнүүдийг баталгаат хугацаатай хэрэглэгчдэд нийлүүлж байна.",
+    url: "https://alimhan.mn/products",
+    siteName: "Алимхан Дэлгүүр",
+    locale: "mn_MN",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Бүх бүтээгдэхүүн",
+    description: "Технологийн сүүлийн үеийн бүтээгдэхүүнүүдийг баталгаат хугацаатай хэрэглэгчдэд нийлүүлж байна.",
+  },
+  alternates: {
+    canonical: "https://alimhan.mn/products",
+  },
+};
 
 interface ProductQuery {
   limit: number;

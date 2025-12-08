@@ -2,6 +2,13 @@ import { Suspense } from "react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { LoginForm } from "./LoginForm";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Нэвтрэх",
+  description: "Миний бүртгэлд нэвтрэх",
+  robots: "noindex, follow",
+};
 
 export default function LoginPage() {
   return (

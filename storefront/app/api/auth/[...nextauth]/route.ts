@@ -103,16 +103,43 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async signIn({ user, account }) {
-      // For OAuth providers (Google), allow sign-in
-      // In a production app, you'd want to use Medusa's OAuth module to link accounts
+      // For OAuth providers (Google), create/link customer in Medusa
       if (account?.provider === "google" && user.email) {
-        // Google sign-in - user will be created/linked in Medusa separately if needed
-        return true;
+        try {
+          console.log("[NextAuth] Google sign-in detected, calling OAuth endpoint for:", user.email);
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/auth/customer/oauth`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                email: user.email,
+                name: user.name,
+                provider: "google",
+              }),
+            }
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log("[NextAuth] OAuth token received, length:", data.token?.length);
+            // Store token in user object for jwt callback
+            (user as ExtendedUser).accessToken = data.token;
+          } else {
+            const errorText = await response.text();
+            console.error("[NextAuth] Failed to create OAuth customer:", response.status, errorText);
+          }
+        } catch (error) {
+          console.error("[NextAuth] Error creating OAuth customer:", error);
+        }
       }
       return true;
     },
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger }) {
       const extendedToken = token as ExtendedToken;
+      
       if (user) {
         const extendedUser = user as ExtendedUser;
         extendedToken.id = user.id;
@@ -120,12 +147,49 @@ export const authOptions: NextAuthOptions = {
         extendedToken.name = user.name;
         extendedToken.picture = user.image;
         if (extendedUser.accessToken) {
+          console.log("[NextAuth JWT] Storing accessToken from user object, length:", extendedUser.accessToken.length);
           extendedToken.accessToken = extendedUser.accessToken;
         }
       }
+      
       if (account) {
         extendedToken.provider = account.provider;
+        console.log("[NextAuth JWT] Provider set to:", account.provider);
       }
+      
+      // Get/refresh token for Google OAuth users if missing
+      if (extendedToken.provider === "google" && !extendedToken.accessToken && token.email) {
+        console.log("[NextAuth JWT] No accessToken found, fetching from OAuth endpoint for:", token.email);
+        try {
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/auth/customer/oauth`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                email: token.email,
+                name: token.name,
+                provider: "google",
+              }),
+            }
+          );
+          
+          if (response.ok) {
+            const data = await response.json();
+            extendedToken.accessToken = data.token;
+            console.log("[NextAuth JWT] Token fetched successfully, length:", data.token.length);
+          } else {
+            console.error("[NextAuth JWT] Failed to get OAuth token:", response.status, await response.text());
+          }
+        } catch (error) {
+          console.error("[NextAuth JWT] Error getting OAuth token:", error);
+        }
+      } else if (extendedToken.accessToken) {
+        console.log("[NextAuth JWT] Token already exists, length:", extendedToken.accessToken.length);
+      }
+      
       return extendedToken;
     },
     async session({ session, token }) {
@@ -138,7 +202,10 @@ export const authOptions: NextAuthOptions = {
         extendedSession.user.image = extendedToken.picture as string | undefined;
       }
       if (extendedToken.accessToken) {
+        console.log("[NextAuth Session] Adding accessToken to session, length:", extendedToken.accessToken.length);
         extendedSession.accessToken = extendedToken.accessToken;
+      } else {
+        console.warn("[NextAuth Session] No accessToken in token for user:", extendedToken.email);
       }
       return extendedSession;
     },

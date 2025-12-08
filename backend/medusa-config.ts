@@ -59,6 +59,9 @@ module.exports = defineConfig({
         isSandbox: process.env.QPAY_SANDBOX !== "false",
       },
     },
+    {
+      resolve: "./src/modules/email-notifications",
+    },
     // Redis modules - only enabled when REDIS_URL is set
     ...(process.env.REDIS_URL ? [
       {

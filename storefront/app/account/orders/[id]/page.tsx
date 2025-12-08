@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
   ArrowLeft, Package, Loader2, MapPin, 
-  Clock, CheckCircle2, XCircle, AlertCircle, Truck
+  Clock, CheckCircle2, XCircle, AlertCircle
 } from "lucide-react";
 
 interface OrderItem {
@@ -122,9 +122,12 @@ export default function OrderDetailPage() {
       requires_action: "Үйлдэл шаардлагатай",
       not_fulfilled: "Бэлтгэгдээгүй",
       fulfilled: "Бэлтгэгдсэн",
-      shipped: "Илгээгдсэн",
+      shipped: "Хүргэлтэнд гарсан",
       delivered: "Хүргэгдсэн",
       partially_fulfilled: "Хэсэгчлэн бэлтгэгдсэн",
+      partially_shipped: "Хэсэгчлэн хүргэлтэнд гарсан",
+      paid: "Төлбөр төлөгдсөн",
+      awaiting_payment: "Төлбөр хүлээгдэж буй",
       not_paid: "Төлөгдөөгүй",
       awaiting: "Хүлээгдэж буй",
       captured: "Төлөгдсөн",
@@ -138,14 +141,15 @@ export default function OrderDetailPage() {
       case "completed":
       case "delivered":
       case "fulfilled":
+      case "shipped":
+      case "paid":
       case "captured":
         return <CheckCircle2 className="h-4 w-4" />;
       case "canceled":
         return <XCircle className="h-4 w-4" />;
       case "requires_action":
+      case "awaiting_payment":
         return <AlertCircle className="h-4 w-4" />;
-      case "shipped":
-        return <Truck className="h-4 w-4" />;
       default:
         return <Clock className="h-4 w-4" />;
     }
@@ -158,16 +162,42 @@ export default function OrderDetailPage() {
       delivered: "bg-emerald-50 text-emerald-700 border-emerald-200",
       fulfilled: "bg-blue-50 text-blue-700 border-blue-200",
       shipped: "bg-blue-50 text-blue-700 border-blue-200",
-      captured: "bg-emerald-50 text-emerald-700 border-emerald-200",
-      authorized: "bg-blue-50 text-blue-700 border-blue-200",
       archived: "bg-gray-50 text-gray-600 border-gray-200",
       canceled: "bg-red-50 text-red-700 border-red-200",
       requires_action: "bg-orange-50 text-orange-700 border-orange-200",
       not_fulfilled: "bg-gray-50 text-gray-600 border-gray-200",
       not_paid: "bg-amber-50 text-amber-700 border-amber-200",
       awaiting: "bg-amber-50 text-amber-700 border-amber-200",
+      paid: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      awaiting_payment: "bg-amber-50 text-amber-700 border-amber-200",
+      captured: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      authorized: "bg-blue-50 text-blue-700 border-blue-200",
     };
     return colorMap[status] || "bg-gray-50 text-gray-600 border-gray-200";
+  };
+
+  const getOrderDisplayStatus = (order: Order) => {
+    if (order.status === "canceled") return "canceled";
+    if (order.status === "archived") return "archived";
+    if (order.status === "requires_action") return "requires_action";
+    
+    // Prioritize delivered first (most complete state)
+    if (order.fulfillment_status === "delivered") return "delivered";
+    if (order.fulfillment_status === "shipped") return "shipped";
+    if (order.fulfillment_status === "partially_shipped") return "partially_shipped";
+    if (order.fulfillment_status === "fulfilled") return "fulfilled";
+    if (order.fulfillment_status === "partially_fulfilled") return "partially_fulfilled";
+    
+    // If payment is captured but not fulfilled
+    if (order.payment_status === "captured" || order.payment_status === "partially_captured") {
+        return "paid";
+    }
+    
+    if (order.payment_status === "awaiting" || order.payment_status === "authorized" || order.payment_status === "awaiting_payment" || order.payment_status === "not_paid") {
+        return "awaiting_payment";
+    }
+
+    return order.status;
   };
 
   if (sessionStatus === "loading" || isLoading) {
@@ -198,7 +228,7 @@ export default function OrderDetailPage() {
     );
   }
 
-  const displayStatus = order.fulfillment_status || order.status;
+  const displayStatus = getOrderDisplayStatus(order);
 
   return (
     <div className="space-y-4">
@@ -218,24 +248,11 @@ export default function OrderDetailPage() {
 
       {/* Status */}
       <div className="bg-white rounded-xl border border-gray-100 p-4">
-        <div className="flex items-center gap-4">
-          <div className="flex-1">
-            <p className="text-xs text-secondary mb-1">Захиалгын төлөв</p>
-            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border ${getStatusColor(displayStatus)}`}>
-              {getStatusIcon(displayStatus)}
-              {getStatusText(displayStatus)}
-            </span>
-          </div>
-          {order.payment_status && (
-            <div>
-              <p className="text-xs text-secondary mb-1">Төлбөрийн төлөв</p>
-              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border ${getStatusColor(order.payment_status)}`}>
-                {getStatusIcon(order.payment_status)}
-                {getStatusText(order.payment_status)}
-              </span>
-            </div>
-          )}
-        </div>
+        <p className="text-xs text-secondary mb-2">Захиалгын төлөв</p>
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border ${getStatusColor(displayStatus)}`}>
+          {getStatusIcon(displayStatus)}
+          {getStatusText(displayStatus)}
+        </span>
       </div>
 
       {/* Items */}

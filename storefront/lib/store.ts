@@ -298,15 +298,21 @@ interface UserStore {
 
 export const useUserStore = create<UserStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       isAuthenticated: false,
       isLoading: true,
       accessToken: null,
       setUser: (user) => set({ user, isAuthenticated: !!user, isLoading: false }),
       setAccessToken: (token) => set({ accessToken: token }),
-      clearUser: () => set({ user: null, isAuthenticated: false, accessToken: null, isLoading: false }),
+      clearUser: () => {
+        set({ user: null, isAuthenticated: false, accessToken: null, isLoading: false });
+        // Clear cart when user is cleared
+        useCartStore.getState().clearCart();
+      },
       syncWithSession: (session) => {
+        const wasAuthenticated = get().isAuthenticated;
+        
         if (session?.user) {
           const nameParts = session.user.name?.split(" ") || [];
           set({
@@ -329,6 +335,11 @@ export const useUserStore = create<UserStore>()(
             accessToken: null,
             isLoading: false,
           });
+          
+          // Clear cart when user logs out (was authenticated, now not)
+          if (wasAuthenticated) {
+            useCartStore.getState().clearCart();
+          }
         }
       },
     }),

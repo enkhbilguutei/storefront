@@ -1,9 +1,28 @@
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { SearchResults } from "./SearchResults";
+import type { Metadata } from "next";
 
 interface SearchPageProps {
   searchParams: Promise<{ q?: string }>;
+}
+
+export async function generateMetadata({ searchParams }: SearchPageProps): Promise<Metadata> {
+  const params = await searchParams;
+  const query = params.q || "";
+
+  if (query) {
+    return {
+      title: `"${query}" хайлтын илэрц`,
+      description: `${query} хайлтын илэрцүүд. Алимхан дэлгүүрээс хүссэн бүтээгдэхүүнээ олоорой.`,
+      robots: "noindex, follow",
+    };
+  }
+
+  return {
+    title: "Хайлт",
+    description: "Алимхан дэлгүүрийн бүтээгдэхүүнүүдээс хайлт хийх",
+  };
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {

@@ -9,6 +9,8 @@ import {
   AlertTriangle
 } from "lucide-react";
 
+// Metadata: Тохиргоо | Миний бүртгэл (set in parent layout)
+
 export default function SettingsPage() {
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);

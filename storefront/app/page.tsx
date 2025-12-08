@@ -7,6 +7,30 @@ import { PromoBanner } from "@/components/home/PromoBanner";
 import { IPhoneBanners } from "@/components/home/IPhoneBanners";
 import { DJIBento } from "@/components/home/DJIBento";
 import { Truck, RotateCcw, ShieldCheck } from "lucide-react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: {
+    absolute: "Алимхан Дэлгүүр - Технологийн бүтээгдэхүүн",
+  },
+  description: "Технологийн сүүлийн үеийн бүтээгдэхүүнүүдийг баталгаат хугацаатай хэрэглэгчдэд нийлүүлж байна. iPhone, MacBook, DJI дрон, GoPro камер, дугуй болон бусад.",
+  openGraph: {
+    title: "Алимхан Дэлгүүр - Технологийн бүтээгдэхүүн",
+    description: "Технологийн сүүлийн үеийн бүтээгдэхүүнүүдийг баталгаат хугацаатай хэрэглэгчдэд нийлүүлж байна.",
+    url: "https://alimhan.mn",
+    siteName: "Алимхан Дэлгүүр",
+    locale: "mn_MN",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Алимхан Дэлгүүр - Технологийн бүтээгдэхүүн",
+    description: "Технологийн сүүлийн үеийн бүтээгдэхүүнүүдийг баталгаат хугацаатай хэрэглэгчдэд нийлүүлж байна.",
+  },
+  alternates: {
+    canonical: "https://alimhan.mn",
+  },
+};
 
 // Loading skeletons for banner sections
 function HeroSkeleton() {

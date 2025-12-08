@@ -5,6 +5,8 @@ import { useSession } from "next-auth/react";
 import { MapPin, Plus, Trash2, Edit2, Loader2, Check, Home, Building2 } from "lucide-react";
 import { z } from "zod";
 
+// Metadata: Хаягууд | Миний бүртгэл (set in parent layout)
+
 const addressSchema = z.object({
   firstName: z.string().min(1, "Нэр оруулна уу"),
   lastName: z.string().min(1, "Овог оруулна уу"),
@@ -58,8 +60,7 @@ export default function AddressesPage() {
     
     const accessToken = (session as { accessToken?: string }).accessToken;
     if (!accessToken) {
-      setError("Нэвтрэх эрх дууссан байна");
-      setIsLoading(false);
+      window.location.href = "/auth/login";
       return;
     }
     
@@ -98,8 +99,7 @@ export default function AddressesPage() {
       
       const accessToken = (session as { accessToken?: string })?.accessToken;
       if (!accessToken) {
-        setError("Нэвтрэх эрх дууссан байна. Дахин нэвтэрнэ үү.");
-        setIsSubmitting(false);
+        window.location.href = "/auth/login";
         return;
       }
       
@@ -130,7 +130,8 @@ export default function AddressesPage() {
       });
 
       if (response.status === 401) {
-        throw new Error("Нэвтрэх эрх дууссан байна. Дахин нэвтэрнэ үү.");
+        window.location.href = "/auth/login";
+        return;
       }
 
       if (!response.ok) {
@@ -161,7 +162,7 @@ export default function AddressesPage() {
     try {
       const accessToken = (session as { accessToken?: string })?.accessToken;
       if (!accessToken) {
-        setError("Нэвтрэх эрх дууссан байна. Дахин нэвтэрнэ үү.");
+        window.location.href = "/auth/login";
         return;
       }
 

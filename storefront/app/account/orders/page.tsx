@@ -5,6 +5,8 @@ import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { Package, ChevronRight, Loader2, ShoppingBag, Clock, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 
+// Metadata: Захиалгууд | Миний бүртгэл (set in parent layout)
+
 interface OrderItem {
   id: string;
   title: string;
@@ -29,10 +31,34 @@ interface Order {
 }
 
 export default function OrdersPage() {
-  const { data: session, status: sessionStatus } = useSession();
+  const { data: session, status: sessionStatus, update } = useSession();
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [tokenRefreshed, setTokenRefreshed] = useState(false);
+
+  // Auto-refresh session for OAuth users without token
+  useEffect(() => {
+    async function refreshSessionIfNeeded() {
+      if (!session || tokenRefreshed) return;
+      
+      const accessToken = (session as { accessToken?: string }).accessToken;
+      const provider = (session as { user?: { provider?: string } }).user?.provider;
+      
+      if (!accessToken && provider === "google") {
+        try {
+          await update();
+          setTokenRefreshed(true);
+        } catch (error) {
+          console.error("Session refresh failed:", error);
+        }
+      }
+    }
+    
+    if (sessionStatus !== "loading") {
+      refreshSessionIfNeeded();
+    }
+  }, [session, sessionStatus, update, tokenRefreshed]);
 
   useEffect(() => {
     async function fetchOrders() {
@@ -65,9 +91,18 @@ export default function OrdersPage() {
 
         if (!response.ok) {
           if (response.status === 401) {
-            throw new Error("Таны нэвтрэх эрх дууссан байна. Дахин нэвтэрнэ үү.");
+            // Silently redirect to login
+            window.location.href = "/auth/login";
+            return;
           }
-          const errorData = await response.json().catch(() => ({}));
+          const errorText = await response.text();
+          let errorData;
+          try {
+            errorData = JSON.parse(errorText);
+          } catch {
+            errorData = { message: errorText || response.statusText };
+          }
+          
           console.error("Orders fetch error:", response.status, errorData);
           throw new Error("Захиалгуудыг татахад алдаа гарлаа");
         }
@@ -94,10 +129,12 @@ export default function OrdersPage() {
       requires_action: "Үйлдэл шаардлагатай",
       not_fulfilled: "Бэлтгэгдээгүй",
       fulfilled: "Бэлтгэгдсэн",
-      shipped: "Илгээгдсэн",
+      shipped: "Хүргэлтэнд гарсан",
       delivered: "Хүргэгдсэн",
       partially_fulfilled: "Хэсэгчлэн бэлтгэгдсэн",
-      partially_shipped: "Хэсэгчлэн илгээгдсэн",
+      partially_shipped: "Хэсэгчлэн хүргэлтэнд гарсан",
+      paid: "Төлбөр төлөгдсөн",
+      awaiting_payment: "Төлбөр хүлээгдэж буй",
     };
     return statusMap[status] || status;
   };
@@ -107,10 +144,13 @@ export default function OrdersPage() {
       case "completed":
       case "delivered":
       case "fulfilled":
+      case "shipped":
+      case "paid":
         return <CheckCircle2 className="h-4 w-4" />;
       case "canceled":
         return <XCircle className="h-4 w-4" />;
       case "requires_action":
+      case "awaiting_payment":
         return <AlertCircle className="h-4 w-4" />;
       default:
         return <Clock className="h-4 w-4" />;
@@ -128,6 +168,8 @@ export default function OrdersPage() {
       canceled: "bg-red-50 text-red-700 border-red-200",
       requires_action: "bg-orange-50 text-orange-700 border-orange-200",
       not_fulfilled: "bg-gray-50 text-gray-600 border-gray-200",
+      paid: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      awaiting_payment: "bg-amber-50 text-amber-700 border-amber-200",
     };
     return colorMap[status] || "bg-gray-50 text-gray-600 border-gray-200";
   };
@@ -135,7 +177,8 @@ export default function OrdersPage() {
   const getPaymentMethodText = (method?: string) => {
     if (!method) return "Төлбөрийн мэдээлэл байхгүй";
     if (method.includes("qpay")) return "QPay";
-    if (method.includes("system_default") || method.includes("manual")) return "Дансаар шилжүүлэх";
+    if (method === "bank_transfer" || method.includes("manual") || method.includes("system_default")) return "Дансаар шилжүүлэх";
+    if (method === "cash_on_delivery") return "Бэлнээр / QPay";
     return method;
   };
 
@@ -149,23 +192,37 @@ export default function OrdersPage() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) {
-      return "Өнөөдөр";
-    } else if (diffDays === 1) {
-      return "Өчигдөр";
-    } else if (diffDays < 7) {
-      return `${diffDays} өдрийн өмнө`;
-    }
-    
     return date.toLocaleDateString("mn-MN", {
       year: "numeric",
-      month: "short",
-      day: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
     });
+  };
+
+  const getOrderDisplayStatus = (order: Order) => {
+    if (order.status === "canceled") return "canceled";
+    if (order.status === "archived") return "archived";
+    if (order.status === "requires_action") return "requires_action";
+    
+    // Prioritize delivered first (most complete state)
+    if (order.fulfillment_status === "delivered") return "delivered";
+    if (order.fulfillment_status === "shipped") return "shipped";
+    if (order.fulfillment_status === "partially_shipped") return "partially_shipped";
+    if (order.fulfillment_status === "fulfilled") return "fulfilled";
+    if (order.fulfillment_status === "partially_fulfilled") return "partially_fulfilled";
+    
+    // If payment is captured but not fulfilled
+    if (order.payment_status === "captured" || order.payment_status === "partially_captured") {
+        return "paid";
+    }
+    
+    if (order.payment_status === "awaiting" || order.payment_status === "authorized" || order.payment_status === "awaiting_payment" || order.payment_status === "not_paid") {
+        return "awaiting_payment";
+    }
+
+    return order.status;
   };
 
   const getItemDisplayTitle = (item: OrderItem) => {
@@ -231,7 +288,7 @@ export default function OrdersPage() {
 
       <div className="space-y-3">
         {orders.map((order) => {
-          const displayStatus = order.fulfillment_status || order.status;
+          const displayStatus = getOrderDisplayStatus(order);
           return (
             <Link
               key={order.id}

@@ -24,6 +24,8 @@ import {
 import { Footer } from "@/components/layout/Footer";
 import { useCheckout, completeCheckout, handleCheckoutError, STORE_INFO, CITIES, UB_DISTRICTS } from "@/lib/checkout";
 
+// Metadata: Төлбөр тооцоо | Алимхан Дэлгүүр (client component - add layout)
+
 export default function CheckoutPage() {
   const checkout = useCheckout();
 
