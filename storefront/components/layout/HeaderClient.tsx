@@ -1,333 +1,198 @@
 "use client";
 
 import Link from "next/link";
-import { User, Search, Menu, X, ChevronDown, ChevronRight, Package, LogOut, Smartphone, Laptop, Tablet, Watch, Headphones, Cpu, Gamepad2, Glasses, Plane, Box } from "lucide-react";
-import { CartButton } from "./CartButton";
-import { LucideIcon } from "lucide-react";
-import { useUIStore, useUserStore } from "@/lib/store";
+import { MapPin, HeadphonesIcon, Store, Search, Menu, X, ChevronDown, ShoppingCart, User, Package, LogOut } from "lucide-react";
+import { useUIStore, useUserStore, useCartStore } from "@/lib/store";
 import { useState, useEffect, useRef } from "react";
 import { Category } from "@/lib/data/categories";
 import { SearchModal } from "@/components/search/SearchModal";
-import { UserMenu } from "@/components/auth/UserMenu";
 import { signOut } from "next-auth/react";
 
 interface HeaderClientProps {
   categories: Category[];
 }
 
-// Get category-specific icon based on handle
-function getCategoryIcon(handle: string): LucideIcon {
-  const lowerHandle = handle.toLowerCase();
-  
-  if (lowerHandle.includes('iphone')) return Smartphone;
-  if (lowerHandle.includes('ipad')) return Tablet;
-  if (lowerHandle.includes('mac') || lowerHandle.includes('imac')) return Laptop;
-  if (lowerHandle.includes('watch')) return Watch;
-  if (lowerHandle.includes('airpods') || lowerHandle.includes('airpod')) return Headphones;
-  if (lowerHandle.includes('accessor') || lowerHandle.includes('дагалдах')) return Cpu;
-  if (lowerHandle.includes('glasses') || lowerHandle.includes('ray')) return Glasses;
-  if (lowerHandle.includes('drone') || lowerHandle.includes('dji')) return Plane;
-  if (lowerHandle.includes('toy') || lowerHandle.includes('popmart') || lowerHandle.includes('game') || lowerHandle.includes('playstation') || lowerHandle.includes('nintendo')) return Gamepad2;
-  
-  return Box;
-}
-
 export function HeaderClient({ categories }: HeaderClientProps) {
   const { isMobileMenuOpen, openMobileMenu, closeMobileMenu, openSearch } = useUIStore();
-  const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<Category | null>(null);
-  const megaMenuRef = useRef<HTMLDivElement>(null);
-  const megaMenuTriggerRef = useRef<HTMLButtonElement>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { user, isAuthenticated } = useUserStore();
+  const { items } = useCartStore();
+  const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
+  const [selectedLocation] = useState("Улаанбаатар 110089");
+  const categoriesRef = useRef<HTMLDivElement>(null);
+  
+  const cartItemCount = items?.length || 0;
 
-  // Close mega menu when clicking outside
+  // Top categories for the mega menu
+  const topCategories = categories.slice(0, 10);
+
+  // Close categories dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (
-        megaMenuRef.current && 
-        !megaMenuRef.current.contains(event.target as Node) &&
-        megaMenuTriggerRef.current &&
-        !megaMenuTriggerRef.current.contains(event.target as Node)
-      ) {
-        setIsMegaMenuOpen(false);
-        setActiveCategory(null);
+      if (categoriesRef.current && !categoriesRef.current.contains(event.target as Node)) {
+        setIsCategoriesOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Prevent body scroll when mobile menu is open
-  useEffect(() => {
-    if (isMobileMenuOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isMobileMenuOpen]);
-
-  const handleMegaMenuEnter = () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    setIsMegaMenuOpen(true);
-    if (!activeCategory && categories.length > 0) {
-      setActiveCategory(categories[0]);
-    }
-  };
-
-  const handleMegaMenuLeave = () => {
-    timeoutRef.current = setTimeout(() => {
-      setIsMegaMenuOpen(false);
-      setActiveCategory(null);
-    }, 150);
-  };
-
   return (
     <>
-      <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-gray-100">
-        {/* Top bar - Promotional banner */}
-        <div className="bg-[#f5f5f7] text-[#1d1d1f] text-center py-2 text-xs">
-          <p>Шинэ бүтээгдэхүүн! iPhone 16 Pro худалдаанд гарлаа. <Link href="/categories/iphone" className="text-blue-600 hover:underline ml-1">Дэлгэрэнгүй →</Link></p>
-        </div>
-        
-        <div className="container mx-auto flex h-11 items-center justify-between px-4">
-          {/* Logo - always on left */}
-          <Link href="/" className="flex items-center">
-            <span className="text-lg font-display font-semibold tracking-tight text-foreground">
-              alimhan
-            </span>
-          </Link>
+      {/* Top bar - Promotional banner (non-sticky) */}
+      <div className="bg-[#f5f5f7] text-[#1d1d1f] text-center py-2 text-xs">
+        <p>Шинэ бүтээгдэхүүн! iPhone 16 Pro худалдаанд гарлаа. <Link href="/categories/iphone" className="text-blue-600 hover:underline ml-1">Дэлгэрэнгүй →</Link></p>
+      </div>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center h-full">
-            <Link 
-              href="/products" 
-              className="px-4 h-full flex items-center text-xs font-medium text-foreground/70 hover:text-foreground transition-colors"
-            >
-              Бүтээгдэхүүн
-            </Link>
-            
-            {/* Categories Mega Menu Trigger */}
-            {categories.length > 0 && (
-              <div className="relative h-full">
-                <button 
-                  ref={megaMenuTriggerRef}
-                  onMouseEnter={handleMegaMenuEnter}
-                  onMouseLeave={handleMegaMenuLeave}
-                  className="px-4 h-full flex items-center text-xs font-medium text-foreground/70 hover:text-foreground transition-colors gap-1"
-                >
-                  Ангилал
-                  <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${isMegaMenuOpen ? 'rotate-180' : ''}`} />
-                </button>
-              </div>
-            )}
-            
-            <Link 
-              href="/about" 
-              className="px-4 h-full flex items-center text-xs font-medium text-foreground/70 hover:text-foreground transition-colors"
-            >
-              Бидний тухай
-            </Link>
-          </nav>
+      <header className="sticky top-0 z-50 w-full bg-white shadow-sm">
+        {/* Main Header */}
+        <div className="bg-white border-b border-gray-200">
+          <div className="container mx-auto px-4">
+            <div className="flex items-center justify-between h-16 lg:h-20">
+              {/* Logo */}
+              <Link href="/" className="flex items-center">
+                <img src="/logo.png" alt="Alimhan" className="h-14 lg:h-16" />
+              </Link>
 
-          {/* Actions */}
-          <div className="flex items-center gap-0.5">
-            {/* Desktop Search Button */}
-            <button 
-              onClick={openSearch}
-              className="hidden lg:flex text-foreground/80 hover:text-foreground transition-colors p-2 rounded-full w-10 h-10 items-center justify-center"
-              aria-label="Хайх"
-            >
-              <Search className="h-5 w-5" strokeWidth={1.5} />
-            </button>
-            {/* Mobile Search Button */}
-            <button 
-              onClick={openSearch}
-              className="lg:hidden text-foreground/80 hover:text-foreground transition-colors p-2 rounded-full w-10 h-10 flex items-center justify-center"
-              aria-label="Хайх"
-            >
-              <Search className="h-5 w-5" strokeWidth={1.5} />
-            </button>
-            <CartButton />
-            <UserMenu />
-            {/* Mobile menu button - on right side */}
-            <button 
-              onClick={isMobileMenuOpen ? closeMobileMenu : openMobileMenu}
-              className="lg:hidden text-foreground/80 hover:text-foreground transition-colors p-2 rounded-full w-10 h-10 flex items-center justify-center"
-              aria-label={isMobileMenuOpen ? "Цэсийг хаах" : "Цэсийг нээх"}
-            >
-              {isMobileMenuOpen ? <X className="h-5 w-5" strokeWidth={1.5} /> : <Menu className="h-5 w-5" strokeWidth={1.5} />}
-            </button>
-          </div>
-        </div>
-
-        {/* Mega Menu Dropdown */}
-        {isMegaMenuOpen && categories.length > 0 && (
-          <div 
-            ref={megaMenuRef}
-            onMouseEnter={handleMegaMenuEnter}
-            onMouseLeave={handleMegaMenuLeave}
-            className="absolute left-0 right-0 top-full z-50 bg-white border-t border-gray-100 shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150"
-          >
-            <div className="container mx-auto px-4">
-              <div className="flex py-6">
-                {/* Category List */}
-                <div className="w-64 border-r border-gray-100 pr-6">
-                  <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Ангилал</h3>
-                  <ul className="space-y-0.5">
-                    {categories.map((category) => {
-                      const CategoryIcon = getCategoryIcon(category.handle);
-                      return (
-                        <li key={category.id}>
-                          <button
-                            onMouseEnter={() => setActiveCategory(category)}
-                            onClick={() => {
-                              setIsMegaMenuOpen(false);
-                              window.location.href = `/categories/${category.handle}`;
-                            }}
-                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all ${
-                              activeCategory?.id === category.id 
-                                ? 'bg-foreground/5 text-foreground' 
-                                : 'text-foreground hover:bg-foreground/5'
-                            }`}
-                          >
-                            <CategoryIcon className="h-5 w-5" strokeWidth={1.5} />
-                            <span className="text-sm font-medium text-foreground">{category.name}</span>
-                            <ChevronRight className="h-3.5 w-3.5 ml-auto opacity-40" />
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
+              {/* Desktop Search Bar */}
+              <div className="hidden lg:flex flex-1 max-w-2xl mx-8">
+                <div className="relative w-full">
+                  <input
+                    type="text"
+                    placeholder="Утас, ТВ, гэрийн техник хайх..."
+                    onClick={openSearch}
+                    className="w-full px-4 py-3 pl-12 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm cursor-pointer"
+                    readOnly
+                  />
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 </div>
+              </div>
 
-                {/* Category Details */}
-                {activeCategory && (
-                  <div className="flex-1 pl-6">
-                    {(() => {
-                      const ActiveCategoryIcon = getCategoryIcon(activeCategory.handle);
-                      return (
-                        <div className="flex items-center gap-3 mb-4">
-                          <ActiveCategoryIcon className="h-7 w-7 text-foreground" strokeWidth={1.5} />
-                          <div>
-                            <h3 className="text-base font-semibold text-foreground">{activeCategory.name}</h3>
-                            <p className="text-sm text-foreground/60">{activeCategory.description || `${activeCategory.name} бүтээгдэхүүнүүд`}</p>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                    
-                    <div className="grid grid-cols-3 gap-4 mt-4">
-                      {/* Subcategories from Medusa */}
-                      {activeCategory.category_children && activeCategory.category_children.length > 0 ? (
-                        <div className="col-span-2">
-                          <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Дэд ангилал</h4>
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                            {activeCategory.category_children.map((child) => (
-                              <Link
-                                key={child.id}
-                                href={`/categories/${child.handle}`}
-                                onClick={() => setIsMegaMenuOpen(false)}
-                                className="text-sm font-medium text-foreground hover:text-foreground/70 transition-colors py-0.5"
-                              >
-                                {child.name}
-                              </Link>
-                            ))}
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <div>
-                            <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Холбоосууд</h4>
-                            <ul className="space-y-2">
-                              <li>
-                                <Link 
-                                  href={`/categories/${activeCategory.handle}`}
-                                  onClick={() => setIsMegaMenuOpen(false)}
-                                  className="text-sm font-medium text-foreground hover:text-foreground/70 transition-colors"
-                                >
-                                  Бүгдийг үзэх
-                                </Link>
-                              </li>
-                              <li>
-                                <Link 
-                                  href={`/categories/${activeCategory.handle}?sort=newest`}
-                                  onClick={() => setIsMegaMenuOpen(false)}
-                                  className="text-sm font-medium text-foreground hover:text-foreground/70 transition-colors"
-                                >
-                                  Шинэ бүтээгдэхүүн
-                                </Link>
-                              </li>
-                              <li>
-                                <Link 
-                                  href={`/categories/${activeCategory.handle}?sort=price_asc`}
-                                  onClick={() => setIsMegaMenuOpen(false)}
-                                  className="text-sm font-medium text-foreground hover:text-foreground/70 transition-colors"
-                                >
-                                  Үнээр (бага → их)
-                                </Link>
-                              </li>
-                            </ul>
-                          </div>
-                          
-                          <div>
-                            <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Түгээмэл</h4>
-                            <ul className="space-y-2">
-                              <li>
-                                <Link 
-                                  href={`/categories/${activeCategory.handle}?sort=popular`}
-                                  onClick={() => setIsMegaMenuOpen(false)}
-                                  className="text-sm font-medium text-foreground hover:text-foreground/70 transition-colors"
-                                >
-                                  Эрэлттэй бүтээгдэхүүн
-                                </Link>
-                              </li>
-                              <li>
-                                <Link 
-                                  href={`/products`}
-                                  onClick={() => setIsMegaMenuOpen(false)}
-                                  className="text-sm font-medium text-foreground hover:text-foreground/70 transition-colors"
-                                >
-                                  Бүх бүтээгдэхүүн
-                                </Link>
-                              </li>
-                            </ul>
-                          </div>
-                        </>
-                      )}
+              {/* Right Actions */}
+              <div className="flex items-center gap-3 lg:gap-4">
+                {/* Mobile Search */}
+                <button 
+                  onClick={openSearch}
+                  className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  aria-label="Хайх"
+                >
+                  <Search className="h-5 w-5 text-gray-700" />
+                </button>
 
-                      <div className="bg-linear-to-br from-foreground/3 to-foreground/6 rounded-2xl p-4">
-                        <p className="text-xs font-semibold text-foreground uppercase tracking-wider mb-2">Онцлох</p>
-                        <p className="text-sm font-medium text-foreground mb-3">{activeCategory.name} бүтээгдэхүүнүүдтэй танилцана уу</p>
-                        <Link 
-                          href={`/categories/${activeCategory.handle}`}
-                          onClick={() => setIsMegaMenuOpen(false)}
-                          className="inline-flex items-center text-sm font-medium text-blue-600 hover:underline"
-                        >
-                          Бүгдийг үзэх
-                          <ChevronRight className="h-4 w-4 ml-0.5" />
-                        </Link>
+                {/* User Menu */}
+                {isAuthenticated && user ? (
+                  <div className="hidden lg:flex items-center gap-2 relative group">
+                    <button className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded-lg transition-colors">
+                      <User className="h-5 w-5 text-gray-700" />
+                      <div className="flex flex-col items-start">
+                        <span className="text-[10px] text-gray-500">Сайн байна уу</span>
+                        <span className="text-sm font-medium text-gray-900">{user.firstName || "Хэрэглэгч"}</span>
                       </div>
+                    </button>
+                    
+                    {/* Dropdown */}
+                    <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                      <Link href="/account" className="flex items-center gap-2 px-4 py-2.5 hover:bg-gray-50 text-sm text-gray-700 first:rounded-t-lg">
+                        <User className="h-4 w-4" />
+                        Профайл
+                      </Link>
+                      <Link href="/account/orders" className="flex items-center gap-2 px-4 py-2.5 hover:bg-gray-50 text-sm text-gray-700">
+                        <Package className="h-4 w-4" />
+                        Захиалгууд
+                      </Link>
+                      <button 
+                        onClick={() => signOut({ callbackUrl: "/" })}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-gray-50 text-sm text-red-600 last:rounded-b-lg"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Гарах
+                      </button>
                     </div>
                   </div>
+                ) : (
+                  <Link href="/auth/login" className="hidden lg:flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded-lg transition-colors">
+                    <User className="h-5 w-5 text-gray-700" />
+                    <div className="flex flex-col items-start">
+                      <span className="text-[10px] text-gray-500">Сайн байна уу</span>
+                      <span className="text-sm font-medium text-gray-900">Нэвтрэх</span>
+                    </div>
+                  </Link>
                 )}
+
+                {/* Cart */}
+                <Link href="/cart" className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                  <ShoppingCart className="h-6 w-6 text-gray-700" />
+                  {cartItemCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                      {cartItemCount}
+                    </span>
+                  )}
+                </Link>
+
+                {/* Mobile Menu Toggle */}
+                <button 
+                  onClick={isMobileMenuOpen ? closeMobileMenu : openMobileMenu}
+                  className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  aria-label="Цэс"
+                >
+                  {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                </button>
               </div>
             </div>
           </div>
-        )}
+        </div>
       </header>
 
-      {/* Mobile Navigation Menu */}
+      {/* Categories Navigation Bar */}
+      <div className="hidden lg:block bg-gray-50 border-b border-gray-200">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center h-12">
+            <nav className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
+              {topCategories.map((category) => (
+                <Link
+                  key={category.id}
+                  href={`/categories/${category.handle}`}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-white rounded-md transition-all whitespace-nowrap"
+                >
+                  {category.name}
+                </Link>
+              ))}
+              {categories.length > 10 && (
+                <div className="relative" ref={categoriesRef}>
+                  <button
+                    onClick={() => setIsCategoriesOpen(!isCategoriesOpen)}
+                    className="flex items-center gap-1 px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-white rounded-md transition-all whitespace-nowrap"
+                  >
+                    Бусад
+                    <ChevronDown className={`h-4 w-4 transition-transform ${isCategoriesOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  {isCategoriesOpen && (
+                    <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 max-h-96 overflow-y-auto">
+                      {categories.slice(10).map((category) => (
+                        <Link
+                          key={category.id}
+                          href={`/categories/${category.handle}`}
+                          onClick={() => setIsCategoriesOpen(false)}
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          {category.name}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </nav>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Menu */}
       <div 
         className={`fixed inset-0 z-40 lg:hidden transition-all duration-300 ${
           isMobileMenuOpen ? 'visible' : 'invisible'
         }`}
       >
-        {/* Backdrop */}
         <div 
           className={`absolute inset-0 bg-black/50 transition-opacity duration-300 ${
             isMobileMenuOpen ? 'opacity-100' : 'opacity-0'
@@ -335,220 +200,94 @@ export function HeaderClient({ categories }: HeaderClientProps) {
           onClick={closeMobileMenu}
         />
         
-        {/* Menu Panel */}
         <div 
           className={`absolute top-0 left-0 bottom-0 w-full sm:max-w-sm bg-white shadow-2xl transition-transform duration-300 ease-out overflow-y-auto ${
             isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
-          style={{ paddingBottom: 'env(safe-area-inset-bottom)', paddingTop: 'env(safe-area-inset-top)' }}
         >
-          {/* Mobile Menu Header */}
-          <div className="sticky top-0 bg-white/95 backdrop-blur-md border-b border-gray-100 px-4 sm:px-5 py-4 sm:py-5 flex items-center justify-center z-10">
-            <Link href="/" onClick={closeMobileMenu} className="flex items-center">
-              <span className="text-xl sm:text-2xl font-display font-bold tracking-tight">
-                alimhan
-              </span>
-            </Link>
-            <button 
-              onClick={closeMobileMenu}
-              className="absolute right-2 sm:right-3 p-2 sm:p-2.5 text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-full transition-all"
-            >
-              <X className="h-5 w-5 sm:h-6 sm:w-6" />
+          <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between z-10">
+            <span className="text-xl font-bold">Цэс</span>
+            <button onClick={closeMobileMenu} className="p-2 hover:bg-gray-100 rounded-lg">
+              <X className="h-5 w-5" />
             </button>
           </div>
 
-          {/* Mobile Menu Content */}
-          <div className="px-4 sm:px-5 py-4 sm:py-6">
-            {/* Search Bar */}
-            <div className="mb-4 sm:mb-6">
-              <button 
-                onClick={() => {
-                  closeMobileMenu();
-                  openSearch();
-                }}
-                className="relative w-full"
-              >
-                <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-secondary" />
-                <div className="w-full pl-10 sm:pl-12 pr-4 py-3 sm:py-3.5 bg-foreground/5 rounded-xl sm:rounded-2xl text-sm sm:text-base text-left text-secondary">
-                  Хайх...
+          <div className="p-4">
+            {/* User Section */}
+            {isAuthenticated && user ? (
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center font-bold">
+                    {user.firstName?.[0] || user.email[0].toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">{user.firstName || "Хэрэглэгч"}</p>
+                    <p className="text-sm text-gray-500">{user.email}</p>
+                  </div>
                 </div>
-              </button>
-            </div>
-
-            {/* Main Navigation Links */}
-            <nav className="space-y-0.5 sm:space-y-1 mb-4 sm:mb-6">
-              <Link 
-                href="/products" 
-                onClick={closeMobileMenu}
-                className="flex items-center px-3 sm:px-4 py-3 sm:py-4 text-base sm:text-lg font-semibold text-foreground hover:bg-foreground/5 rounded-xl sm:rounded-2xl transition-all active:scale-[0.98]"
-              >
-                Бүтээгдэхүүн
+                <div className="space-y-1">
+                  <Link href="/account" onClick={closeMobileMenu} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-white rounded-md">
+                    <User className="h-4 w-4" />
+                    Профайл
+                  </Link>
+                  <Link href="/account/orders" onClick={closeMobileMenu} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-white rounded-md">
+                    <Package className="h-4 w-4" />
+                    Захиалгууд
+                  </Link>
+                  <button 
+                    onClick={() => {
+                      closeMobileMenu();
+                      signOut({ callbackUrl: "/" });
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Гарах
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <Link href="/auth/login" onClick={closeMobileMenu} className="block mb-6 p-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg text-center font-medium">
+                Нэвтрэх / Бүртгүүлэх
               </Link>
-              <Link 
-                href="/about" 
-                onClick={closeMobileMenu}
-                className="flex items-center px-3 sm:px-4 py-3 sm:py-4 text-base sm:text-lg font-semibold text-foreground hover:bg-foreground/5 rounded-xl sm:rounded-2xl transition-all active:scale-[0.98]"
-              >
-                Бидний тухай
-              </Link>
-            </nav>
+            )}
 
             {/* Categories */}
-            {categories.length > 0 && (
-              <div className="border-t border-gray-100 pt-4 sm:pt-6">
-                <h3 className="text-[10px] sm:text-xs font-semibold text-secondary uppercase tracking-wider px-3 sm:px-4 mb-3 sm:mb-4">Ангилал</h3>
-                <div className="space-y-0.5 sm:space-y-1">
-                  {categories.map((category) => (
-                    <div key={category.id}>
-                      <Link
-                        href={`/categories/${category.handle}`}
-                        onClick={closeMobileMenu}
-                        className="w-full flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3.5 text-foreground hover:bg-foreground/5 rounded-xl sm:rounded-2xl transition-all active:scale-[0.98]"
-                      >
-                        <div className="flex items-center gap-3 sm:gap-4">
-                          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center bg-foreground/5 text-foreground/70">
-                            <Package className="h-4 w-4 sm:h-5 sm:w-5" strokeWidth={1.5} />
-                          </div>
-                          <span className="text-sm sm:text-base font-medium">{category.name}</span>
-                        </div>
-                        <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 text-secondary" />
-                      </Link>
-                      {/* Subcategories */}
-                      {category.category_children && category.category_children.length > 0 && (
-                        <div className="ml-11 sm:ml-14 mt-0.5 sm:mt-1 mb-1.5 sm:mb-2 space-y-0.5 sm:space-y-1">
-                          {category.category_children.map((child) => (
-                            <Link
-                              key={child.id}
-                              href={`/categories/${child.handle}`}
-                              onClick={closeMobileMenu}
-                              className="block px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg sm:rounded-xl transition-all"
-                            >
-                              {child.name}
-                            </Link>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
+            <div className="mb-6">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Ангилал</h3>
+              <div className="space-y-1">
+                {categories.map((category) => (
+                  <Link
+                    key={category.id}
+                    href={`/categories/${category.handle}`}
+                    onClick={closeMobileMenu}
+                    className="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-md"
+                  >
+                    {category.name}
+                  </Link>
+                ))}
               </div>
-            )}
+            </div>
 
-            {/* Account Section */}
-            <MobileAccountSection closeMobileMenu={closeMobileMenu} />
-          </div>
-        </div>
-      </div>
-
-      {/* Search Modal */}
-      <SearchModal />
-    </>
-  );
-}
-
-// Mobile account section component
-function MobileAccountSection({ closeMobileMenu }: { closeMobileMenu: () => void }) {
-  const { user, isAuthenticated } = useUserStore();
-  
-  if (isAuthenticated && user) {
-    const initials = user.firstName && user.lastName
-      ? `${user.firstName[0]}${user.lastName[0]}`
-      : user.name
-        ? user.name.split(" ").map(n => n[0]).join("").slice(0, 2)
-        : user.email[0].toUpperCase();
-    
-    const displayName = user.firstName && user.lastName 
-      ? `${user.firstName} ${user.lastName}`
-      : user.name || "Хэрэглэгч";
-
-    return (
-      <>
-        {/* User Info Section */}
-        <div className="border-t border-gray-100 pt-6 mt-6">
-          <div className="px-4 py-3 flex items-center gap-3">
-            {user.image ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img 
-                src={user.image} 
-                alt={displayName}
-                className="w-10 h-10 rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center text-sm font-medium">
-                {initials}
+            {/* Quick Links */}
+            <div>
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Холбоосууд</h3>
+              <div className="space-y-1">
+                <Link href="/stores" onClick={closeMobileMenu} className="flex items-center gap-2 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md">
+                  <Store className="h-4 w-4" />
+                  Дэлгүүр хайх
+                </Link>
+                <Link href="/help" onClick={closeMobileMenu} className="flex items-center gap-2 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md">
+                  <HeadphonesIcon className="h-4 w-4" />
+                  Тусламж
+                </Link>
               </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-foreground truncate">{displayName}</p>
-              <p className="text-xs text-secondary truncate">{user.email}</p>
             </div>
           </div>
-          
-          <div className="mt-3 space-y-0.5">
-            <Link 
-              href="/account" 
-              onClick={closeMobileMenu}
-              className="flex items-center gap-3 px-4 py-2.5 text-foreground hover:bg-foreground/5 rounded-xl transition-colors"
-            >
-              <User className="h-4 w-4 text-foreground/60" strokeWidth={1.5} />
-              <span className="text-sm">Профайл</span>
-            </Link>
-            <Link 
-              href="/account/orders" 
-              onClick={closeMobileMenu}
-              className="flex items-center gap-3 px-4 py-2.5 text-foreground hover:bg-foreground/5 rounded-xl transition-colors"
-            >
-              <Package className="h-4 w-4 text-foreground/60" strokeWidth={1.5} />
-              <span className="text-sm">Захиалгууд</span>
-            </Link>
-            <button 
-              onClick={async () => {
-                closeMobileMenu();
-                await signOut({ callbackUrl: "/" });
-              }}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-red-600 hover:bg-red-50 rounded-xl transition-colors"
-            >
-              <LogOut className="h-4 w-4" strokeWidth={1.5} />
-              <span className="text-sm">Гарах</span>
-            </button>
-          </div>
-        </div>
-      </>
-    );
-  }
-
-  return (
-    <>
-      {/* Login Section */}
-      <div className="border-t border-gray-100 pt-6 mt-6">
-        <Link 
-          href="/auth/login" 
-          onClick={closeMobileMenu}
-          className="flex items-center gap-3 px-4 py-3 text-foreground hover:bg-foreground/5 rounded-xl transition-colors active:scale-[0.98]"
-        >
-          <div className="w-9 h-9 rounded-full bg-foreground/5 flex items-center justify-center">
-            <User className="h-4 w-4 text-foreground/60" strokeWidth={1.5} />
-          </div>
-          <div>
-            <span className="text-sm font-medium block">Нэвтрэх</span>
-            <span className="text-xs text-secondary">Бүртгэлтэй хэрэглэгч</span>
-          </div>
-        </Link>
-      </div>
-
-      {/* Bottom CTA */}
-      <div className="mt-6 px-4">
-        <div className="bg-[#f5f5f7] rounded-xl p-4 text-center">
-          <p className="text-foreground/60 text-xs mb-2">Шинэ хэрэглэгч үү?</p>
-          <Link 
-            href="/auth/register" 
-            onClick={closeMobileMenu}
-            className="inline-block text-blue-600 font-medium text-sm hover:underline"
-          >
-            Бүртгүүлэх →
-          </Link>
         </div>
       </div>
+
+      <SearchModal />
     </>
   );
 }

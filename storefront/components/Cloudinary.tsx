@@ -6,8 +6,9 @@ import Image from "next/image";
 interface CloudinaryImageProps {
   src?: string | null;
   alt: string;
-  width: number;
-  height: number;
+  width?: number;
+  height?: number;
+  fill?: boolean;
   className?: string;
   priority?: boolean;
 }
@@ -17,6 +18,7 @@ export function CloudinaryImage({
   alt,
   width,
   height,
+  fill = false,
   className,
   priority = false,
 }: CloudinaryImageProps) {
@@ -28,7 +30,7 @@ export function CloudinaryImage({
     return (
       <div 
         className={`bg-gray-200 flex items-center justify-center ${className}`}
-        style={{ width, height }}
+        style={fill ? undefined : { width, height }}
       >
         <span className="text-gray-400">No image</span>
       </div>
@@ -36,12 +38,23 @@ export function CloudinaryImage({
   }
 
   if (isPublicId) {
+    if (fill) {
+      return (
+        <CldImage
+          src={src}
+          alt={alt}
+          fill
+          className={className}
+          priority={priority}
+        />
+      );
+    }
     return (
       <CldImage
         src={src}
         alt={alt}
-        width={width}
-        height={height}
+        width={width!}
+        height={height!}
         className={className}
         priority={priority}
       />
@@ -49,12 +62,23 @@ export function CloudinaryImage({
   }
 
   if (isCloudinaryUrl) {
+    if (fill) {
+      return (
+        <Image
+          src={src}
+          alt={alt}
+          fill
+          className={className}
+          priority={priority}
+        />
+      );
+    }
     return (
       <Image
         src={src}
         alt={alt}
-        width={width}
-        height={height}
+        width={width!}
+        height={height!}
         className={className}
         priority={priority}
       />
@@ -62,6 +86,18 @@ export function CloudinaryImage({
   }
 
   // For non-Cloudinary URLs, use regular img tag
+  if (fill) {
+    // For fill mode with img tag, use absolute positioning
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt={alt}
+        className={`absolute inset-0 w-full h-full ${className}`}
+        loading={priority ? "eager" : "lazy"}
+      />
+    );
+  }
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img

@@ -1,11 +1,8 @@
-import { Suspense } from "react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { Categories } from "@/components/home/Categories";
 import { Hero } from "@/components/home/Hero";
-import { PromoBanner } from "@/components/home/PromoBanner";
-import { IPhoneBanners } from "@/components/home/IPhoneBanners";
-import { DJIBento } from "@/components/home/DJIBento";
+import { Categories } from "@/components/home/Categories";
+import { HomeContent } from "@/components/home/HomeContent";
 import { Truck, RotateCcw, ShieldCheck } from "lucide-react";
 import type { Metadata } from "next";
 
@@ -32,67 +29,17 @@ export const metadata: Metadata = {
   },
 };
 
-// Loading skeletons for banner sections
-function HeroSkeleton() {
-  return (
-    <div className="w-full h-[580px] md:h-[680px] bg-gray-100 animate-pulse" />
-  );
-}
-
-function BannerGridSkeleton() {
-  return (
-    <section className="py-3 container mx-auto px-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div className="h-[400px] md:h-[500px] bg-gray-100 rounded-3xl animate-pulse" />
-        <div className="h-[400px] md:h-[500px] bg-gray-100 rounded-3xl animate-pulse" />
-      </div>
-    </section>
-  );
-}
-
-function BentoSkeleton() {
-  return (
-    <section className="py-3 container mx-auto px-4">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="col-span-2 row-span-2 h-[400px] md:h-[500px] lg:h-[500px] bg-gray-100 rounded-3xl animate-pulse" />
-        <div className="h-[200px] md:h-[245px] bg-gray-100 rounded-3xl animate-pulse" />
-        <div className="h-[200px] md:h-[245px] bg-gray-100 rounded-3xl animate-pulse" />
-      </div>
-    </section>
-  );
-}
-
-function PromoBannerSkeleton() {
-  return (
-    <section className="py-3 container mx-auto px-4">
-      <div className="w-full h-[400px] md:h-[500px] bg-gray-100 rounded-3xl animate-pulse" />
-    </section>
-  );
-}
-
 export default function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
       
       <main className="flex-1">
-        <Suspense fallback={<HeroSkeleton />}>
-          <Hero />
-        </Suspense>
-
-        <Suspense fallback={<BannerGridSkeleton />}>
-          <IPhoneBanners />
-        </Suspense>
-
+        <Hero />
+        
         <Categories />
-
-        <Suspense fallback={<BentoSkeleton />}>
-          <DJIBento />
-        </Suspense>
-
-        <Suspense fallback={<PromoBannerSkeleton />}>
-          <PromoBanner />
-        </Suspense>
+        
+        <HomeContent />
 
         {/* Features */}
         <section className="py-24 bg-background border-t border-gray-100">

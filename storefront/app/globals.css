@@ -109,6 +109,15 @@ h1, h2, h3, h4, h5, h6 {
     scrollbar-width: none;
   }
   
+  /* Scrollbar hide utility for horizontal scrolling */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
   /* SF Pro Display for titles */
   .font-display {
     font-family: var(--font-display);

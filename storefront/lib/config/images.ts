@@ -3,110 +3,8 @@
  * All Cloudinary image URLs used in the storefront
  * 
  * Organization:
- * - heroSlides: Main homepage carousel images
- * - banners: Promotional banner images  
- * - djiBento: DJI product section images
- * - promo: General promotional images
  * - categoryIcons: Category navigation icons
  */
-
-// =============================================================================
-// HERO CAROUSEL SLIDES
-// =============================================================================
-export const heroSlides = [
-  {
-    id: 1,
-    title: "MacBook Pro M4",
-    subtitle: "Гайхалтай хүч. Гайхамшигт загвар.",
-    image: "https://res.cloudinary.com/do1xiqlxi/image/upload/v1764596586/s_hs7sa7.jpg",
-    link: "/products/macbook-pro-m4",
-    darkText: false,
-  },
-  {
-    id: 2,
-    title: "iMac M4",
-    subtitle: "Хүч чадлаар дүүрэн.",
-    image: "https://res.cloudinary.com/do1xiqlxi/image/upload/v1764596586/imac_ugg6cz.jpg",
-    link: "/products/imac-m4",
-    darkText: true,
-  },
-  {
-    id: 3,
-    title: "Mac Mini",
-    subtitle: "Илүү хүчирхэг. Илүү хурдан.",
-    image: "https://res.cloudinary.com/do1xiqlxi/image/upload/v1764596585/2_s875jd.jpg",
-    link: "/products/mac-mini",
-    darkText: true,
-  },
-  {
-    id: 4,
-    title: "Powerbeats Pro 2",
-    subtitle: "Хөдөлгөөнд зориулагдсан.",
-    image: "https://res.cloudinary.com/do1xiqlxi/image/upload/v1764596584/1_txr8ku.jpg",
-    link: "/products/powerbeats-pro-2",
-    darkText: false,
-  },
-  {
-    id: 5,
-    title: "Transparent Tech",
-    subtitle: "Дууг мэдэр.",
-    image: "https://res.cloudinary.com/do1xiqlxi/image/upload/v1764596585/airpods3_dsghc4.jpg",
-    link: "/products/transparent-tech",
-    darkText: true,
-  },
-] as const;
-
-// =============================================================================
-// IPHONE BANNERS
-// =============================================================================
-export const iphoneBanners = [
-  {
-    id: 1,
-    image: "https://res.cloudinary.com/do1xiqlxi/image/upload/v1764616599/banner1_dsbxka.jpg",
-    alt: "iPhone 17 Pro",
-    link: "/products/iphone-17-pro",
-  },
-  {
-    id: 2,
-    image: "https://res.cloudinary.com/do1xiqlxi/image/upload/v1764616599/banner2_zbryc4.jpg",
-    alt: "iPhone 17 Pro Max",
-    link: "/products/iphone-17-pro-max",
-  },
-] as const;
-
-// =============================================================================
-// DJI BENTO GRID
-// =============================================================================
-export const djiBentoItems = [
-  {
-    id: 1,
-    image: "https://res.cloudinary.com/do1xiqlxi/image/upload/v1764617055/dji_mic3_yloyeh.jpg",
-    title: "DJI Mic 3",
-    description: "Мэргэжлийн түвшний wireless микрофон",
-    link: "/products/dji-mic-3",
-  },
-  {
-    id: 2,
-    image: "https://res.cloudinary.com/do1xiqlxi/image/upload/v1764617055/dji_ofypbr.jpg",
-    title: "DJI Drone",
-    description: "Агаараас бичлэг хийх шинэ боломж",
-    link: "/products/dji-drone",
-  },
-  {
-    id: 3,
-    image: "https://res.cloudinary.com/do1xiqlxi/image/upload/v1764617055/osmo_pocket3_ttg6ow.jpg",
-    title: "DJI Osmo Pocket 3",
-    description: "Компакт gimbal камер",
-    link: "/products/dji-osmo-pocket-3",
-  },
-] as const;
-
-// =============================================================================
-// PROMO BANNER
-// =============================================================================
-export const promoImages = {
-  mainBanner: "https://res.cloudinary.com/do1xiqlxi/image/upload/v1764596586/alimhan-cover_zslzt8.jpg",
-} as const;
 
 // =============================================================================
 // CATEGORY ICONS (for navigation)
@@ -178,10 +76,3 @@ export function getCategoryImage(handle: string): string {
   
   return defaultCategoryImage;
 }
-
-// =============================================================================
-// TYPE EXPORTS
-// =============================================================================
-export type HeroSlide = typeof heroSlides[number];
-export type IPhoneBanner = typeof iphoneBanners[number];
-export type DJIBentoItem = typeof djiBentoItems[number];
