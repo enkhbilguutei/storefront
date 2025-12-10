@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
-import { ChevronLeft, ShoppingBag } from "lucide-react"
+import { ChevronLeft, ShoppingCart } from "lucide-react"
 import { accountLinks } from "@/lib/config/account"
 import { useCartStore } from "@/lib/store"
 
@@ -57,10 +57,10 @@ export function MobileAccountHeader() {
         {getTitle()}
       </h1>
       <div className="flex justify-end">
-        <Link href="/cart" className="p-2 hover:bg-gray-100 rounded-full transition-colors relative">
-          <ShoppingBag className="w-6 h-6" />
+        <Link href="/cart" className="p-2 hover:bg-gray-100 rounded-full transition-colors active:scale-95 relative">
+          <ShoppingCart className="w-6 h-6" />
           {cartCount > 0 && (
-            <span className="absolute top-1 right-0 bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+            <span className="absolute top-0.5 right-0 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-sm">
               {cartCount}
             </span>
           )}

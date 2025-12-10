@@ -5,6 +5,7 @@ import { Search, X, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useUIStore } from "@/lib/store";
 import { CloudinaryImage } from "@/components/Cloudinary";
+import { toast } from "@/lib/toast";
 
 interface SearchHit {
   id: string;
@@ -65,6 +66,7 @@ export function SearchModal() {
       
       if (!backendUrl) {
         console.error("NEXT_PUBLIC_MEDUSA_BACKEND_URL is not defined");
+        toast.error("Тохиргооны алдаа. Админд мэдэгдэнэ үү.");
         return;
       }
       
@@ -82,6 +84,7 @@ export function SearchModal() {
           setRecommendedProducts(data.hits || []);
         } else {
           console.error("Failed to fetch recommended products:", response.statusText);
+          // Silently fail - recommended products are optional
         }
       } catch (error) {
         console.error("Failed to fetch recommended products:", error);
@@ -135,6 +138,7 @@ export function SearchModal() {
     
     if (!backendUrl) {
       console.error("NEXT_PUBLIC_MEDUSA_BACKEND_URL is not defined");
+      toast.error("Тохиргооны алдаа гарлаа.");
       return;
     }
 
@@ -153,9 +157,11 @@ export function SearchModal() {
         setResults(data);
       } else {
         console.error("Search request failed:", response.statusText);
+        toast.error("Хайлт хийхэд алдаа гарлаа. Дахин оролдоно уу.");
       }
     } catch (error) {
       console.error("Search error:", error);
+      toast.error("Хайлт хийхэд алдаа гарлаа. Дахин оролдоно уу.");
     } finally {
       setIsLoading(false);
     }

@@ -2,8 +2,10 @@
 
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { medusa } from "@/lib/medusa";
-import { useCartStore, useUIStore } from "@/lib/store";
+import { useCartStore, useUIStore, useUserStore } from "@/lib/store";
+import { useWishlistStore } from "@/lib/store/wishlist-store";
 import { CloudinaryImage } from "@/components/Cloudinary";
+import { toast } from "@/lib/toast";
 import Link from "next/link";
 import { 
   ChevronRight, 
@@ -77,7 +79,9 @@ interface ProductDetailsProps {
 
 export function ProductDetails({ product }: ProductDetailsProps) {
   const { cartId, setCartId, addItem, syncCart } = useCartStore();
-  const { openCartNotification } = useUIStore();
+  const { openCartNotification, openWishlistNotification, openAuthModal } = useUIStore();
+  const { isAuthenticated } = useUserStore();
+  const { items: wishlistItems, addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlistStore();
   
   // Scroll to top when navigating to product page
   useEffect(() => {
@@ -112,8 +116,11 @@ export function ProductDetails({ product }: ProductDetailsProps) {
   
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
-  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [isTogglingWishlist, setIsTogglingWishlist] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  
+  // Check if current product/variant is in wishlist
+  const isWishlisted = isInWishlist(product.id, selectedVariant?.id);
 
   // Check if an option is a color option by name only
   const isColorOption = useCallback((optionTitle: string) => {
@@ -288,7 +295,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
         // First get a region
         const { regions } = await medusa.store.region.list();
         if (!regions || regions.length === 0) {
-          console.error("No regions available");
+          toast.error("Бүс нутаг олдсонгүй. Дэлгүүрийн админтай холбогдоно уу.");
           setIsAdding(false);
           return;
         }
@@ -331,8 +338,42 @@ export function ProductDetails({ product }: ProductDetailsProps) {
       
     } catch (error) {
       console.error("Error adding to cart:", error);
+      toast.error("Сагсанд нэмэхэд алдаа гарлаа. Дахин оролдоно уу.");
     } finally {
       setIsAdding(false);
+    }
+  };
+
+  const handleToggleWishlist = async () => {
+    if (isTogglingWishlist || !selectedVariant) return;
+    
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      openAuthModal("wishlist", "login");
+      return;
+    }
+    
+    setIsTogglingWishlist(true);
+    try {
+      if (isWishlisted) {
+        // Find the wishlist item for this product/variant
+        const item = wishlistItems.find(i => 
+          i.product_id === product.id && 
+          (!selectedVariant || i.variant_id === selectedVariant.id)
+        );
+        if (item) {
+          await removeFromWishlist(item.id);
+          openWishlistNotification("Хүслийн жагсаалтаас хассан");
+        }
+      } else {
+        await addToWishlist(product.id, selectedVariant.id);
+        openWishlistNotification("Хүслийн жагсаалтад нэмсэн");
+      }
+    } catch (error) {
+      console.error('Failed to toggle wishlist:', error);
+      openWishlistNotification("Алдаа гарлаа. Дахин оролдоно уу.");
+    } finally {
+      setIsTogglingWishlist(false);
     }
   };
 
@@ -607,15 +648,20 @@ export function ProductDetails({ product }: ProductDetailsProps) {
               </button>
               
               <button
-                onClick={() => setIsWishlisted(!isWishlisted)}
-                className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 ${
+                onClick={handleToggleWishlist}
+                disabled={isTogglingWishlist}
+                className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
                   isWishlisted 
                     ? "bg-red-50 text-red-500" 
                     : "bg-[#f5f5f7] text-[#86868b] hover:text-red-500 hover:bg-red-50"
                 }`}
-                title="Хадгалах"
+                title={isWishlisted ? "Хүслийн жагсаалтаас хасах" : "Хүслийн жагсаалтад нэмэх"}
               >
-                <Heart className={`w-5 h-5 ${isWishlisted ? "fill-current" : ""}`} />
+                {isTogglingWishlist ? (
+                  <span className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Heart className={`w-5 h-5 ${isWishlisted ? "fill-current" : ""}`} />
+                )}
               </button>
               
               <button

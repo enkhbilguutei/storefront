@@ -262,23 +262,23 @@ export default function AccountPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Profile Card */}
-      <div className="bg-white rounded-xl border border-gray-100">
-        <div className="flex items-center justify-between p-4 border-b border-gray-100">
-          <h2 className="font-semibold text-foreground">Хувийн мэдээлэл</h2>
+      <div className="bg-white rounded-lg md:rounded-xl border border-gray-100">
+        <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-100">
+          <h2 className="text-base sm:text-lg font-semibold text-foreground">Хувийн мэдээлэл</h2>
           {!isEditing && (
             <button
               onClick={() => setIsEditing(true)}
-              className="flex items-center gap-1.5 text-sm text-secondary hover:text-foreground transition-colors"
+              className="flex items-center gap-1.5 text-sm text-secondary hover:text-foreground transition-colors min-h-11 px-2"
             >
-              <Pencil className="h-3.5 w-3.5" />
-              Засах
+              <Pencil className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+              <span className="hidden xs:inline">Засах</span>
             </button>
           )}
         </div>
 
-        <div className="p-4">
+        <div className="p-3 sm:p-4">
           {success && (
             <div className="flex items-center gap-2 p-3 bg-emerald-50 text-emerald-700 rounded-lg mb-4 text-sm">
               <Check className="h-4 w-4" />
@@ -293,32 +293,32 @@ export default function AccountPage() {
           )}
 
           {isEditing ? (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-secondary mb-1.5">Овог</label>
+                  <label className="block text-xs sm:text-sm text-secondary mb-1.5">Овог</label>
                   <input
                     type="text"
                     value={formData.lastName}
                     onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground/10 focus:border-foreground/30 transition-all"
+                    className="w-full px-3 py-3 sm:py-2.5 text-sm sm:text-base border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground/10 focus:border-foreground/30 transition-all"
                     placeholder="Овог"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-secondary mb-1.5">Нэр</label>
+                  <label className="block text-xs sm:text-sm text-secondary mb-1.5">Нэр</label>
                   <input
                     type="text"
                     value={formData.firstName}
                     onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground/10 focus:border-foreground/30 transition-all"
+                    className="w-full px-3 py-3 sm:py-2.5 text-sm sm:text-base border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground/10 focus:border-foreground/30 transition-all"
                     placeholder="Нэр"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs text-secondary mb-1.5">Утас (заавал биш)</label>
+                <label className="block text-xs sm:text-sm text-secondary mb-1.5">Утас (заавал биш)</label>
                 <input
                   type="tel"
                   value={formData.phone}
@@ -328,19 +328,19 @@ export default function AccountPage() {
                   }}
                   maxLength={8}
                   pattern="[0-9]{8}"
-                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground/10 focus:border-foreground/30 transition-all"
+                  className="w-full px-3 py-3 sm:py-2.5 text-sm sm:text-base border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground/10 focus:border-foreground/30 transition-all"
                   placeholder="99112233"
                 />
                 <p className="text-xs text-secondary mt-1">8 оронтой тоо оруулна уу</p>
               </div>
 
               <div>
-                <label className="block text-xs text-secondary mb-1.5">Имэйл</label>
+                <label className="block text-xs sm:text-sm text-secondary mb-1.5">Имэйл</label>
                 <input
                   type="email"
                   value={user?.email || ""}
                   disabled
-                  className="w-full px-3 py-2.5 text-sm border border-gray-100 rounded-lg bg-gray-50 text-secondary cursor-not-allowed"
+                  className="w-full px-3 py-3 sm:py-2.5 text-sm sm:text-base border border-gray-100 rounded-lg bg-gray-50 text-secondary cursor-not-allowed"
                 />
               </div>
 
@@ -348,19 +348,20 @@ export default function AccountPage() {
                 <button
                   type="button"
                   onClick={() => setIsEditing(false)}
-                  className="flex-1 px-4 py-2.5 text-sm border border-gray-200 text-foreground rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-4 py-3 sm:py-2.5 text-sm sm:text-base min-h-12 border border-gray-200 text-foreground rounded-lg hover:bg-gray-50 transition-colors active:scale-[0.98]"
                 >
                   Цуцлах
                 </button>
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors disabled:opacity-50"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 sm:py-2.5 text-sm sm:text-base min-h-12 bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-all disabled:opacity-50 active:scale-[0.98]"
                 >
                   {isLoading ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Хадгалж байна...
+                      <span className="hidden xs:inline">Хадгалж байна...</span>
+                      <span className="xs:hidden">Хадгалж...</span>
                     </>
                   ) : (
                     "Хадгалах"
@@ -373,14 +374,14 @@ export default function AccountPage() {
               <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
             </div>
           ) : (
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 py-2">
-                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-                  <User className="h-4 w-4 text-gray-500" />
+            <div className="space-y-2 sm:space-y-3">
+              <div className="flex items-center gap-3 py-2.5 sm:py-2">
+                <div className="w-10 h-10 sm:w-8 sm:h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                  <User className="h-5 w-5 sm:h-4 sm:w-4 text-gray-500" />
                 </div>
-                <div>
-                  <p className="text-xs text-secondary">Нэр</p>
-                  <p className="text-sm font-medium text-foreground">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-xs text-secondary">Нэр</p>
+                  <p className="text-sm sm:text-sm font-medium text-foreground wrap-break-word">
                     {customerData?.last_name && customerData?.first_name 
                       ? `${customerData.last_name} ${customerData.first_name}`
                       : user?.lastName && user?.firstName 
@@ -390,23 +391,23 @@ export default function AccountPage() {
                 </div>
               </div>
               
-              <div className="flex items-center gap-3 py-2">
-                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-                  <Mail className="h-4 w-4 text-gray-500" />
+              <div className="flex items-center gap-3 py-2.5 sm:py-2">
+                <div className="w-10 h-10 sm:w-8 sm:h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                  <Mail className="h-5 w-5 sm:h-4 sm:w-4 text-gray-500" />
                 </div>
-                <div>
-                  <p className="text-xs text-secondary">Имэйл</p>
-                  <p className="text-sm font-medium text-foreground">{customerData?.email || user?.email}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-xs text-secondary">Имэйл</p>
+                  <p className="text-sm sm:text-sm font-medium text-foreground break-all">{customerData?.email || user?.email}</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 py-2">
-                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-                  <Phone className="h-4 w-4 text-gray-500" />
+              <div className="flex items-center gap-3 py-2.5 sm:py-2">
+                <div className="w-10 h-10 sm:w-8 sm:h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                  <Phone className="h-5 w-5 sm:h-4 sm:w-4 text-gray-500" />
                 </div>
-                <div>
-                  <p className="text-xs text-secondary">Утас</p>
-                  <p className="text-sm font-medium text-foreground">{customerData?.phone || "-"}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-xs text-secondary">Утас</p>
+                  <p className="text-sm sm:text-sm font-medium text-foreground">{customerData?.phone || "-"}</p>
                 </div>
               </div>
             </div>
@@ -415,14 +416,14 @@ export default function AccountPage() {
       </div>
 
       {/* Account Type */}
-      <div className="bg-white rounded-xl border border-gray-100 p-4">
+      <div className="bg-white rounded-lg md:rounded-xl border border-gray-100 p-3 sm:p-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+          <div className="w-10 h-10 sm:w-10 sm:h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
             <Shield className="h-5 w-5 text-gray-500" />
           </div>
-          <div className="flex-1">
-            <p className="text-xs text-secondary">Бүртгэлийн төрөл</p>
-            <p className="text-sm font-medium text-foreground">
+          <div className="flex-1 min-w-0">
+            <p className="text-xs sm:text-xs text-secondary">Бүртгэлийн төрөл</p>
+            <p className="text-sm sm:text-sm font-medium text-foreground">
               {(session?.user as { provider?: string })?.provider === "google" ? "Google" : "Имэйл"}
             </p>
           </div>
@@ -430,18 +431,18 @@ export default function AccountPage() {
       </div>
 
       {/* Recent Orders */}
-      <div className="bg-white rounded-xl border border-gray-100">
-        <div className="flex items-center justify-between p-4 border-b border-gray-100">
-          <h2 className="font-semibold text-foreground">Сүүлийн захиалгууд</h2>
+      <div className="bg-white rounded-lg md:rounded-xl border border-gray-100">
+        <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-100">
+          <h2 className="text-base sm:text-lg font-semibold text-foreground">Сүүлийн захиалгууд</h2>
           <Link 
             href="/account/orders"
-            className="text-sm text-secondary hover:text-foreground transition-colors"
+            className="text-sm text-secondary hover:text-foreground transition-colors min-h-11 flex items-center px-2"
           >
             Бүгдийг харах
           </Link>
         </div>
 
-        <div className="p-4">
+        <div className="p-3 sm:p-4">
           {ordersLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
@@ -465,25 +466,25 @@ export default function AccountPage() {
                 <Link
                   key={order.id}
                   href={`/account/orders/${order.id}`}
-                  className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors group"
+                  className="flex items-center justify-between p-3 sm:p-3 rounded-lg hover:bg-gray-50 active:bg-gray-100 transition-colors group min-h-16"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center">
-                      <Clock className="h-4 w-4 text-gray-500" />
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-10 h-10 sm:w-9 sm:h-9 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+                      <Clock className="h-5 w-5 sm:h-4 sm:w-4 text-gray-500" />
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">#{order.display_id}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm sm:text-sm font-medium text-foreground">#{order.display_id}</p>
                       <p className="text-xs text-secondary">{formatDate(order.created_at)}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                     <div className="text-right">
-                      <p className="text-sm font-medium text-foreground">
+                      <p className="text-sm sm:text-sm font-medium text-foreground whitespace-nowrap">
                         {formatPrice(order.total, order.currency_code)}
                       </p>
-                      <p className="text-xs text-secondary">{getStatusText(order.status)}</p>
+                      <p className="text-xs text-secondary whitespace-nowrap">{getStatusText(order.status)}</p>
                     </div>
-                    <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-foreground transition-colors" />
+                    <ChevronRight className="h-4 w-4 sm:h-4 sm:w-4 text-gray-300 group-hover:text-foreground transition-colors shrink-0" />
                   </div>
                 </Link>
               ))}

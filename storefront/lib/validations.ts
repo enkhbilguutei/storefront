@@ -22,11 +22,11 @@ export const loginSchema = customerSchema.pick({
 });
 
 export const registerSchema = customerSchema.extend({
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
+  firstName: z.string().min(1, "Нэр оруулна уу"),
+  lastName: z.string().min(1, "Овог оруулна уу"),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
+  message: "Нууц үг таарахгүй байна",
   path: ["confirmPassword"],
 });
 

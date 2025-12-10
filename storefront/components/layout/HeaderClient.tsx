@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MapPin, HeadphonesIcon, Store, Search, Menu, X, ChevronDown, ShoppingCart, User, Package, LogOut } from "lucide-react";
+import { MapPin, HeadphonesIcon, Store, Search, Menu, X, ChevronDown, ChevronRight, ShoppingCart, User, Package, LogOut, Smartphone, Laptop, Plane, Gamepad2, Glasses, Crown } from "lucide-react";
 import { useUIStore, useUserStore, useCartStore } from "@/lib/store";
 import { useState, useEffect, useRef } from "react";
 import { Category } from "@/lib/data/categories";
@@ -16,25 +16,59 @@ export function HeaderClient({ categories }: HeaderClientProps) {
   const { isMobileMenuOpen, openMobileMenu, closeMobileMenu, openSearch } = useUIStore();
   const { user, isAuthenticated } = useUserStore();
   const { items } = useCartStore();
-  const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
-  const [selectedLocation] = useState("Улаанбаатар 110089");
-  const categoriesRef = useRef<HTMLDivElement>(null);
+  const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<Category | null>(null);
+  const megaMenuRef = useRef<HTMLDivElement>(null);
+  const megaMenuTriggerRef = useRef<HTMLButtonElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const cartItemCount = items?.length || 0;
 
-  // Top categories for the mega menu
-  const topCategories = categories.slice(0, 10);
+  // Category icon mapping
+  const getCategoryIcon = (handle: string) => {
+    const iconMap: Record<string, any> = {
+      'apple': Smartphone,
+      'dji': Plane,
+      'gaming': Gamepad2,
+      'eyewear': Glasses,
+      'collectibles': Crown,
+    };
+    return iconMap[handle.toLowerCase()] || Package;
+  };
 
-  // Close categories dropdown when clicking outside
+  // Close mega menu when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (categoriesRef.current && !categoriesRef.current.contains(event.target as Node)) {
-        setIsCategoriesOpen(false);
+      if (
+        megaMenuRef.current && 
+        !megaMenuRef.current.contains(event.target as Node) &&
+        megaMenuTriggerRef.current &&
+        !megaMenuTriggerRef.current.contains(event.target as Node)
+      ) {
+        setIsMegaMenuOpen(false);
+        setActiveCategory(null);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const handleMegaMenuEnter = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    setIsMegaMenuOpen(true);
+    if (!activeCategory && categories.length > 0) {
+      setActiveCategory(categories[0]);
+    }
+  };
+
+  const handleMegaMenuLeave = () => {
+    timeoutRef.current = setTimeout(() => {
+      setIsMegaMenuOpen(false);
+      setActiveCategory(null);
+    }, 150);
+  };
 
   return (
     <>
@@ -53,29 +87,44 @@ export function HeaderClient({ categories }: HeaderClientProps) {
                 <img src="/logo.png" alt="Alimhan" className="h-14 lg:h-16" />
               </Link>
 
-              {/* Desktop Search Bar */}
-              <div className="hidden lg:flex flex-1 max-w-2xl mx-8">
-                <div className="relative w-full">
+              {/* Desktop: Categories Megamenu + Search Bar */}
+              <div className="hidden lg:flex flex-1 max-w-3xl mx-8 gap-3 items-center">
+                {/* Categories Mega Menu Trigger */}
+                {categories.length > 0 && (
+                  <button
+                    ref={megaMenuTriggerRef}
+                    onMouseEnter={handleMegaMenuEnter}
+                    onMouseLeave={handleMegaMenuLeave}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all whitespace-nowrap bg-linear-to-br from-purple-500 via-pink-500 to-blue-500 text-white hover:opacity-90"
+                  >
+                    <Menu className="h-4 w-4" />
+                    <span className="text-sm font-medium">Ангилал</span>
+                    <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isMegaMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                )}
+
+                {/* Search Bar */}
+                <div className="relative flex-1">
                   <input
                     type="text"
                     placeholder="Утас, ТВ, гэрийн техник хайх..."
                     onClick={openSearch}
-                    className="w-full px-4 py-3 pl-12 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm cursor-pointer"
+                    className="w-full px-4 py-2.5 pl-11 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm cursor-pointer"
                     readOnly
                   />
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 </div>
               </div>
 
               {/* Right Actions */}
-              <div className="flex items-center gap-3 lg:gap-4">
+              <div className="flex items-center gap-2 lg:gap-4">
                 {/* Mobile Search */}
                 <button 
                   onClick={openSearch}
-                  className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="lg:hidden p-2.5 hover:bg-gray-100 rounded-lg transition-colors active:scale-95"
                   aria-label="Хайх"
                 >
-                  <Search className="h-5 w-5 text-gray-700" />
+                  <Search className="h-5.5 w-5.5 text-gray-700" />
                 </button>
 
                 {/* User Menu */}
@@ -119,10 +168,10 @@ export function HeaderClient({ categories }: HeaderClientProps) {
                 )}
 
                 {/* Cart */}
-                <Link href="/cart" className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                  <ShoppingCart className="h-6 w-6 text-gray-700" />
+                <Link href="/cart" className="relative p-2.5 hover:bg-gray-100 rounded-lg transition-colors active:scale-95">
+                  <ShoppingCart className="h-5.5 w-5.5 lg:h-6 lg:w-6 text-gray-700" />
                   {cartItemCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                    <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-sm">
                       {cartItemCount}
                     </span>
                   )}
@@ -131,65 +180,114 @@ export function HeaderClient({ categories }: HeaderClientProps) {
                 {/* Mobile Menu Toggle */}
                 <button 
                   onClick={isMobileMenuOpen ? closeMobileMenu : openMobileMenu}
-                  className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="lg:hidden p-2.5 hover:bg-gray-100 rounded-lg transition-colors active:scale-95"
                   aria-label="Цэс"
                 >
-                  {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                  {isMobileMenuOpen ? <X className="h-5.5 w-5.5" /> : <Menu className="h-5.5 w-5.5" />}
                 </button>
               </div>
             </div>
           </div>
         </div>
-      </header>
 
-      {/* Categories Navigation Bar */}
-      <div className="hidden lg:block bg-gray-50 border-b border-gray-200">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center h-12">
-            <nav className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
-              {topCategories.map((category) => (
-                <Link
-                  key={category.id}
-                  href={`/categories/${category.handle}`}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-white rounded-md transition-all whitespace-nowrap"
-                >
-                  {category.name}
-                </Link>
-              ))}
-              {categories.length > 10 && (
-                <div className="relative" ref={categoriesRef}>
-                  <button
-                    onClick={() => setIsCategoriesOpen(!isCategoriesOpen)}
-                    className="flex items-center gap-1 px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-white rounded-md transition-all whitespace-nowrap"
-                  >
-                    Бусад
-                    <ChevronDown className={`h-4 w-4 transition-transform ${isCategoriesOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  
-                  {isCategoriesOpen && (
-                    <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 max-h-96 overflow-y-auto">
-                      {categories.slice(10).map((category) => (
-                        <Link
-                          key={category.id}
-                          href={`/categories/${category.handle}`}
-                          onClick={() => setIsCategoriesOpen(false)}
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                        >
-                          {category.name}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
+        {/* Mega Menu Dropdown */}
+        {isMegaMenuOpen && categories.length > 0 && (
+          <div 
+            ref={megaMenuRef}
+            onMouseEnter={handleMegaMenuEnter}
+            onMouseLeave={handleMegaMenuLeave}
+            className="absolute left-0 right-0 top-full z-50 bg-white border-t border-gray-100 shadow-2xl"
+          >
+            <div className="container mx-auto px-4">
+              <div className="flex py-8">
+                {/* Category List */}
+                <div className="w-72 border-r border-gray-100 pr-8">
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 px-3">Ангилал</h3>
+                  <ul className="space-y-1">
+                    {categories.map((category) => {
+                      const CategoryIcon = getCategoryIcon(category.handle);
+                      return (
+                        <li key={category.id}>
+                          <button
+                            onMouseEnter={() => setActiveCategory(category)}
+                            onClick={() => {
+                              setIsMegaMenuOpen(false);
+                              window.location.href = `/categories/${category.handle}`;
+                            }}
+                            className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-all ${
+                              activeCategory?.id === category.id 
+                                ? 'bg-blue-50 text-blue-700' 
+                                : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                            }`}
+                          >
+                            <CategoryIcon className={`h-5 w-5 ${
+                              activeCategory?.id === category.id ? 'text-blue-600' : 'text-gray-500'
+                            }`} />
+                            <span className="text-sm font-medium flex-1">{category.name}</span>
+                            <ChevronRight className="h-4 w-4 opacity-40" />
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </div>
-              )}
-            </nav>
+
+                {/* Category Details with Subcategories */}
+                {activeCategory && (
+                  <div className="flex-1 pl-8">
+                    <div className="mb-6">
+                      <div className="flex items-center gap-3 mb-2">
+                        {(() => {
+                          const CategoryIcon = getCategoryIcon(activeCategory.handle);
+                          return <CategoryIcon className="h-7 w-7 text-gray-900" />;
+                        })()}
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-900">{activeCategory.name}</h3>
+                          {activeCategory.description && (
+                            <p className="text-sm text-gray-600 mt-0.5">{activeCategory.description}</p>
+                          )}
+                        </div>
+                      </div>
+                      <Link
+                        href={`/categories/${activeCategory.handle}`}
+                        onClick={() => setIsMegaMenuOpen(false)}
+                        className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors mt-2"
+                      >
+                        Бүх {activeCategory.name} үзэх
+                        <ChevronRight className="h-4 w-4" />
+                      </Link>
+                    </div>
+
+                    {/* Subcategories Grid */}
+                    {activeCategory.category_children && activeCategory.category_children.length > 0 && (
+                      <div>
+                        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Дэд ангилал</h4>
+                        <div className="grid grid-cols-2 gap-3">
+                          {activeCategory.category_children.map((subcat) => (
+                            <Link
+                              key={subcat.id}
+                              href={`/categories/${subcat.handle}`}
+                              onClick={() => setIsMegaMenuOpen(false)}
+                              className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors group"
+                            >
+                              <Package className="h-4 w-4 text-gray-500 group-hover:text-gray-700" />
+                              <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">{subcat.name}</span>
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        )}
+      </header>
 
       {/* Mobile Menu */}
       <div 
-        className={`fixed inset-0 z-40 lg:hidden transition-all duration-300 ${
+        className={`fixed inset-0 z-60 lg:hidden transition-all duration-300 ${
           isMobileMenuOpen ? 'visible' : 'invisible'
         }`}
       >
@@ -201,7 +299,7 @@ export function HeaderClient({ categories }: HeaderClientProps) {
         />
         
         <div 
-          className={`absolute top-0 left-0 bottom-0 w-full sm:max-w-sm bg-white shadow-2xl transition-transform duration-300 ease-out overflow-y-auto ${
+          className={`absolute top-0 left-0 bottom-0 w-[85vw] max-w-sm bg-white shadow-2xl transition-transform duration-300 ease-out overflow-y-auto ${
             isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
@@ -217,7 +315,7 @@ export function HeaderClient({ categories }: HeaderClientProps) {
             {isAuthenticated && user ? (
               <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center font-bold">
+                  <div className="w-12 h-12 rounded-full bg-gray-300 text-gray-700 flex items-center justify-center font-semibold text-lg">
                     {user.firstName?.[0] || user.email[0].toUpperCase()}
                   </div>
                   <div>
@@ -226,12 +324,10 @@ export function HeaderClient({ categories }: HeaderClientProps) {
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <Link href="/account" onClick={closeMobileMenu} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-white rounded-md">
-                    <User className="h-4 w-4" />
+                  <Link href="/account" onClick={closeMobileMenu} className="block px-3 py-2 text-sm text-gray-700 hover:bg-white rounded-md">
                     Профайл
                   </Link>
-                  <Link href="/account/orders" onClick={closeMobileMenu} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-white rounded-md">
-                    <Package className="h-4 w-4" />
+                  <Link href="/account/orders" onClick={closeMobileMenu} className="block px-3 py-2 text-sm text-gray-700 hover:bg-white rounded-md">
                     Захиалгууд
                   </Link>
                   <button 
@@ -239,15 +335,14 @@ export function HeaderClient({ categories }: HeaderClientProps) {
                       closeMobileMenu();
                       signOut({ callbackUrl: "/" });
                     }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md"
+                    className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md"
                   >
-                    <LogOut className="h-4 w-4" />
                     Гарах
                   </button>
                 </div>
               </div>
             ) : (
-              <Link href="/auth/login" onClick={closeMobileMenu} className="block mb-6 p-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg text-center font-medium">
+              <Link href="/auth/login" onClick={closeMobileMenu} className="block mb-6 p-4 bg-blue-600 text-white rounded-lg text-center font-medium hover:bg-blue-700 transition-colors">
                 Нэвтрэх / Бүртгүүлэх
               </Link>
             )}
@@ -273,12 +368,10 @@ export function HeaderClient({ categories }: HeaderClientProps) {
             <div>
               <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Холбоосууд</h3>
               <div className="space-y-1">
-                <Link href="/stores" onClick={closeMobileMenu} className="flex items-center gap-2 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md">
-                  <Store className="h-4 w-4" />
+                <Link href="/stores" onClick={closeMobileMenu} className="block px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md">
                   Дэлгүүр хайх
                 </Link>
-                <Link href="/help" onClick={closeMobileMenu} className="flex items-center gap-2 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md">
-                  <HeadphonesIcon className="h-4 w-4" />
+                <Link href="/help" onClick={closeMobileMenu} className="block px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md">
                   Тусламж
                 </Link>
               </div>

@@ -50,6 +50,7 @@ export async function PUT(
       subtitle,
       description,
       image_url,
+      mobile_image_url,
       link,
       alt_text,
       placement,
@@ -64,28 +65,48 @@ export async function PUT(
     // Build update data - only include provided fields
     const updateData: Record<string, unknown> = {}
     
-    if (title !== undefined) updateData.title = title
-    if (subtitle !== undefined) updateData.subtitle = subtitle
-    if (description !== undefined) updateData.description = description
+    // For nullable text fields, convert empty strings to null
+    if (title !== undefined) {
+      updateData.title = title === "" ? null : title
+    }
+    if (subtitle !== undefined) {
+      updateData.subtitle = subtitle === "" ? null : subtitle
+    }
+    if (description !== undefined) {
+      updateData.description = description === "" ? null : description
+    }
+    if (alt_text !== undefined) {
+      updateData.alt_text = alt_text === "" ? null : alt_text
+    }
+    if (mobile_image_url !== undefined) {
+      updateData.mobile_image_url = mobile_image_url === "" ? null : mobile_image_url
+    }
+    
+    // Required fields
     if (image_url !== undefined) updateData.image_url = image_url
     if (link !== undefined) updateData.link = link
-    if (alt_text !== undefined) updateData.alt_text = alt_text
     if (placement !== undefined) updateData.placement = placement
+    
+    // Numeric and boolean fields
     if (sort_order !== undefined) updateData.sort_order = sort_order
     if (is_active !== undefined) updateData.is_active = is_active
     if (dark_text !== undefined) updateData.dark_text = dark_text
+    
+    // Date fields
     if (starts_at !== undefined) {
       updateData.starts_at = starts_at ? new Date(starts_at as string) : null
     }
     if (ends_at !== undefined) {
       updateData.ends_at = ends_at ? new Date(ends_at as string) : null
     }
+    
+    // Metadata
     if (metadata !== undefined) updateData.metadata = metadata
     
-    const banner = await bannerService.updateBanners({
+    const [banner] = await bannerService.updateBanners([{
       id,
       ...updateData,
-    })
+    }])
     
     res.json({ banner })
   } catch (error) {

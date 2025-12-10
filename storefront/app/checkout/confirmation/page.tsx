@@ -661,8 +661,15 @@ export default function ConfirmationPage() {
             <ArrowLeft className="w-5 h-5" />
             <span className="hidden sm:inline">Нүүр хуудас</span>
           </Link>
-          <Link href="/" className="text-xl font-bold text-gray-900 tracking-tight">
-            Alimhan
+          <Link href="/" className="flex items-center">
+            <Image 
+              src="/logo.png" 
+              alt="Alimhan" 
+              width={120} 
+              height={36} 
+              className="h-8 w-auto" 
+              priority
+            />
           </Link>
           <div className="w-20" /> {/* Spacer for centering */}
         </div>

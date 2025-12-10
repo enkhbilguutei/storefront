@@ -68,11 +68,11 @@ export function CartItem({ item, currencyCode, refreshCart }: CartItemProps) {
   };
 
   return (
-    <div className="flex flex-col sm:flex-row gap-3 sm:gap-5 py-4 sm:py-6 border-b border-gray-100 last:border-0">
-      {/* Image - Clickable with clean background */}
+    <div className="group flex flex-col sm:flex-row gap-6 p-6 bg-white hover:bg-gray-50/50 transition-colors">
+      {/* Image */}
       <Link 
         href={item.variant?.product?.handle ? `/products/${item.variant.product.handle}` : '#'}
-        className="relative w-24 h-24 sm:w-28 sm:h-28 md:w-36 md:h-36 shrink-0 bg-[#fafafa] rounded-xl sm:rounded-3xl overflow-hidden hover:bg-[#f5f5f5] transition-colors group mx-auto sm:mx-0"
+        className="relative w-24 h-24 sm:w-32 sm:h-32 shrink-0 bg-white rounded-2xl border border-gray-100 overflow-hidden hover:border-gray-200 transition-colors mx-auto sm:mx-0"
       >
         {item.thumbnail ? (
           <CloudinaryImage
@@ -80,101 +80,83 @@ export function CartItem({ item, currencyCode, refreshCart }: CartItemProps) {
             alt={item.title}
             width={144}
             height={144}
-            className="w-full h-full object-contain p-2 sm:p-3 group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-            Зураг байхгүй
+          <div className="w-full h-full flex items-center justify-center text-gray-300 bg-gray-50">
+            <div className="text-xs font-medium">Зураггүй</div>
           </div>
         )}
         {isUpdating && (
-          <div className="absolute inset-0 bg-white/70 flex items-center justify-center rounded-xl sm:rounded-3xl">
-            <Loader2 className="w-5 h-5 animate-spin text-[#0071e3]" />
+          <div className="absolute inset-0 bg-white/80 backdrop-blur-[1px] flex items-center justify-center z-10">
+            <Loader2 className="w-5 h-5 animate-spin text-gray-900" />
           </div>
         )}
       </Link>
 
       {/* Details */}
-      <div className="flex flex-1 flex-col justify-between py-0 sm:py-1">
-        <div className="flex flex-col sm:flex-row justify-between items-start gap-2 sm:gap-4">
-          <div className="flex-1 w-full">
-            {/* Product Title - Clickable */}
-            <Link 
-              href={item.variant?.product?.handle ? `/products/${item.variant.product.handle}` : '#'}
-              className="text-[15px] sm:text-[17px] font-semibold text-[#1d1d1f] hover:text-[#0071e3] transition-colors line-clamp-2 leading-snug"
-            >
-              {item.title}
-            </Link>
-            
-            {/* Variant Info - Show as pills */}
-            {item.variant?.title && item.variant.title !== "Default" && (
-              <div className="flex flex-wrap gap-1 sm:gap-1.5 mt-1.5 sm:mt-2">
-                {item.variant.title.split(" / ").map((attr, idx) => (
-                  <span 
-                    key={idx}
-                    className="inline-flex items-center px-2 sm:px-2.5 py-0.5 sm:py-1 bg-[#f5f5f7] text-[#1d1d1f] text-[11px] sm:text-[12px] font-medium rounded-full"
-                  >
-                    {attr}
-                  </span>
-                ))}
-              </div>
-            )}
-            
-            {/* Unit Price */}
-            <p className="text-[12px] sm:text-[13px] text-[#86868b] mt-1.5 sm:mt-2">
-              {formatPrice(item.unit_price)} / ширхэг
+      <div className="flex flex-1 flex-col sm:flex-row gap-6">
+        <div className="flex-1 space-y-1 text-center sm:text-left">
+          <Link 
+            href={item.variant?.product?.handle ? `/products/${item.variant.product.handle}` : '#'}
+            className="text-base font-semibold text-gray-900 hover:text-blue-600 transition-colors line-clamp-2"
+          >
+            {item.title}
+          </Link>
+          {item.variant?.title && item.variant.title !== "Default Variant" && (
+            <p className="text-sm text-gray-500 font-medium">
+              {item.variant.title}
+            </p>
+          )}
+          <div className="pt-2">
+            <p className="text-lg font-bold text-gray-900">
+              {formatPrice(item.unit_price)}
             </p>
           </div>
-          
-          {/* Total Price */}
-          <p className="text-[16px] sm:text-[17px] font-semibold text-[#1d1d1f] whitespace-nowrap">
-            {formatPrice(item.unit_price * item.quantity)}
-          </p>
         </div>
 
-        {error && (
-          <div className="flex items-center gap-2 text-red-500 text-sm mt-2">
-            <AlertCircle className="w-4 h-4" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {/* Quantity & Remove */}
-        <div className="flex items-center justify-between mt-3 sm:mt-4">
-          <div className="flex items-center gap-2 sm:gap-4">
-            {/* Quantity Controls */}
-            <div className="flex items-center bg-[#f5f5f7] rounded-full p-0.5 sm:p-1">
-              <button
-                onClick={() => handleUpdateQuantity(item.quantity - 1)}
-                disabled={isUpdating || item.quantity <= 1}
-                className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center hover:bg-white rounded-full disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#1d1d1f]" />
-              </button>
-              <span className="w-8 sm:w-10 text-center text-[14px] sm:text-[15px] font-semibold text-[#1d1d1f]">
-                {item.quantity}
-              </span>
-              <button
-                onClick={() => handleUpdateQuantity(item.quantity + 1)}
-                disabled={isUpdating}
-                className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center hover:bg-white rounded-full disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#1d1d1f]" />
-              </button>
-            </div>
-            
-            {/* Remove Button */}
+        {/* Actions */}
+        <div className="flex flex-col items-center sm:items-end justify-between gap-4">
+          {/* Quantity */}
+          <div className="flex items-center bg-white border border-gray-200 rounded-full p-1 shadow-sm">
             <button
-              onClick={handleRemoveItem}
-              disabled={isUpdating}
-              className="text-[14px] sm:text-[15px] text-[#0071e3] hover:text-[#0077ed] font-medium flex items-center gap-1 sm:gap-1.5 transition-colors disabled:opacity-50"
+              onClick={() => handleUpdateQuantity(item.quantity - 1)}
+              disabled={item.quantity <= 1 || isUpdating}
+              className="w-8 h-8 flex items-center justify-center rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
             >
-              <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="hidden sm:inline">Устгах</span>
+              <Minus className="w-3.5 h-3.5" />
+            </button>
+            <span className="w-10 text-center text-sm font-semibold text-gray-900 tabular-nums">
+              {item.quantity}
+            </span>
+            <button
+              onClick={() => handleUpdateQuantity(item.quantity + 1)}
+              disabled={isUpdating}
+              className="w-8 h-8 flex items-center justify-center rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
             </button>
           </div>
+
+          {/* Remove */}
+          <button
+            onClick={handleRemoveItem}
+            disabled={isUpdating}
+            className="text-sm text-gray-400 hover:text-red-500 font-medium transition-colors flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-red-50"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span className="hidden sm:inline">Устгах</span>
+          </button>
         </div>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="absolute bottom-2 right-2 sm:bottom-auto sm:top-2 sm:right-2 bg-red-50 text-red-600 text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5 animate-in fade-in slide-in-from-bottom-2">
+          <AlertCircle className="w-3.5 h-3.5" />
+          {error}
+        </div>
+      )}
     </div>
   );
 }

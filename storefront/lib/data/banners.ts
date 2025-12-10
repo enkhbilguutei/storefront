@@ -17,6 +17,7 @@ export interface Banner {
   subtitle: string | null
   description: string | null
   image_url: string
+  mobile_image_url: string | null
   link: string
   alt_text: string | null
   placement: BannerPlacement

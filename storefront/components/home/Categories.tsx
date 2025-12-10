@@ -22,14 +22,16 @@ export async function Categories() {
                 href={`/categories/${category.handle}`}
                 className="flex flex-col items-center min-w-24 md:min-w-28 group snap-start"
               >
-                <div className="w-20 h-20 md:w-28 md:h-28 mb-3 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
-                  <Image
-                    src={imageUrl}
-                    alt={category.name}
-                    width={112}
-                    height={112}
-                    className="w-full h-full object-contain"
-                  />
+                <div className="relative w-20 h-20 md:w-28 md:h-28 mb-3 flex items-center justify-center rounded-2xl overflow-hidden bg-linear-to-br from-purple-400 via-pink-400 to-blue-400 p-0.5">
+                  <div className="w-full h-full bg-white rounded-2xl flex items-center justify-center">
+                    <Image
+                      src={imageUrl}
+                      alt={category.name}
+                      width={112}
+                      height={112}
+                      className="w-[90%] h-[90%] object-contain"
+                    />
+                  </div>
                 </div>
                 <span className="text-xs md:text-sm font-medium text-foreground/80 group-hover:text-foreground transition-colors text-center">
                   {category.name}

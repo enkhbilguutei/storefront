@@ -39,14 +39,32 @@ export function HeroCarousel({ banners }: HeroCarouselProps) {
       {banners.map((banner, index) => (
         <SwiperSlide key={banner.id} className="relative bg-black">
           <div className="absolute inset-0">
-            <CloudinaryImage
-              src={banner.image_url}
-              alt={banner.alt_text || banner.title || "Banner"}
-              width={2000}
-              height={1000}
-              className="w-full h-full object-cover"
-              priority={index === 0}
-            />
+            {/* Art direction: use mobile image on small screens, desktop on large screens */}
+            {banner.mobile_image_url ? (
+              <picture>
+                {/* Mobile: 1:1 square image (fits 400px height perfectly) */}
+                <source 
+                  media="(max-width: 768px)" 
+                  srcSet={banner.mobile_image_url} 
+                />
+                {/* Desktop: 16:6 wide landscape image */}
+                <img
+                  src={banner.image_url}
+                  alt={banner.alt_text || banner.title || "Banner"}
+                  className="w-full h-full object-cover"
+                  loading={index === 0 ? "eager" : "lazy"}
+                />
+              </picture>
+            ) : (
+              <CloudinaryImage
+                src={banner.image_url}
+                alt={banner.alt_text || banner.title || "Banner"}
+                width={2000}
+                height={1000}
+                className="w-full h-full object-cover"
+                priority={index === 0}
+              />
+            )}
           </div>
           {/* Subtle gradient overlay for text readability */}
           <div className="absolute inset-0 bg-linear-to-t from-black/40 via-transparent to-transparent" />

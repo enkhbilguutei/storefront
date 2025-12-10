@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { Package, ChevronRight, Loader2, ShoppingBag, Clock, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { Package, ChevronRight, Loader2, ShoppingBag, Clock, CheckCircle2, XCircle, AlertCircle, RefreshCw } from "lucide-react";
+import { useOrderPolling } from "@/lib/hooks/useOrderPolling";
+import { toast } from "@/lib/toast";
 
 // Metadata: Захиалгууд | Миний бүртгэл (set in parent layout)
 
@@ -36,6 +38,18 @@ export default function OrdersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [tokenRefreshed, setTokenRefreshed] = useState(false);
+  const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
+
+  const handleOrdersUpdate = useCallback((updatedOrders: Order[]) => {
+    setOrders(updatedOrders);
+    setLastUpdateTime(new Date());
+  }, []);
+
+  const { refresh } = useOrderPolling({
+    onOrdersUpdate: handleOrdersUpdate,
+    pollingInterval: 30000, // Poll every 30 seconds
+    enabled: sessionStatus === "authenticated" && !!session,
+  });
 
   // Auto-refresh session for OAuth users without token
   useEffect(() => {
@@ -229,6 +243,12 @@ export default function OrdersPage() {
     return item.product_title || item.title;
   };
 
+  const handleManualRefresh = async () => {
+    toast.info("Захиалгуудыг шинэчилж байна...");
+    await refresh();
+    toast.success("Захиалгууд шинэчлэгдлээ");
+  };
+
   if (sessionStatus === "loading" || isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-16">
@@ -282,8 +302,23 @@ export default function OrdersPage() {
       <div className="flex items-center justify-between mb-2">
         <div>
           <h2 className="text-lg font-semibold text-foreground">Захиалгууд</h2>
-          <p className="text-sm text-secondary">{orders.length} захиалга</p>
+          <p className="text-sm text-secondary">
+            {orders.length} захиалга
+            {lastUpdateTime && (
+              <span className="text-xs text-gray-400 ml-2">
+                • Шинэчлэгдсэн: {lastUpdateTime.toLocaleTimeString("mn-MN", { hour: "2-digit", minute: "2-digit" })}
+              </span>
+            )}
+          </p>
         </div>
+        <button
+          onClick={handleManualRefresh}
+          className="inline-flex items-center gap-2 px-3 py-1.5 text-xs text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+          aria-label="Захиалгууд шинэчлэх"
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+          Шинэчлэх
+        </button>
       </div>
 
       <div className="space-y-3">

@@ -18,13 +18,6 @@ interface Banner {
 
 const placementLabels: Record<string, string> = {
   hero: "Үндсэн слайд (16:6)",
-  iphone: "iPhone баннер (16:10)",
-  dji_large: "DJI том карт (4:3)",
-  dji_small: "DJI жижиг карт (4:3)",
-  dji: "DJI бенто (хуучин)",
-  promo: "Промо баннер (3:1)",
-  mobile_hero: "Мобайл слайд (9:16)",
-  square: "Дөрвөлжин (1:1)",
 }
 
 const BannersPage = () => {
@@ -105,12 +98,6 @@ const BannersPage = () => {
           >
             <option value="all">Бүгд</option>
             <option value="hero">Үндсэн слайд (16:6)</option>
-            <option value="iphone">iPhone баннер (16:10)</option>
-            <option value="dji_large">DJI том карт (4:3)</option>
-            <option value="dji_small">DJI жижиг карт (4:3)</option>
-            <option value="promo">Промо баннер (3:1)</option>
-            <option value="mobile_hero">Мобайл слайд (9:16)</option>
-            <option value="square">Дөрвөлжин (1:1)</option>
           </select>
           <Button size="small" variant="secondary" onClick={() => navigate("/banners/new")}>
             <PlusMini />

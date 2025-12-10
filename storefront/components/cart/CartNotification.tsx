@@ -5,6 +5,8 @@ import { useCartStore, useUIStore } from "@/lib/store";
 import { CloudinaryImage } from "@/components/Cloudinary";
 import Link from "next/link";
 import { X, Check, ShoppingBag } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { AnimatedCounter } from "@/components/animations/MotionComponents";
 
 // Simple visibility store to avoid setState in effects
 const createVisibilityStore = () => {
@@ -237,7 +239,7 @@ export function CartNotification() {
           {/* Cart summary */}
           <div className="mx-5 py-3 px-4 bg-[#f5f5f7] rounded-xl flex items-center justify-between">
             <span className="text-[13px] text-[#86868b]">
-              Сагсанд {totalItems} бараа
+              Сагсанд <AnimatedCounter value={totalItems} className="inline-block font-semibold text-[#1d1d1f]" /> бараа
             </span>
             <span className="text-[15px] font-semibold text-[#1d1d1f]">
               ₮{formatPrice(totalPrice)}

@@ -2,6 +2,7 @@
 
 import { CldImage, CldUploadWidget } from "next-cloudinary";
 import Image from "next/image";
+import { useState } from "react";
 
 interface CloudinaryImageProps {
   src?: string | null;
@@ -11,6 +12,7 @@ interface CloudinaryImageProps {
   fill?: boolean;
   className?: string;
   priority?: boolean;
+  showShimmer?: boolean;
 }
 
 export function CloudinaryImage({
@@ -21,67 +23,118 @@ export function CloudinaryImage({
   fill = false,
   className,
   priority = false,
+  showShimmer = true,
 }: CloudinaryImageProps) {
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  
   // Check if the src is a Cloudinary URL or a regular URL
   const isCloudinaryUrl = src?.includes("cloudinary.com") || src?.includes("res.cloudinary.com");
   const isPublicId = !src?.includes("/") && !src?.startsWith("http");
   
-  if (!src) {
+  if (!src || hasError) {
     return (
       <div 
         className={`bg-gray-200 flex items-center justify-center ${className}`}
         style={fill ? undefined : { width, height }}
       >
-        <span className="text-gray-400">No image</span>
+        <span className="text-gray-400 text-sm">Зураггүй</span>
       </div>
     );
   }
+  
+  const shimmerClass = showShimmer && isLoading ? "animate-pulse bg-gray-200" : "";
+  const imageClass = `${className} ${shimmerClass} transition-opacity duration-300 ${isLoading ? "opacity-0" : "opacity-100"}`;
 
   if (isPublicId) {
     if (fill) {
       return (
-        <CldImage
-          src={src}
-          alt={alt}
-          fill
-          className={className}
-          priority={priority}
-        />
+        <div className="relative w-full h-full">
+          {isLoading && showShimmer && (
+            <div className="absolute inset-0 bg-gray-200 animate-pulse" />
+          )}
+          <CldImage
+            src={src}
+            alt={alt}
+            fill
+            className={imageClass}
+            priority={priority}
+            onLoad={() => setIsLoading(false)}
+            onError={() => {
+              setHasError(true);
+              setIsLoading(false);
+            }}
+          />
+        </div>
       );
     }
     return (
-      <CldImage
-        src={src}
-        alt={alt}
-        width={width!}
-        height={height!}
-        className={className}
-        priority={priority}
-      />
+      <div className="relative" style={{ width, height }}>
+        {isLoading && showShimmer && (
+          <div className="absolute inset-0 bg-gray-200 animate-pulse rounded" />
+        )}
+        <CldImage
+          src={src}
+          alt={alt}
+          width={width!}
+          height={height!}
+          className={imageClass}
+          priority={priority}
+          onLoad={() => setIsLoading(false)}
+          onError={() => {
+            setHasError(true);
+            setIsLoading(false);
+          }}
+        />
+      </div>
     );
   }
 
   if (isCloudinaryUrl) {
     if (fill) {
       return (
-        <Image
-          src={src}
-          alt={alt}
-          fill
-          className={className}
-          priority={priority}
-        />
+        <div className="relative w-full h-full">
+          {isLoading && showShimmer && (
+            <div className="absolute inset-0 bg-gray-200 animate-pulse" />
+          )}
+          <Image
+            src={src}
+            alt={alt}
+            fill
+            className={imageClass}
+            priority={priority}
+            placeholder="blur"
+            blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mN8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
+            onLoad={() => setIsLoading(false)}
+            onError={() => {
+              setHasError(true);
+              setIsLoading(false);
+            }}
+          />
+        </div>
       );
     }
     return (
-      <Image
-        src={src}
-        alt={alt}
-        width={width!}
-        height={height!}
-        className={className}
-        priority={priority}
-      />
+      <div className="relative" style={{ width, height }}>
+        {isLoading && showShimmer && (
+          <div className="absolute inset-0 bg-gray-200 animate-pulse rounded" />
+        )}
+        <Image
+          src={src}
+          alt={alt}
+          width={width!}
+          height={height!}
+          className={imageClass}
+          priority={priority}
+          placeholder="blur"
+          blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mN8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
+          onLoad={() => setIsLoading(false)}
+          onError={() => {
+            setHasError(true);
+            setIsLoading(false);
+          }}
+        />
+      </div>
     );
   }
 
@@ -89,25 +142,45 @@ export function CloudinaryImage({
   if (fill) {
     // For fill mode with img tag, use absolute positioning
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={src}
-        alt={alt}
-        className={`absolute inset-0 w-full h-full ${className}`}
-        loading={priority ? "eager" : "lazy"}
-      />
+      <div className="relative w-full h-full">
+        {isLoading && showShimmer && (
+          <div className="absolute inset-0 bg-gray-200 animate-pulse" />
+        )}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={src}
+          alt={alt}
+          className={`absolute inset-0 w-full h-full ${imageClass}`}
+          loading={priority ? "eager" : "lazy"}
+          onLoad={() => setIsLoading(false)}
+          onError={() => {
+            setHasError(true);
+            setIsLoading(false);
+          }}
+        />
+      </div>
     );
   }
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={src}
-      alt={alt}
-      width={width}
-      height={height}
-      className={className}
-      loading={priority ? "eager" : "lazy"}
-    />
+    <div className="relative" style={{ width, height }}>
+      {isLoading && showShimmer && (
+        <div className="absolute inset-0 bg-gray-200 animate-pulse rounded" />
+      )}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt={alt}
+        width={width}
+        height={height}
+        className={imageClass}
+        loading={priority ? "eager" : "lazy"}
+        onLoad={() => setIsLoading(false)}
+        onError={() => {
+          setHasError(true);
+          setIsLoading(false);
+        }}
+      />
+    </div>
   );
 }
 

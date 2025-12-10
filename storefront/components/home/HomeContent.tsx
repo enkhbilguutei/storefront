@@ -9,8 +9,7 @@ const mockProducts = [
     thumbnail: "https://res.cloudinary.com/demo/image/upload/v1/samples/ecommerce/iphone.jpg",
     price: { amount: 1890000, currencyCode: "MNT" },
     originalPrice: { amount: 2100000, currencyCode: "MNT" },
-    badge: "Best Seller" as const,
-    soldCount: 1500,
+    collection: { id: "col_1", title: "Шилдэг борлуулалт", handle: "best-sellers" },
   },
   {
     id: "2",
@@ -19,8 +18,7 @@ const mockProducts = [
     thumbnail: "https://res.cloudinary.com/demo/image/upload/v1/samples/ecommerce/phone.jpg",
     price: { amount: 1650000, currencyCode: "MNT" },
     originalPrice: { amount: 1890000, currencyCode: "MNT" },
-    badge: "Recommended" as const,
-    soldCount: 850,
+    collection: { id: "col_2", title: "Санал болгох", handle: "recommended" },
   },
   {
     id: "3",
@@ -29,8 +27,7 @@ const mockProducts = [
     thumbnail: "https://res.cloudinary.com/demo/image/upload/v1/samples/ecommerce/phone-2.jpg",
     price: { amount: 945000, currencyCode: "MNT" },
     originalPrice: { amount: 1050000, currencyCode: "MNT" },
-    badge: "New Arrival" as const,
-    soldCount: 420,
+    collection: { id: "col_3", title: "Шинэ бүтээгдэхүүн", handle: "new-arrivals" },
   },
   {
     id: "4",
@@ -39,8 +36,7 @@ const mockProducts = [
     thumbnail: "https://res.cloudinary.com/demo/image/upload/v1/samples/ecommerce/laptop.jpg",
     price: { amount: 2890000, currencyCode: "MNT" },
     originalPrice: { amount: 3200000, currencyCode: "MNT" },
-    badge: "Featured" as const,
-    soldCount: 320,
+    collection: { id: "col_4", title: "Онцлох", handle: "featured" },
   },
   {
     id: "5",
@@ -49,8 +45,7 @@ const mockProducts = [
     thumbnail: "https://res.cloudinary.com/demo/image/upload/v1/samples/ecommerce/tv.jpg",
     price: { amount: 1450000, currencyCode: "MNT" },
     originalPrice: { amount: 1890000, currencyCode: "MNT" },
-    badge: "Trending" as const,
-    soldCount: 650,
+    collection: { id: "col_5", title: "Эрэлттэй", handle: "trending" },
   },
   {
     id: "6",
@@ -59,8 +54,7 @@ const mockProducts = [
     thumbnail: "https://res.cloudinary.com/demo/image/upload/v1/samples/ecommerce/headphones.jpg",
     price: { amount: 580000, currencyCode: "MNT" },
     originalPrice: { amount: 680000, currencyCode: "MNT" },
-    badge: "Best Seller" as const,
-    soldCount: 920,
+    collection: { id: "col_1", title: "Шилдэг борлуулалт", handle: "best-sellers" },
   },
 ];
 
@@ -72,8 +66,7 @@ const applianceProducts = [
     thumbnail: "https://res.cloudinary.com/demo/image/upload/v1/samples/ecommerce/washing-machine.jpg",
     price: { amount: 750000, currencyCode: "MNT" },
     originalPrice: { amount: 950000, currencyCode: "MNT" },
-    badge: "Best Seller" as const,
-    soldCount: 1200,
+    collection: { id: "col_1", title: "Шилдэг борлуулалт", handle: "best-sellers" },
   },
   {
     id: "8",
@@ -82,8 +75,7 @@ const applianceProducts = [
     thumbnail: "https://res.cloudinary.com/demo/image/upload/v1/samples/ecommerce/fridge.jpg",
     price: { amount: 850000, currencyCode: "MNT" },
     originalPrice: { amount: 1100000, currencyCode: "MNT" },
-    badge: "Recommended" as const,
-    soldCount: 680,
+    collection: { id: "col_2", title: "Санал болгох", handle: "recommended" },
   },
   {
     id: "9",
@@ -92,8 +84,7 @@ const applianceProducts = [
     thumbnail: "https://res.cloudinary.com/demo/image/upload/v1/samples/ecommerce/ac.jpg",
     price: { amount: 680000, currencyCode: "MNT" },
     originalPrice: { amount: 890000, currencyCode: "MNT" },
-    badge: "Trending" as const,
-    soldCount: 450,
+    collection: { id: "col_5", title: "Эрэлттэй", handle: "trending" },
   },
   {
     id: "10",
@@ -102,8 +93,7 @@ const applianceProducts = [
     thumbnail: "https://res.cloudinary.com/demo/image/upload/v1/samples/ecommerce/microwave.jpg",
     price: { amount: 180000, currencyCode: "MNT" },
     originalPrice: { amount: 250000, currencyCode: "MNT" },
-    badge: null,
-    soldCount: 380,
+    collection: null,
   },
 ];
 
@@ -115,8 +105,7 @@ const laptopProducts = [
     thumbnail: "https://res.cloudinary.com/demo/image/upload/v1/samples/ecommerce/laptop-hp.jpg",
     price: { amount: 950000, currencyCode: "MNT" },
     originalPrice: { amount: 1200000, currencyCode: "MNT" },
-    badge: "Featured" as const,
-    soldCount: 520,
+    collection: { id: "col_4", title: "Онцлох", handle: "featured" },
   },
   {
     id: "12",
@@ -125,8 +114,7 @@ const laptopProducts = [
     thumbnail: "https://res.cloudinary.com/demo/image/upload/v1/samples/ecommerce/laptop-lenovo.jpg",
     price: { amount: 780000, currencyCode: "MNT" },
     originalPrice: { amount: 980000, currencyCode: "MNT" },
-    badge: "Trending" as const,
-    soldCount: 420,
+    collection: { id: "col_5", title: "Эрэлттэй", handle: "trending" },
   },
   {
     id: "13",
@@ -135,8 +123,7 @@ const laptopProducts = [
     thumbnail: "https://res.cloudinary.com/demo/image/upload/v1/samples/ecommerce/laptop-dell.jpg",
     price: { amount: 650000, currencyCode: "MNT" },
     originalPrice: { amount: 820000, currencyCode: "MNT" },
-    badge: "New Arrival" as const,
-    soldCount: 290,
+    collection: { id: "col_3", title: "Шинэ бүтээгдэхүүн", handle: "new-arrivals" },
   },
 ];
 

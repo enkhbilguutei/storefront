@@ -188,23 +188,10 @@ export default async function CategoryPage({
                 return (
                   <ProductCard
                     key={product.id}
-                    id={product.id}
+                    id={firstVariant?.id ?? product.id}
                     title={product.title}
                     handle={product.handle}
                     thumbnail={product.thumbnail}
-                    options={product.options?.map(opt => ({
-                      id: opt.id,
-                      title: opt.title,
-                      values: opt.values?.map(v => v.value) ?? []
-                    }))}
-                    variants={product.variants?.map(v => ({
-                      id: v.id,
-                      title: v.title ?? "Default",
-                      options: v.options,
-                      inventory_quantity: v.inventory_quantity,
-                      manage_inventory: v.manage_inventory,
-                      allow_backorder: v.allow_backorder
-                    }))}
                     price={
                       displayPrice
                         ? {
@@ -221,6 +208,7 @@ export default async function CategoryPage({
                           }
                         : undefined
                     }
+                    collection={(product as any).collection ?? null}
                   />
                 );
               })}

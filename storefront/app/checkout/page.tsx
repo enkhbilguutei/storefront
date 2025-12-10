@@ -182,8 +182,15 @@ export default function CheckoutPage() {
             <ArrowLeft className="w-5 h-5" />
             <span className="hidden sm:inline">Сагс руу буцах</span>
           </Link>
-          <Link href="/" className="text-xl font-semibold text-gray-900">
-            Alimhan
+          <Link href="/" className="flex items-center">
+            <Image 
+              src="/logo.png" 
+              alt="Alimhan" 
+              width={120} 
+              height={36} 
+              className="h-8 w-auto" 
+              priority
+            />
           </Link>
           <div className="flex items-center gap-2 text-gray-500">
             <Lock className="w-4 h-4" />

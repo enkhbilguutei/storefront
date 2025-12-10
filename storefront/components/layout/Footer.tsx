@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 
@@ -38,14 +39,19 @@ function FooterColumn({ title, children }: { title: string; children: React.Reac
 export function Footer() {
   return (
     <footer className="bg-[#f5f5f7]">
-      <div className="container mx-auto px-4 py-12 md:py-16">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-8 md:gap-8">
+      <div className="container mx-auto px-4 py-8 md:py-12 lg:py-16">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 md:gap-8">
           {/* Brand - Always visible */}
-          <div className="space-y-4 pb-8 md:pb-0 border-b border-gray-200/50 md:border-none md:col-span-2">
+          <div className="space-y-3 md:space-y-4 pb-6 md:pb-0 border-b border-gray-200/50 md:border-none md:col-span-2">
             <Link href="/" className="inline-block">
-              <span className="text-2xl font-display font-bold tracking-tight text-foreground">
-                alimhan
-              </span>
+              <Image 
+                src="/logo.png" 
+                alt="Alimhan" 
+                width={140} 
+                height={40} 
+                className="h-8 md:h-10 w-auto" 
+                priority
+              />
             </Link>
             <p className="text-sm text-foreground/60 leading-relaxed max-w-xs">
               Чанартай бүтээгдэхүүний найдвартай онлайн дэлгүүр. Бид танд хамгийн сайн үйлчилгээг үзүүлэхийг зорьдог.
@@ -135,7 +141,7 @@ export function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="mt-12 md:mt-16 pt-6 border-t border-gray-200/50 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-foreground/50">
+        <div className="mt-8 md:mt-12 lg:mt-16 pt-4 md:pt-6 border-t border-gray-200/50 flex flex-col md:flex-row justify-between items-center gap-3 md:gap-4 text-xs text-foreground/50">
           <p>© {new Date().getFullYear()} Алимхан. Бүх эрх хуулиар хамгаалагдсан.</p>
           <div className="flex items-center gap-1 text-foreground/40">
             <span>Хийсэн</span>

@@ -19,8 +19,11 @@ interface ProductCardProps {
     amount: number;
     currencyCode: string;
   };
-  badge?: "Best Seller" | "Recommended" | "New Arrival" | "Trending" | "Featured" | null;
-  soldCount?: number;
+  collection?: {
+    id: string;
+    title: string;
+    handle: string;
+  } | null;
 }
 
 export function ProductCard({
@@ -30,8 +33,7 @@ export function ProductCard({
   thumbnail,
   price,
   originalPrice,
-  badge,
-  soldCount
+  collection
 }: ProductCardProps) {
   const [isAdding, setIsAdding] = useState(false);
   const { addItem, cartId, setCartId, syncCart } = useCartStore();
@@ -72,74 +74,37 @@ export function ProductCard({
     }
   };
 
-  const getBadgeStyles = (badgeType: typeof badge) => {
-    switch (badgeType) {
-      case "Best Seller":
-        return "bg-orange-500 text-white";
-      case "Recommended":
-        return "bg-green-500 text-white";
-      case "New Arrival":
-        return "bg-blue-500 text-white";
-      case "Trending":
-        return "bg-purple-500 text-white";
-      case "Featured":
-        return "bg-red-500 text-white";
-      default:
-        return "";
-    }
-  };
-
-  const getBadgeText = (badgeType: typeof badge) => {
-    switch (badgeType) {
-      case "Best Seller":
-        return "Хамгийн их борлуулалттай";
-      case "Recommended":
-        return "Санал болгох";
-      case "New Arrival":
-        return "Шинэ";
-      case "Trending":
-        return "Эрэлттэй";
-      case "Featured":
-        return "Онцлох";
-      default:
-        return "";
-    }
-  };
-
   return (
     <Link 
       href={`/products/${handle}`}
-      className="group block bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+      className="group block bg-white border border-gray-200 rounded-lg overflow-hidden transition-shadow duration-200"
     >
       {/* Image Section */}
       <div className="relative aspect-square bg-gray-50 overflow-hidden">
         {thumbnail ? (
-          <CloudinaryImage
-            src={thumbnail}
-            alt={title}
-            width={400}
-            height={400}
-            className="object-contain w-full h-full p-4 group-hover:scale-105 transition-transform duration-300"
-          />
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+            <CloudinaryImage
+              src={thumbnail}
+              alt={title}
+              width={400}
+              height={400}
+              className="object-contain w-full h-full"
+            />
+          </div>
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
             <span className="text-gray-400 text-sm">Зураггүй</span>
           </div>
         )}
 
-        {/* Badges */}
-        <div className="absolute top-2 left-2 flex flex-col gap-1">
-          {badge && (
-            <span className={`${getBadgeStyles(badge)} px-2 py-1 text-[9px] md:text-[10px] font-semibold rounded`}>
-              {getBadgeText(badge)}
+        {/* Collection Badge */}
+        {collection && (
+          <div className="absolute top-2 left-2">
+            <span className="bg-blue-600 text-white px-2 py-1 text-[9px] md:text-[10px] font-semibold rounded">
+              {collection.title}
             </span>
-          )}
-          {soldCount && soldCount > 0 && (
-            <span className="bg-gray-900/80 text-white px-2 py-1 text-[9px] md:text-[10px] font-semibold rounded">
-              {soldCount}+ худалдаалагдсан
-            </span>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Discount Badge */}
         {isOnSale && discountPercentage > 0 && (

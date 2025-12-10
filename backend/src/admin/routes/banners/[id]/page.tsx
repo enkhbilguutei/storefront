@@ -10,6 +10,7 @@ interface Banner {
   subtitle: string | null
   description: string | null
   image_url: string
+  mobile_image_url: string | null
   link: string
   alt_text: string | null
   placement: string
@@ -22,6 +23,7 @@ interface BannerConfigItem {
   label: string
   aspectRatio: string
   recommended: { width: number; height: number }
+  mobileRecommended: { width: number; height: number }
   description: string
 }
 
@@ -35,6 +37,7 @@ const EditBannerPage = () => {
   const [uploading, setUploading] = useState(false)
   const [bannerConfig, setBannerConfig] = useState<BannerConfigMap | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const mobileFileInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState<Banner | null>(null)
 
   // Fetch banner config
@@ -74,7 +77,7 @@ const EditBannerPage = () => {
     fetchBanner()
   }, [id, navigate])
 
-  const handleFileUpload = async (file: File) => {
+  const handleFileUpload = async (file: File, fieldName: "image_url" | "mobile_image_url" = "image_url") => {
     setUploading(true)
     try {
       const uploadFormData = new FormData()
@@ -94,7 +97,7 @@ const EditBannerPage = () => {
       const uploadedUrl = data.files?.[0]?.url
       
       if (uploadedUrl) {
-        handleChange("image_url", uploadedUrl)
+        handleChange(fieldName, uploadedUrl)
         toast.success("Зураг амжилттай хуулагдлаа")
       }
     } catch (error) {
@@ -105,18 +108,18 @@ const EditBannerPage = () => {
     }
   }
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent, fieldName: "image_url" | "mobile_image_url" = "image_url") => {
     e.preventDefault()
     const file = e.dataTransfer.files[0]
     if (file && file.type.startsWith("image/")) {
-      handleFileUpload(file)
+      handleFileUpload(file, fieldName)
     }
   }
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, fieldName: "image_url" | "mobile_image_url" = "image_url") => {
     const file = e.target.files?.[0]
     if (file) {
-      handleFileUpload(file)
+      handleFileUpload(file, fieldName)
     }
   }
 
@@ -136,6 +139,7 @@ const EditBannerPage = () => {
           subtitle: formData.subtitle || null,
           description: formData.description || null,
           image_url: formData.image_url,
+          mobile_image_url: formData.mobile_image_url || null,
           link: formData.link,
           alt_text: formData.alt_text || null,
           placement: formData.placement,
@@ -220,7 +224,7 @@ const EditBannerPage = () => {
         <div className="space-y-2">
           <Label>Зураг *</Label>
           <div
-            onDrop={handleDrop}
+            onDrop={(e) => handleDrop(e, "image_url")}
             onDragOver={(e) => e.preventDefault()}
             onClick={() => fileInputRef.current?.click()}
             className={clx(
@@ -233,7 +237,7 @@ const EditBannerPage = () => {
               ref={fileInputRef}
               type="file"
               accept="image/*"
-              onChange={handleFileSelect}
+              onChange={(e) => handleFileSelect(e, "image_url")}
               className="hidden"
             />
             
@@ -275,6 +279,90 @@ const EditBannerPage = () => {
             <Input
               value={formData.image_url}
               onChange={(e) => handleChange("image_url", e.target.value)}
+              placeholder="https://res.cloudinary.com/..."
+              className="flex-1"
+            />
+          </div>
+        </div>
+
+        {/* Mobile Image Upload */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label>Гар утасны зураг</Label>
+            <Badge color="purple">Заавал биш</Badge>
+          </div>
+          <Text className="text-ui-fg-subtle text-xs">
+            Гар утсанд тусгайлан зориулсан зураг оруулах (1:1 дөрвөлжин). Хоосон үлдвэл desktop зураг ашиглана.
+          </Text>
+          {currentConfig && (
+            <Text className="text-ui-fg-muted text-xs">
+              Санал болгох: <Badge color="green">{currentConfig.mobileRecommended.width}×{currentConfig.mobileRecommended.height}px</Badge>
+            </Text>
+          )}
+          <div
+            onDrop={(e) => handleDrop(e, "mobile_image_url")}
+            onDragOver={(e) => e.preventDefault()}
+            onClick={() => mobileFileInputRef.current?.click()}
+            className={clx(
+              "relative border-2 border-dashed rounded-lg p-6 transition-colors cursor-pointer",
+              "hover:border-ui-border-interactive hover:bg-ui-bg-field-hover",
+              formData.mobile_image_url ? "border-ui-border-base" : "border-ui-border-strong"
+            )}
+          >
+            <input
+              ref={mobileFileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={(e) => handleFileSelect(e, "mobile_image_url")}
+              className="hidden"
+            />
+            
+            {formData.mobile_image_url ? (
+              <div className="relative">
+                <div 
+                  className="w-full max-w-xs mx-auto bg-[#1d1d1f] rounded-lg overflow-hidden"
+                  style={{ aspectRatio: "1/1" }}
+                >
+                  <img
+                    src={formData.mobile_image_url}
+                    alt="Mobile Preview"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleChange("mobile_image_url", "")
+                  }}
+                  className="absolute top-2 right-2 p-1 bg-ui-bg-base rounded-full shadow-md hover:bg-ui-bg-base-hover"
+                >
+                  <XMark className="w-4 h-4" />
+                </button>
+                <Text className="text-center text-ui-fg-subtle text-xs mt-2">
+                  Гар утасны урьдчилан харах: 1:1 дөрвөлжин харьцаа
+                </Text>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-4">
+                {uploading ? (
+                  <div className="text-ui-fg-muted">Хуулж байна...</div>
+                ) : (
+                  <>
+                    <ArrowUpTray className="w-6 h-6 text-ui-fg-muted mb-2" />
+                    <p className="text-ui-fg-base text-sm font-medium">Зураг чирж оруулах</p>
+                    <p className="text-ui-fg-subtle text-xs">эсвэл дарж сонгох</p>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-ui-fg-subtle text-sm">эсвэл URL оруулах:</span>
+            <Input
+              value={formData.mobile_image_url || ""}
+              onChange={(e) => handleChange("mobile_image_url", e.target.value)}
               placeholder="https://res.cloudinary.com/..."
               className="flex-1"
             />

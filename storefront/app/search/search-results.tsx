@@ -97,7 +97,7 @@ export function SearchResults({ initialQuery }: SearchResultsProps) {
 
   // Transform hits to ProductCard format
   const transformHitToProduct = (hit: SearchHit) => ({
-    id: hit.id,
+    id: hit.variants?.[0]?.id ?? hit.id,
     title: hit.title,
     handle: hit.handle,
     thumbnail: hit.thumbnail || undefined,
@@ -107,6 +107,13 @@ export function SearchResults({ initialQuery }: SearchResultsProps) {
           currencyCode: "mnt",
         }
       : undefined,
+    collection: hit.collection_title 
+      ? {
+          id: "",
+          title: hit.collection_title,
+          handle: "",
+        }
+      : null,
   });
 
   return (
@@ -207,6 +214,7 @@ export function SearchResults({ initialQuery }: SearchResultsProps) {
                 handle={product.handle}
                 thumbnail={product.thumbnail}
                 price={product.price}
+                collection={product.collection}
               />
             );
           })}

@@ -4,7 +4,11 @@ import { Providers } from "@/components/Providers";
 import { CartNotification } from "@/components/cart/CartNotification";
 import { WishlistNotification } from "@/components/layout/WishlistNotification";
 import { CartInitializer } from "@/components/cart/CartInitializer";
+import { ToastContainer } from "@/components/layout/ToastContainer";
+import { RouteProgressBar } from "@/components/layout/RouteProgressBar";
+import { NavigationEvents } from "@/components/layout/NavigationEvents";
 import "./globals.css";
+import "./nprogress.css";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -32,7 +36,7 @@ export const metadata: Metadata = {
   keywords: ["технологи", "утас", "дрон", "камер", "дугуй", "онлайн дэлгүүр", "Монгол"],
   authors: [{ name: "Алимхан Дэлгүүр" }],
   icons: {
-    icon: "/icon.jpg",
+    icon: "/favicon.svg",
   },
   openGraph: {
     type: "website",
@@ -85,10 +89,13 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
         />
         <Providers>
+          <RouteProgressBar />
+          <NavigationEvents />
           <CartInitializer />
           {children}
           <CartNotification />
           <WishlistNotification />
+          <ToastContainer />
         </Providers>
       </body>
     </html>
