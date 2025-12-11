@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: { params: Promise<{ handle: s
     };
   }
 
-  const price = product.variants?.[0]?.calculated_price?.calculated_amount || product.variants?.[0]?.prices?.[0]?.amount;
+  const price = product.variants?.[0]?.calculated_price?.calculated_amount || (product.variants?.[0] as any)?.prices?.[0]?.amount;
   const formattedPrice = price ? new Intl.NumberFormat("mn-MN", { style: "currency", currency: "MNT" }).format(price / 100) : "";
   
   const description = product.description 
@@ -100,7 +100,7 @@ export default async function ProductPage({ params }: { params: Promise<{ handle
   }
 
   // Generate JSON-LD structured data for SEO
-  const price = product.variants?.[0]?.calculated_price?.calculated_amount || product.variants?.[0]?.prices?.[0]?.amount;
+  const price = product.variants?.[0]?.calculated_price?.calculated_amount || (product.variants?.[0] as any)?.prices?.[0]?.amount;
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -116,7 +116,7 @@ export default async function ProductPage({ params }: { params: Promise<{ handle
       url: `https://alimhan.mn/products/${handle}`,
       priceCurrency: "MNT",
       price: price ? (price / 100).toString() : "0",
-      availability: product.variants?.[0]?.inventory_quantity > 0 
+      availability: (product.variants?.[0]?.inventory_quantity ?? 0) > 0 
         ? "https://schema.org/InStock" 
         : "https://schema.org/OutOfStock",
       seller: {

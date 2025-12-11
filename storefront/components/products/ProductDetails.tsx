@@ -1,12 +1,18 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { medusa } from "@/lib/medusa";
 import { useCartStore, useUIStore, useUserStore } from "@/lib/store";
 import { useWishlistStore } from "@/lib/store/wishlist-store";
+import { useComparisonStore } from "@/lib/store/comparison-store";
 import { CloudinaryImage } from "@/components/Cloudinary";
 import { toast } from "@/lib/toast";
+import { addToCart as addToCartHelper } from "@/lib/cart/addToCart";
 import Link from "next/link";
+import { ViewingCounter } from "./ViewingCounter";
+import { RecentSales } from "./RecentSales";
+import { CustomerReviews } from "./CustomerReviews";
+import { ReviewForm } from "./ReviewForm";
+import { TrustBadges } from "./TrustBadges";
 import { 
   ChevronRight, 
   ShoppingBag, 
@@ -30,9 +36,9 @@ interface ProductVariant {
     currency_code: string;
   }[];
   calculated_price?: {
-    calculated_amount: number;
-    original_amount: number;
-    currency_code: string;
+    calculated_amount: number | null;
+    original_amount: number | null;
+    currency_code: string | null;
     is_calculated_price_price_list?: boolean;
     is_calculated_price_tax_inclusive?: boolean;
   };
@@ -82,6 +88,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
   const { openCartNotification, openWishlistNotification, openAuthModal } = useUIStore();
   const { isAuthenticated } = useUserStore();
   const { items: wishlistItems, addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlistStore();
+  const { toggleProduct, isInComparison } = useComparisonStore();
   
   // Scroll to top when navigating to product page
   useEffect(() => {
@@ -118,6 +125,8 @@ export function ProductDetails({ product }: ProductDetailsProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [isTogglingWishlist, setIsTogglingWishlist] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  
+  const isInCompare = isInComparison(selectedVariant?.id || "");
   
   // Check if current product/variant is in wishlist
   const isWishlisted = isInWishlist(product.id, selectedVariant?.id);
@@ -209,7 +218,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
     const calculatedPrice = selectedVariant.calculated_price;
     const regularPrice = selectedVariant.prices?.[0];
     
-    if (calculatedPrice) {
+    if (calculatedPrice && calculatedPrice.calculated_amount !== null && calculatedPrice.original_amount !== null && calculatedPrice.currency_code) {
       const isOnSale = calculatedPrice.calculated_amount < calculatedPrice.original_amount;
       return {
         currentPrice: formatPrice(calculatedPrice.calculated_amount, calculatedPrice.currency_code),
@@ -288,54 +297,22 @@ export function ProductDetails({ product }: ProductDetailsProps) {
     setIsAdding(true);
     
     try {
-      let currentCartId = cartId;
-
-      // Create cart if it doesn't exist
-      if (!currentCartId) {
-        // First get a region
-        const { regions } = await medusa.store.region.list();
-        if (!regions || regions.length === 0) {
-          toast.error("Бүс нутаг олдсонгүй. Дэлгүүрийн админтай холбогдоно уу.");
-          setIsAdding(false);
-          return;
-        }
-        
-        const { cart } = await medusa.store.cart.create({
-          region_id: regions[0].id
-        });
-        currentCartId = cart.id;
-        setCartId(cart.id);
-      }
-
-      if (!currentCartId) {
-        setIsAdding(false);
-        return;
-      }
-
-      // Add item to Medusa cart
-      await medusa.store.cart.createLineItem(currentCartId, {
-        variant_id: selectedVariant.id,
-        quantity: quantity,
-      });
-
-      // Sync cart state from server
-      await syncCart();
-      
-      // Only show notification after successful API call with real data
-      const addedItem = {
-        id: "added-" + Date.now(),
+      await addToCartHelper({
         variantId: selectedVariant.id,
-        productId: product.id,
-        title: product.title,
         quantity: quantity,
-        thumbnail: product.thumbnail,
-        unitPrice: selectedVariant.prices?.[0]?.amount || 0,
-        handle: product.handle
-      };
-      
-      addItem(addedItem);
-      openCartNotification();
-      
+        productInfo: {
+          id: product.id,
+          title: product.title,
+          thumbnail: product.thumbnail,
+          handle: product.handle,
+          unitPrice: selectedVariant.prices?.[0]?.amount || 0,
+        },
+        currentCartId: cartId,
+        setCartId,
+        syncCart,
+        addItem,
+        openCartNotification,
+      });
     } catch (error) {
       console.error("Error adding to cart:", error);
       toast.error("Сагсанд нэмэхэд алдаа гарлаа. Дахин оролдоно уу.");
@@ -400,7 +377,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
         {/* Image Gallery - Sticky on Desktop */}
         <div className="space-y-4 lg:sticky lg:top-24 h-fit" key={`gallery-${selectedColor || 'default'}`}>
           {/* Main Image */}
-          <div className="aspect-square relative bg-linear-to-br from-[#f5f5f7] to-[#e8e8ed] rounded-3xl overflow-hidden group">
+          <div className="aspect-square relative bg-linear-to-br from-[#f5f5f7] to-[#e8e8ed] rounded-3xl overflow-hidden group flex items-center justify-center">
             <CloudinaryImage
               key={`main-${selectedColor || 'default'}-${selectedImageIndex}`}
               src={allImages[selectedImageIndex]?.url || product.thumbnail}
@@ -446,7 +423,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
                 <button
                   key={`${image.id}-${index}`}
                   onClick={() => setSelectedImageIndex(index)}
-                  className={`shrink-0 w-20 h-20 relative bg-[#f5f5f7] rounded-xl overflow-hidden transition-all duration-200 ${
+                  className={`shrink-0 w-20 h-20 relative bg-[#f5f5f7] rounded-xl overflow-hidden transition-all duration-200 flex items-center justify-center ${
                     selectedImageIndex === index 
                       ? "ring-2 ring-[#0071e3] ring-offset-2" 
                       : "hover:ring-2 hover:ring-gray-300 hover:ring-offset-1"
@@ -552,7 +529,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
                           <button
                             key={value.id}
                             onClick={() => handleOptionSelect(option.id, value.value)}
-                            className={`relative w-16 h-16 rounded-xl overflow-hidden transition-all duration-200 bg-[#f5f5f7] ${
+                            className={`relative w-16 h-16 rounded-xl overflow-hidden transition-all duration-200 bg-[#f5f5f7] flex items-center justify-center ${
                               isSelected 
                                 ? "ring-2 ring-offset-2 ring-[#0071e3]" 
                                 : "hover:ring-2 hover:ring-gray-300 hover:ring-offset-1"
@@ -665,12 +642,54 @@ export function ProductDetails({ product }: ProductDetailsProps) {
               </button>
               
               <button
+                onClick={() => {
+                  if (selectedVariant) {
+                    const calculatedPrice = selectedVariant.calculated_price;
+                    const firstPrice = selectedVariant.prices?.[0];
+                    const price = calculatedPrice?.calculated_amount ?? firstPrice?.amount;
+                    const currencyCode = calculatedPrice?.currency_code ?? firstPrice?.currency_code ?? "MNT";
+                    
+                    toggleProduct({
+                      id: product.id,
+                      variantId: selectedVariant.id,
+                      title: product.title,
+                      handle: product.handle,
+                      thumbnail: product.thumbnail,
+                      price: price ? { amount: price, currencyCode } : undefined,
+                    });
+                  }
+                }}
+                disabled={!selectedVariant}
+                className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+                  isInCompare 
+                    ? "bg-blue-50 text-blue-600" 
+                    : "bg-[#f5f5f7] text-[#86868b] hover:text-blue-600 hover:bg-blue-50"
+                }`}
+                title={isInCompare ? "Харьцуулалтаас хасах" : "Харьцуулалтад нэмэх"}
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </button>
+              
+              <button
                 className="w-14 h-14 bg-[#f5f5f7] text-[#86868b] rounded-full flex items-center justify-center hover:bg-[#e8e8ed] hover:text-[#1d1d1f] transition-all duration-200"
                 title="Хуваалцах"
               >
                 <Share2 className="w-5 h-5" />
               </button>
             </div>
+          </div>
+
+          {/* Social Proof Indicators */}
+          <div className="space-y-3 mb-8">
+            <ViewingCounter productId={product.id} />
+            <RecentSales productId={product.id} />
+          </div>
+
+          {/* Trust Badges */}
+          <div className="mb-8">
+            <TrustBadges variant="compact" />
           </div>
 
           {/* Features */}
@@ -706,7 +725,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
 
           {/* Description */}
           {product.description && (
-            <div className="border-t border-gray-100 pt-8">
+            <div className="border-t border-gray-100 pt-8 mb-8">
               <h3 className="text-lg font-semibold text-[#1d1d1f] mb-4 flex items-center gap-2">
                 <span className="w-1 h-5 bg-[#0071e3] rounded-full" />
                 Бүтээгдэхүүний тайлбар
@@ -718,6 +737,21 @@ export function ProductDetails({ product }: ProductDetailsProps) {
               </div>
             </div>
           )}
+
+          {/* Customer Reviews */}
+          <div className="border-t border-gray-100 pt-8 space-y-8">
+            {/* Review Form */}
+            <ReviewForm 
+              productId={product.id}
+              onSuccess={() => {
+                // Trigger reviews refresh by reloading the page or use a state refresh
+                window.location.reload();
+              }}
+            />
+            
+            {/* Existing Reviews */}
+            <CustomerReviews productId={product.id} />
+          </div>
         </div>
       </div>
     </div>

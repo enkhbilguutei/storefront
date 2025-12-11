@@ -160,31 +160,57 @@ export const authOptions: NextAuthOptions = {
       // Get/refresh token for Google OAuth users if missing
       if (extendedToken.provider === "google" && !extendedToken.accessToken && token.email) {
         console.log("[NextAuth JWT] No accessToken found, fetching from OAuth endpoint for:", token.email);
-        try {
-          const response = await fetch(
-            `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/auth/customer/oauth`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                email: token.email,
-                name: token.name,
-                provider: "google",
-              }),
+        
+        // Retry logic with exponential backoff
+        let retries = 3;
+        let success = false;
+        
+        while (retries > 0 && !success) {
+          try {
+            const response = await fetch(
+              `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/auth/customer/oauth`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  email: token.email,
+                  name: token.name,
+                  provider: "google",
+                }),
+              }
+            );
+            
+            if (response.ok) {
+              const data = await response.json();
+              extendedToken.accessToken = data.token;
+              console.log("[NextAuth JWT] Token fetched successfully, length:", data.token.length);
+              success = true;
+            } else {
+              const errorText = await response.text();
+              console.error("[NextAuth JWT] Failed to get OAuth token:", response.status, errorText);
+              retries--;
+              
+              if (retries > 0) {
+                // Wait before retry (exponential backoff: 500ms, 1s, 2s)
+                await new Promise(resolve => setTimeout(resolve, 500 * Math.pow(2, 3 - retries)));
+              }
             }
-          );
-          
-          if (response.ok) {
-            const data = await response.json();
-            extendedToken.accessToken = data.token;
-            console.log("[NextAuth JWT] Token fetched successfully, length:", data.token.length);
-          } else {
-            console.error("[NextAuth JWT] Failed to get OAuth token:", response.status, await response.text());
+          } catch (error) {
+            console.error("[NextAuth JWT] Error getting OAuth token:", error);
+            retries--;
+            
+            if (retries > 0) {
+              await new Promise(resolve => setTimeout(resolve, 500 * Math.pow(2, 3 - retries)));
+            }
           }
-        } catch (error) {
-          console.error("[NextAuth JWT] Error getting OAuth token:", error);
+        }
+        
+        // If all retries failed, mark token for refresh next time
+        if (!success) {
+          console.error("[NextAuth JWT] All retries failed for OAuth token. User will need to re-authenticate.");
+          extendedToken.error = "RefreshAccessTokenError";
         }
       } else if (extendedToken.accessToken) {
         console.log("[NextAuth JWT] Token already exists, length:", extendedToken.accessToken.length);

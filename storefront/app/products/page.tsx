@@ -74,8 +74,10 @@ interface ProductWithPrices {
 async function getProducts(searchParams: { [key: string]: string | string[] | undefined }): Promise<ProductWithPrices[]> {
   const categoryId = searchParams.category_id as string;
   const order = searchParams.order as string;
-  const priceMin = searchParams.price_min ? parseInt(searchParams.price_min as string) : null;
-  const priceMax = searchParams.price_max ? parseInt(searchParams.price_max as string) : null;
+  const priceMinParsed = searchParams.price_min ? parseInt(searchParams.price_min as string) : NaN;
+  const priceMaxParsed = searchParams.price_max ? parseInt(searchParams.price_max as string) : NaN;
+  const priceMin = !isNaN(priceMinParsed) && priceMinParsed > 0 ? priceMinParsed : null;
+  const priceMax = !isNaN(priceMaxParsed) && priceMaxParsed > 0 ? priceMaxParsed : null;
 
   // Get default region for calculated prices (promotions)
   const region = await getDefaultRegion();

@@ -121,8 +121,9 @@ export async function GET(
     console.error("Failed to fetch orders:", error);
     return res.status(500).json({ 
       message: "Internal server error",
-      error: error instanceof Error ? error.message : "Unknown error",
-      stack: error instanceof Error ? error.stack : undefined
+      error: process.env.NODE_ENV === "development" 
+        ? (error instanceof Error ? error.message : "Unknown error")
+        : "Failed to fetch orders"
     });
   }
 }

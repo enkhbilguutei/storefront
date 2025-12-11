@@ -12,11 +12,17 @@ type InjectedDependencies = {
 export default class EmailNotificationService {
   private resend: Resend;
   private logger: Logger;
+  private emailFrom: string;
 
   constructor({ logger }: InjectedDependencies) {
     this.logger = logger;
-    // Use the provided API key or fallback to env var
-    this.resend = new Resend(process.env.RESEND_API_KEY || "re_9zAKhCiC_FYKddvzAJf9MJW8mEpSUcXYg");
+    // Only use environment variable for API key (no hardcoded fallback)
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      throw new Error("RESEND_API_KEY environment variable is required");
+    }
+    this.resend = new Resend(apiKey);
+    this.emailFrom = process.env.EMAIL_FROM_ADDRESS || "Alimhan <noreply@alimhan.mn>";
   }
 
   private formatCurrency(amount: number) {
@@ -48,7 +54,7 @@ export default class EmailNotificationService {
       );
 
       const { data, error } = await this.resend.emails.send({
-        from: "Alimhan <onboarding@resend.dev>", // Update this with verified domain later
+        from: this.emailFrom,
         to: [email],
         subject: `Захиалга хүлээж авлаа - #${order.display_id}`,
         html: emailHtml,
@@ -87,7 +93,7 @@ export default class EmailNotificationService {
       );
 
       const { data, error } = await this.resend.emails.send({
-        from: "Alimhan <onboarding@resend.dev>",
+        from: this.emailFrom,
         to: [email],
         subject: `Захиалга баталгаажлаа - #${order.display_id}`,
         html: emailHtml,
@@ -127,7 +133,7 @@ export default class EmailNotificationService {
       );
 
       const { data, error } = await this.resend.emails.send({
-        from: "Alimhan <onboarding@resend.dev>",
+        from: this.emailFrom,
         to: [email],
         subject: `Захиалга хүргэлтэнд гарлаа - #${order.display_id}`,
         html: emailHtml,

@@ -32,7 +32,7 @@ export default async function simplifyPricing({ container }: ExecArgs) {
     logger.info(`Product: ${product.title}`);
     
     for (const variant of product.variants || []) {
-      const prices = variant.prices || [];
+      const prices = (variant as any).prices || [];
       
       // Find region price and currency price
       const regionPrice = prices.find((p: any) => p.rules && Object.keys(p.rules).length > 0);

@@ -62,7 +62,7 @@ export function SearchResults({ initialQuery }: SearchResultsProps) {
 
     setIsLoading(true);
     try {
-      let url = `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/search?q=${encodeURIComponent(searchQuery)}&limit=20&offset=${offset}`;
+      let url = `${API_URL}/store/search?q=${encodeURIComponent(searchQuery)}&limit=20&offset=${offset}`;
       if (sortOption) {
         url += `&sort=${encodeURIComponent(sortOption)}`;
       }

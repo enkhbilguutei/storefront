@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { CloudinaryImage } from "@/components/Cloudinary";
-import { ShoppingCart, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { ShoppingCart, Loader2, ArrowLeftRight } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useCartStore, useUIStore } from "@/lib/store";
+import { useComparisonStore } from "@/lib/store/comparison-store";
+import { addToCart } from "@/lib/cart/addToCart";
 
 interface ProductCardProps {
   id: string;
@@ -36,8 +38,16 @@ export function ProductCard({
   collection
 }: ProductCardProps) {
   const [isAdding, setIsAdding] = useState(false);
-  const { addItem, cartId, setCartId, syncCart } = useCartStore();
+  const [mounted, setMounted] = useState(false);
+  const { addItem } = useCartStore();
   const { openCartNotification } = useUIStore();
+  const { toggleProduct, isInComparison } = useComparisonStore();
+  
+  const isInCompare = isInComparison(id);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Check if product is on sale
   const isOnSale = originalPrice && price && originalPrice.amount > price.amount;
@@ -45,7 +55,7 @@ export function ProductCard({
     ? Math.round(((originalPrice.amount - price.amount) / originalPrice.amount) * 100)
     : 0;
 
-  const formatPrice = (amount: number, currencyCode: string) => {
+  const formatPrice = (amount: number) => {
     const formatted = new Intl.NumberFormat("mn-MN", {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
@@ -62,11 +72,24 @@ export function ProductCard({
     
     setIsAdding(true);
     try {
-      await addItem({
-        variant_id: id,
+      const { cartId, setCartId, syncCart, addItem, openCartNotification } = useCartStore.getState();
+      
+      await addToCart({
+        variantId: id,
         quantity: 1,
+        productInfo: {
+          id,
+          title,
+          thumbnail,
+          handle,
+          unitPrice: price?.amount || 0,
+        },
+        currentCartId: cartId,
+        setCartId,
+        syncCart,
+        addItem,
+        openCartNotification,
       });
-      openCartNotification();
     } catch (error) {
       console.error('Failed to add item to cart:', error);
     } finally {
@@ -126,12 +149,12 @@ export function ProductCard({
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             {price && (
               <span className="text-base md:text-lg font-bold text-gray-900">
-                {formatPrice(price.amount, price.currencyCode)}
+                {formatPrice(price.amount)}
               </span>
             )}
             {isOnSale && originalPrice && (
               <span className="text-xs md:text-sm text-gray-500 line-through">
-                {formatPrice(originalPrice.amount, originalPrice.currencyCode)}
+                {formatPrice(originalPrice.amount)}
               </span>
             )}
           </div>
@@ -142,24 +165,52 @@ export function ProductCard({
           )}
         </div>
 
-        {/* Add to Cart Button */}
-        <button
-          onClick={handleAddToCart}
-          disabled={isAdding}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 md:py-2.5 px-3 md:px-4 rounded-lg font-medium text-xs md:text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-        >
-          {isAdding ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Нэмж байна...
-            </>
-          ) : (
-            <>
-              <ShoppingCart className="h-4 w-4" />
-              Сагслах
-            </>
-          )}
-        </button>
+        {/* Action Buttons */}
+        <div className="flex gap-2">
+          {/* Add to Cart Button */}
+          <button
+            onClick={handleAddToCart}
+            disabled={isAdding}
+            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 md:py-2.5 px-3 md:px-4 rounded-lg font-medium text-xs md:text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {isAdding ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Нэмж байна...
+              </>
+            ) : (
+              <>
+                <ShoppingCart className="h-4 w-4" />
+                Сагслах
+              </>
+            )}
+          </button>
+
+          {/* Compare Button */}
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              toggleProduct({
+                id: id,
+                variantId: id,
+                title,
+                handle,
+                thumbnail,
+                price,
+              });
+            }}
+            className={`px-3 md:px-4 py-2 md:py-2.5 rounded-lg font-medium text-xs md:text-sm transition-colors border flex items-center justify-center gap-1.5 ${
+              mounted && isInCompare 
+                ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700" 
+                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+            }`}
+            title={mounted && isInCompare ? "Харьцуулалтаас хасах" : "Харьцуулалтад нэмэх"}
+          >
+            <ArrowLeftRight className="h-4 w-4" />
+            <span className="hidden sm:inline">Харьцуулах</span>
+          </button>
+        </div>
       </div>
     </Link>
   );

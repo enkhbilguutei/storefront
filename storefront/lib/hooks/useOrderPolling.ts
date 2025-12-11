@@ -5,9 +5,23 @@ import { useSession } from "next-auth/react";
 
 interface Order {
   id: string;
+  display_id: number;
   status: string;
   fulfillment_status?: string;
   payment_status?: string;
+  created_at: string;
+  total: number;
+  currency_code: string;
+  items: Array<{
+    id: string;
+    title: string;
+    quantity: number;
+    thumbnail?: string;
+    unit_price?: number;
+    product_title?: string;
+    variant_title?: string;
+  }>;
+  payment_method?: string;
 }
 
 interface UseOrderPollingOptions {

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Inter, Roboto_Mono, Playfair_Display } from "next/font/google";
 import { Providers } from "@/components/Providers";
 import { CartNotification } from "@/components/cart/CartNotification";
@@ -89,7 +90,9 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
         />
         <Providers>
-          <RouteProgressBar />
+          <Suspense fallback={null}>
+            <RouteProgressBar />
+          </Suspense>
           <NavigationEvents />
           <CartInitializer />
           {children}

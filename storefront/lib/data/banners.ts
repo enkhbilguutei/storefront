@@ -1,7 +1,8 @@
 import { unstable_cache } from "next/cache"
+import { API_URL, API_KEY } from "@/lib/config/api"
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000"
-const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
+const BACKEND_URL = API_URL
+const PUBLISHABLE_KEY = API_KEY
 
 /**
  * Banner placement types matching the backend module

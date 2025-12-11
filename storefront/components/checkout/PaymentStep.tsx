@@ -4,6 +4,7 @@ import { Building2, Banknote, Check, ChevronDown, ChevronUp, Info, Copy, CheckCh
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import type { CheckoutPaymentMethod } from "@/lib/validations";
+import { API_URL, API_KEY } from "@/lib/config/api";
 
 // Bank transfer info
 const BANK_INFO = {
@@ -13,8 +14,8 @@ const BANK_INFO = {
   note: "Гүйлгээний утга дээр захиалгын дугаар бичнэ үү",
 };
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000";
-const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "";
+const BACKEND_URL = API_URL;
+const PUBLISHABLE_KEY = API_KEY;
 
 interface PaymentStepProps {
   paymentMethod: CheckoutPaymentMethod | null;

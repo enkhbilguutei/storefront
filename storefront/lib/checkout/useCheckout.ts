@@ -103,13 +103,14 @@ export function useCheckout() {
   const isCompletingRef = useRef(false);
   const lastSubmitAttempt = useRef<number>(0);
 
-  // Format price - memoized
+  // Format price - memoized with stable currency
+  const currencyCode = cart?.currency_code?.toUpperCase() || "MNT";
   const formatPrice = useCallback((amount: number) => {
     return new Intl.NumberFormat("mn-MN", {
       style: "currency",
-      currency: cart?.currency_code?.toUpperCase() || "MNT",
+      currency: currencyCode,
     }).format(amount);
-  }, [cart?.currency_code]);
+  }, [currencyCode]);
   
   // Fill form from saved address
   const fillFromAddress = useCallback((address: any) => {
@@ -136,11 +137,11 @@ export function useCheckout() {
     fetchCart();
     
     // Warm up the backend connection (helps with serverless DB cold starts)
-    fetch(`${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/warm`, {
+    fetch(`${API_URL}/store/warm`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        "x-publishable-api-key": process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "",
+        "x-publishable-api-key": API_KEY,
       },
     }).catch(() => {}); // Ignore errors, this is just a warmup
   }, [fetchCart]);
@@ -152,14 +153,14 @@ export function useCheckout() {
     const prefetchCheckoutData = async () => {
       const headers = {
         "Content-Type": "application/json",
-        "x-publishable-api-key": process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "",
+        "x-publishable-api-key": API_KEY,
       };
       
       // Pre-fetch shipping options and payment providers in parallel
       await Promise.allSettled([
-        fetch(`${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/shipping-options?cart_id=${cartId}`, { headers }),
+        fetch(`${API_URL}/store/shipping-options?cart_id=${cartId}`, { headers }),
         cart?.region_id 
-          ? fetch(`${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/payment-providers?region_id=${cart.region_id}`, { headers })
+          ? fetch(`${API_URL}/store/payment-providers?region_id=${cart.region_id}`, { headers })
           : Promise.resolve(),
       ]);
     };
@@ -184,12 +185,12 @@ export function useCheckout() {
       try {
         // Fetch customer profile with phone
         const customerRes = await fetch(
-          `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/custom/me`,
+          `${API_URL}/store/custom/me`,
           {
             credentials: "include",
             headers: {
               "Content-Type": "application/json",
-              "x-publishable-api-key": process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "",
+              "x-publishable-api-key": API_KEY,
               Authorization: `Bearer ${accessToken}`,
             },
           }
@@ -197,12 +198,12 @@ export function useCheckout() {
         
         // Fetch saved addresses
         const addressesRes = await fetch(
-          `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/custom/addresses`,
+          `${API_URL}/store/custom/addresses`,
           {
             credentials: "include",
             headers: {
               "Content-Type": "application/json",
-              "x-publishable-api-key": process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "",
+              "x-publishable-api-key": API_KEY,
               Authorization: `Bearer ${accessToken}`,
             },
           }
@@ -277,7 +278,7 @@ export function useCheckout() {
     if (!email.trim()) newErrors.email = "И-мэйл оруулна уу";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) newErrors.email = "И-мэйл хаяг буруу байна";
     if (!phone.trim()) newErrors.phone = "Утас оруулна уу";
-    else if (!/^\d{8}$/.test(phone.replace(/\s/g, ""))) newErrors.phone = "8 оронтой дугаар оруулна уу";
+    else if (!/^\d{8,9}$/.test(phone.replace(/\s/g, ""))) newErrors.phone = "8-9 оронтой дугаар оруулна уу";
 
     if (deliveryMethod === "delivery") {
       if (!city) newErrors.city = "Хот сонгоно уу";

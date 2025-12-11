@@ -1,7 +1,8 @@
 import Medusa from "@medusajs/js-sdk";
+import { API_URL, API_KEY } from "@/lib/config/api";
 
 export const medusa = new Medusa({
-  baseUrl: process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000",
+  baseUrl: API_URL,
   debug: process.env.NODE_ENV === "development",
-  publishableKey: process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY,
+  publishableKey: API_KEY,
 });

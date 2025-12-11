@@ -1,178 +1,112 @@
 import { ProductGridSection } from "./ProductGridSection";
+import { getCategories, getProductsByCategory } from "@/lib/data/categories";
+import { getFeaturedProducts } from "@/lib/data/products";
+import { TrustBadges } from "@/components/products/TrustBadges";
 
-// Mock product data for demonstration
-const mockProducts = [
-  {
-    id: "1",
-    title: "Apple iPhone 16 Pro (256GB Storage, Natural Titanium)",
-    handle: "iphone-16-pro-natural-titanium",
-    thumbnail: "https://res.cloudinary.com/demo/image/upload/v1/samples/ecommerce/iphone.jpg",
-    price: { amount: 1890000, currencyCode: "MNT" },
-    originalPrice: { amount: 2100000, currencyCode: "MNT" },
-    collection: { id: "col_1", title: "Шилдэг борлуулалт", handle: "best-sellers" },
-  },
-  {
-    id: "2",
-    title: "Samsung Galaxy S24 Ultra (12GB RAM, 256GB Storage, Titanium Gray)",
-    handle: "samsung-s24-ultra",
-    thumbnail: "https://res.cloudinary.com/demo/image/upload/v1/samples/ecommerce/phone.jpg",
-    price: { amount: 1650000, currencyCode: "MNT" },
-    originalPrice: { amount: 1890000, currencyCode: "MNT" },
-    collection: { id: "col_2", title: "Санал болгох", handle: "recommended" },
-  },
-  {
-    id: "3",
-    title: "OnePlus 15 5G (12GB RAM, 256GB Storage) Infinite Black",
-    handle: "oneplus-15-black",
-    thumbnail: "https://res.cloudinary.com/demo/image/upload/v1/samples/ecommerce/phone-2.jpg",
-    price: { amount: 945000, currencyCode: "MNT" },
-    originalPrice: { amount: 1050000, currencyCode: "MNT" },
-    collection: { id: "col_3", title: "Шинэ бүтээгдэхүүн", handle: "new-arrivals" },
-  },
-  {
-    id: "4",
-    title: "Apple MacBook Pro M4 Chip (16GB RAM, 512GB SSD, Space Black)",
-    handle: "macbook-pro-m4",
-    thumbnail: "https://res.cloudinary.com/demo/image/upload/v1/samples/ecommerce/laptop.jpg",
-    price: { amount: 2890000, currencyCode: "MNT" },
-    originalPrice: { amount: 3200000, currencyCode: "MNT" },
-    collection: { id: "col_4", title: "Онцлох", handle: "featured" },
-  },
-  {
-    id: "5",
-    title: "LG 55 inch 4K OLED Smart TV with Dolby Vision",
-    handle: "lg-55-oled-tv",
-    thumbnail: "https://res.cloudinary.com/demo/image/upload/v1/samples/ecommerce/tv.jpg",
-    price: { amount: 1450000, currencyCode: "MNT" },
-    originalPrice: { amount: 1890000, currencyCode: "MNT" },
-    collection: { id: "col_5", title: "Эрэлттэй", handle: "trending" },
-  },
-  {
-    id: "6",
-    title: "Sony WH-1000XM5 Noise Cancelling Wireless Headphones",
-    handle: "sony-wh1000xm5",
-    thumbnail: "https://res.cloudinary.com/demo/image/upload/v1/samples/ecommerce/headphones.jpg",
-    price: { amount: 580000, currencyCode: "MNT" },
-    originalPrice: { amount: 680000, currencyCode: "MNT" },
-    collection: { id: "col_1", title: "Шилдэг борлуулалт", handle: "best-sellers" },
-  },
-];
-
-const applianceProducts = [
-  {
-    id: "7",
-    title: "Samsung 7 KG Fully Automatic Top Load Washing Machine",
-    handle: "samsung-washing-machine-7kg",
-    thumbnail: "https://res.cloudinary.com/demo/image/upload/v1/samples/ecommerce/washing-machine.jpg",
-    price: { amount: 750000, currencyCode: "MNT" },
-    originalPrice: { amount: 950000, currencyCode: "MNT" },
-    collection: { id: "col_1", title: "Шилдэг борлуулалт", handle: "best-sellers" },
-  },
-  {
-    id: "8",
-    title: "LG 260L Frost Free Double Door Refrigerator (Shiny Steel)",
-    handle: "lg-refrigerator-260l",
-    thumbnail: "https://res.cloudinary.com/demo/image/upload/v1/samples/ecommerce/fridge.jpg",
-    price: { amount: 850000, currencyCode: "MNT" },
-    originalPrice: { amount: 1100000, currencyCode: "MNT" },
-    collection: { id: "col_2", title: "Санал болгох", handle: "recommended" },
-  },
-  {
-    id: "9",
-    title: "Voltas Beko 1.5 Ton 5 Star Inverter Split AC",
-    handle: "voltas-beko-ac-1-5-ton",
-    thumbnail: "https://res.cloudinary.com/demo/image/upload/v1/samples/ecommerce/ac.jpg",
-    price: { amount: 680000, currencyCode: "MNT" },
-    originalPrice: { amount: 890000, currencyCode: "MNT" },
-    collection: { id: "col_5", title: "Эрэлттэй", handle: "trending" },
-  },
-  {
-    id: "10",
-    title: "Haier 20L Convection Microwave Oven (Silver)",
-    handle: "haier-microwave-20l",
-    thumbnail: "https://res.cloudinary.com/demo/image/upload/v1/samples/ecommerce/microwave.jpg",
-    price: { amount: 180000, currencyCode: "MNT" },
-    originalPrice: { amount: 250000, currencyCode: "MNT" },
-    collection: null,
-  },
-];
-
-const laptopProducts = [
-  {
-    id: "11",
-    title: "HP Laptop Intel Core i5 12th Gen (16GB RAM, 512GB SSD, Windows 11)",
-    handle: "hp-laptop-i5-16gb",
-    thumbnail: "https://res.cloudinary.com/demo/image/upload/v1/samples/ecommerce/laptop-hp.jpg",
-    price: { amount: 950000, currencyCode: "MNT" },
-    originalPrice: { amount: 1200000, currencyCode: "MNT" },
-    collection: { id: "col_4", title: "Онцлох", handle: "featured" },
-  },
-  {
-    id: "12",
-    title: "Lenovo IdeaPad Slim 3 AMD Ryzen 7 (16GB RAM, 512GB SSD)",
-    handle: "lenovo-ideapad-slim-3",
-    thumbnail: "https://res.cloudinary.com/demo/image/upload/v1/samples/ecommerce/laptop-lenovo.jpg",
-    price: { amount: 780000, currencyCode: "MNT" },
-    originalPrice: { amount: 980000, currencyCode: "MNT" },
-    collection: { id: "col_5", title: "Эрэлттэй", handle: "trending" },
-  },
-  {
-    id: "13",
-    title: "Dell Inspiron 15 Laptop Intel Core i3 (8GB RAM, 512GB SSD)",
-    handle: "dell-inspiron-15",
-    thumbnail: "https://res.cloudinary.com/demo/image/upload/v1/samples/ecommerce/laptop-dell.jpg",
-    price: { amount: 650000, currencyCode: "MNT" },
-    originalPrice: { amount: 820000, currencyCode: "MNT" },
-    collection: { id: "col_3", title: "Шинэ бүтээгдэхүүн", handle: "new-arrivals" },
-  },
-];
-
-export function HomeContent() {
+export async function HomeContent() {
+  // Fetch real data from database
+  const categories = await getCategories();
+  const allProducts = await getFeaturedProducts(20);
+  
+  // Find specific categories
+  const iphoneCategory = categories.find(c => c.handle === "i-phone");
+  const ipadCategory = categories.find(c => c.handle === "i-pad");
+  const macbookCategory = categories.find(c => c.handle === "mac-book");
+  const airpodsCategory = categories.find(c => c.handle === "air-pods");
+  const appleWatchCategory = categories.find(c => c.handle === "apple-watch");
+  const gamingCategory = categories.find(c => c.handle === "gaming");
+  const accessoriesCategory = categories.find(c => c.handle === "accessories");
+  
+  // Fetch products by category
+  const iphoneProducts = iphoneCategory ? await getProductsByCategory(iphoneCategory.id) : [];
+  const ipadProducts = ipadCategory ? await getProductsByCategory(ipadCategory.id) : [];
+  const macbookProducts = macbookCategory ? await getProductsByCategory(macbookCategory.id) : [];
+  const airpodsProducts = airpodsCategory ? await getProductsByCategory(airpodsCategory.id) : [];
+  const appleWatchProducts = appleWatchCategory ? await getProductsByCategory(appleWatchCategory.id) : [];
+  const gamingProducts = gamingCategory ? await getProductsByCategory(gamingCategory.id) : [];
+  const accessoriesProducts = accessoriesCategory ? await getProductsByCategory(accessoriesCategory.id) : [];
+  
+  // Combine Apple products
+  const appleProducts = [
+    ...iphoneProducts.slice(0, 3),
+    ...macbookProducts.slice(0, 2),
+    ...ipadProducts.slice(0, 1),
+  ];
+  
   return (
     <>
-      {/* Best of Apple Section */}
-      <ProductGridSection
-        title="Best of Apple"
-        subtitle="₮10,000 хүртэл шууд хөнгөлөлт ICICI & SBI картаар"
-        products={mockProducts.filter(p => p.title.includes("Apple"))}
-        viewAllLink="/categories/apple"
-      />
+      {/* Trust Badges Section */}
+      <section className="container mx-auto px-4 py-12 md:py-16">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
+            Яагаад биднээс худалдан авах хэрэгтэй вэ?
+          </h2>
+          <p className="text-gray-600 max-w-2xl mx-auto">
+            100% жинхэнэ бүтээгдэхүүн, найдвартай үйлчилгээ, хурдан хүргэлт
+          </p>
+        </div>
+        <TrustBadges variant="detailed" />
+      </section>
 
-      {/* Greater Savings Deals */}
-      <ProductGridSection
-        title="Greater Savings Deals"
-        subtitle="Гэрийн техник, цахилгаан бараанд том хөнгөлөлт"
-        products={applianceProducts}
-        tabs={["Угаалгын машин", "Агааржуулагч", "5G Утас", "Телевиз", "Том аудио"]}
-        viewAllLink="/products"
-      />
+      {/* Apple Products Section */}
+      {appleProducts.length > 0 && (
+        <ProductGridSection
+          title="Best of Apple"
+          subtitle="iPhone, MacBook, iPad, AirPods болон бусад"
+          products={appleProducts}
+          viewAllLink="/categories/i-phone"
+        />
+      )}
 
-      {/* Bestsellers Deals */}
-      <ProductGridSection
-        title="Bestsellers Deals"
-        subtitle="Хамгийн их борлуулалттай бүтээгдэхүүнүүд"
-        products={mockProducts}
-        tabs={["Утас", "Ноутбук", "Airfryer", "MacBook", "iPad", "Smartwatch"]}
-        viewAllLink="/bestsellers"
-      />
+      {/* Gaming Section */}
+      {gamingProducts.length > 0 && (
+        <ProductGridSection
+          title="Gaming & Entertainment"
+          subtitle="PlayStation, Nintendo Switch болон дагалдах хэрэгсэл"
+          products={gamingProducts}
+          viewAllLink="/categories/gaming"
+        />
+      )}
 
-      {/* Exclusive Deals Section */}
-      <ProductGridSection
-        title="Exclusive Deals & Offers"
-        subtitle="Зөвхөн та нарт зориулсан онцгой санал"
-        products={laptopProducts}
-        tabs={["Trending", "Best Sellers", "Price Drop", "New Releases"]}
-        viewAllLink="/deals"
-      />
+      {/* iPad Collection */}
+      {ipadProducts.length > 0 && (
+        <ProductGridSection
+          title="iPad Collection"
+          subtitle="iPad Pro, iPad Air, iPad Mini - бүх загварууд"
+          products={ipadProducts}
+          viewAllLink="/categories/i-pad"
+        />
+      )}
 
-      {/* Gadgets & More */}
-      <ProductGridSection
-        title="Gadgets & More"
-        subtitle="Дэлхийн шилдэг брэндүүдийн гэр ахуй, техник хэрэгсэл"
-        products={mockProducts.slice(0, 4)}
-        tabs={["Gaming Controllers", "Apple Accessories", "Smartwatch", "TWS Earbuds"]}
-        viewAllLink="/gadgets"
-      />
+      {/* AirPods & Apple Watch */}
+      {(airpodsProducts.length > 0 || appleWatchProducts.length > 0) && (
+        <ProductGridSection
+          title="AirPods & Apple Watch"
+          subtitle="Таны амьдралыг хялбарчлах ухаалаг бүтээгдэхүүн"
+          products={[...airpodsProducts, ...appleWatchProducts].slice(0, 6)}
+          viewAllLink="/categories/air-pods"
+        />
+      )}
+
+      {/* Accessories */}
+      {accessoriesProducts.length > 0 && (
+        <ProductGridSection
+          title="Accessories"
+          subtitle="AirTag, Apple Pencil, Magic Mouse, HomePod болон бусад"
+          products={accessoriesProducts}
+          viewAllLink="/categories/accessories"
+        />
+      )}
+
+      {/* All Products */}
+      {allProducts.length > 0 && (
+        <ProductGridSection
+          title="Бүх бүтээгдэхүүн"
+          subtitle="Манай дэлгүүрийн бүх санал"
+          products={allProducts.slice(0, 12)}
+          viewAllLink="/products"
+        />
+      )}
     </>
   );
 }

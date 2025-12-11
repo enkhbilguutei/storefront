@@ -64,9 +64,9 @@ interface CartStore {
   removeItem: (itemId: string) => Promise<boolean>;
 }
 
-// Request deduplication
+// Request deduplication and caching
 let pendingFetch: Promise<CartData | null> | null = null;
-const CACHE_DURATION = 5000; // 5 seconds cache
+const CACHE_DURATION = 10000; // 10 seconds cache - reduced API calls during rapid interactions
 
 export const useCartStore = create<CartStore>()(
   persist(

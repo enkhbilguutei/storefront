@@ -21,7 +21,7 @@ export default async function createAdmin({ container }: ExecArgs) {
   // Use the proper workflow which handles password hashing
   const { result } = await createUserAccountWorkflow(container).run({
     input: {
-      authIdentityToBind: undefined as any, // Will be created by the workflow
+      authIdentityId: undefined as any, // Will be created by the workflow
       userData: {
         email,
         first_name: "Admin",

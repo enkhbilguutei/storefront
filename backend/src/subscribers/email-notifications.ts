@@ -72,7 +72,7 @@ export default async function emailNotificationSubscriber({
         filters: {
             fulfillments: {
                 id: data.id
-            }
+            } as any
         },
       });
       

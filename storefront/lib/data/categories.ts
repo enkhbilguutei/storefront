@@ -1,6 +1,32 @@
 import { medusa } from "@/lib/medusa";
 import { cache } from "react";
 import { getDefaultRegion } from "./regions";
+import { API_URL, API_KEY } from "@/lib/config/api";
+
+// Transform product for home page display
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function transformProduct(product: any) {
+  const firstVariant = product.variants?.[0];
+  if (!firstVariant) return null;
+
+  const price = firstVariant.prices?.[0];
+  const calculatedPrice = firstVariant.calculated_price;
+
+  return {
+    id: firstVariant.id,
+    title: product.title,
+    handle: product.handle,
+    thumbnail: product.thumbnail || undefined,
+    price: price ? {
+      amount: calculatedPrice?.calculated_amount || price.amount,
+      currencyCode: price.currency_code.toUpperCase(),
+    } : undefined,
+    originalPrice: calculatedPrice?.original_amount && calculatedPrice.original_amount > (calculatedPrice.calculated_amount || price?.amount || 0) ? {
+      amount: calculatedPrice.original_amount,
+      currencyCode: price?.currency_code.toUpperCase() || 'MNT',
+    } : undefined,
+  };
+}
 
 export interface Category {
   id: string;
@@ -13,8 +39,8 @@ export interface Category {
   metadata?: Record<string, unknown> | null;
 }
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000";
-const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "";
+const BACKEND_URL = API_URL;
+const PUBLISHABLE_KEY = API_KEY;
 
 // Cache the categories fetch to avoid multiple calls
 export const getCategories = cache(async (): Promise<Category[]> => {
@@ -133,7 +159,10 @@ export const getProductsByCategory = cache(async (categoryId: string) => {
     
     const { products } = await medusa.store.product.list(query);
     
-    return products;
+    // Transform products for homepage display
+    return products
+      .map(transformProduct)
+      .filter((p) => p !== null);
   } catch (error) {
     console.error("Failed to fetch products by category:", error);
     return [];

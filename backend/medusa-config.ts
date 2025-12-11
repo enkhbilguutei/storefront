@@ -15,9 +15,6 @@ module.exports = defineConfig({
       jwtSecret: process.env.JWT_SECRET || "supersecret",
       cookieSecret: process.env.COOKIE_SECRET || "supersecret",
       jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d", // Admin session expires in 7 days
-      cookieOptions: {
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
-      },
     },
     workerMode: process.env.MEDUSA_WORKER_MODE as "shared" | "worker" | "server" || "shared",
   },
@@ -64,6 +61,9 @@ module.exports = defineConfig({
     },
     {
       resolve: "./src/modules/wishlist",
+    },
+    {
+      resolve: "./src/modules/product_analytics",
     },
     // Redis modules - only enabled when REDIS_URL is set
     ...(process.env.REDIS_URL ? [

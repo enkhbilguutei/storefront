@@ -45,10 +45,12 @@ export async function POST(
     )
 
     if (existingPrice) {
-      // Update existing price
-      await pricingService.updatePrices({
-        id: existingPrice.id,
-        amount,
+      // Update existing price through price set
+      await pricingService.updatePriceSets(existingPrice.id, {
+        prices: [{
+          amount,
+          currency_code,
+        }]
       })
     } else {
       // Create new price - this requires the price_set_id

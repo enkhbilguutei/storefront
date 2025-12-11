@@ -6,14 +6,14 @@ export const customerSchema = z.object({
   password: z.string().min(8, "Нууц үг дор хаяж 8 тэмдэгттэй байх ёстой"),
   firstName: z.string().min(1, "Нэр оруулна уу").optional(),
   lastName: z.string().min(1, "Овог оруулна уу").optional(),
-  phone: z.string().length(8, "Утасны дугаар 8 оронтой байх ёстой").regex(/^\d{8}$/, "Утасны дугаар зөвхөн тоо байх ёстой").optional(),
+  phone: z.string().regex(/^\d{8,9}$/, "Утасны дугаар 8-9 оронтой байх ёстой").optional(),
 });
 
 // Profile update schema (without password)
 export const profileUpdateSchema = z.object({
   firstName: z.string().min(1, "Нэр оруулна уу"),
   lastName: z.string().min(1, "Овог оруулна уу"),
-  phone: z.string().regex(/^(\d{8})?$/, "Утасны дугаар 8 оронтой тоо байх ёстой").optional(),
+  phone: z.string().regex(/^(\d{8,9})?$/, "Утасны дугаар 8-9 оронтой байх ёстой").optional(),
 });
 
 export const loginSchema = customerSchema.pick({
@@ -39,7 +39,7 @@ export const addressSchema = z.object({
   city: z.string().min(1, "Хот/Аймаг оруулна уу"),
   province: z.string().optional(),
   countryCode: z.string().min(2, "Улс оруулна уу"),
-  phone: z.string().length(8, "Утасны дугаар 8 оронтой байх ёстой").regex(/^\d{8}$/, "Утасны дугаар зөвхөн тоо байх ёстой"),
+  phone: z.string().regex(/^\d{8,9}$/, "Утасны дугаар 8-9 оронтой байх ёстой"),
   company: z.string().optional(),
 });
 

@@ -114,10 +114,12 @@ async function fallbackDatabaseSearch(
     });
     
     // Filter client-side
-    const filtered = (products || []).filter((p: { title?: string; description?: string }) => 
-      p.title?.toLowerCase().includes(q.toLowerCase()) ||
-      p.description?.toLowerCase().includes(q.toLowerCase())
-    );
+    const filtered = (products || []).filter((p) => {
+      const title = p.title ?? '';
+      const description = p.description ?? '';
+      return title.toLowerCase().includes(q.toLowerCase()) ||
+        description.toLowerCase().includes(q.toLowerCase());
+    });
     
     return {
       hits: filtered,

@@ -18,10 +18,12 @@ Sentry.init({
 
   // You can remove this option if you're not planning to use the Sentry Session Replay feature:
   integrations: [
-    Sentry.replayIntegration({
-      maskAllText: true,
-      blockAllMedia: true,
-    }),
+    // Replay integration is available in @sentry/nextjs v8+
+    // Temporarily commenting out until properly configured
+    // Sentry.replayIntegration({
+    //   maskAllText: true,
+    //   blockAllMedia: true,
+    // }),
   ],
 
   // Filter out common non-critical errors
