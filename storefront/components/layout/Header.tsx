@@ -1,10 +1,12 @@
 import { getCategories } from "@/lib/data/categories";
+import { getCollections } from "@/lib/data/collections";
 import { HeaderClient } from "./HeaderClient";
 
 // Server component wrapper
 export async function Header() {
   const categories = await getCategories();
-  return <HeaderClient categories={categories} />;
+  const collections = await getCollections();
+  return <HeaderClient categories={categories} collections={collections} />;
 }
 
 // Re-export for direct usage

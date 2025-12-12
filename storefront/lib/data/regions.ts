@@ -1,5 +1,5 @@
-import { medusa } from "@/lib/medusa";
 import { cache } from "react";
+import { API_KEY, API_URL } from "@/lib/config/api";
 
 export interface Region {
   id: string;
@@ -8,14 +8,27 @@ export interface Region {
   countries?: { iso_2: string; name: string }[];
 }
 
+const BACKEND_URL = API_URL;
+const PUBLISHABLE_KEY = API_KEY;
+const FETCH_TIMEOUT_MS = 2000;
+
 // Cache the regions fetch - regions rarely change
 export const getRegions = cache(async (): Promise<Region[]> => {
   try {
-    const { regions } = await medusa.store.region.list({
-      fields: "id,name,currency_code,countries.*",
+    const response = await fetch(`${BACKEND_URL}/store/regions`, {
+      headers: {
+        "x-publishable-api-key": PUBLISHABLE_KEY,
+      },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      next: { revalidate: 3600 },
     });
-    
-    return regions as Region[];
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch regions: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return (data?.regions ?? []) as Region[];
   } catch (error) {
     console.error("Failed to fetch regions:", error);
     return [];

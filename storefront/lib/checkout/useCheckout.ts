@@ -4,6 +4,7 @@ import { useCallback, useEffect, useReducer, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useCartStore } from "@/lib/store";
+import { API_KEY, API_URL } from "@/lib/config/api";
 import type { 
   CheckoutFormState, 
   CheckoutFormAction, 

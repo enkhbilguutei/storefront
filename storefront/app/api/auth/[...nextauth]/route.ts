@@ -2,6 +2,7 @@ import NextAuth, { NextAuthOptions, Session, User } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import { JWT } from "next-auth/jwt";
+import { API_KEY, API_URL } from "@/lib/config/api";
 
 // Extend types for custom properties
 interface ExtendedUser extends User {
@@ -41,7 +42,7 @@ export const authOptions: NextAuthOptions = {
         try {
           // Authenticate with Medusa backend
           const response = await fetch(
-            `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/auth/customer/emailpass`,
+            `${API_URL}/auth/customer/emailpass`,
             {
               method: "POST",
               headers: {
@@ -73,11 +74,11 @@ export const authOptions: NextAuthOptions = {
 
             // Fallback: Get customer details
             const customerResponse = await fetch(
-              `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/custom/me`,
+              `${API_URL}/store/custom/me`,
               {
                 headers: {
                   Authorization: `Bearer ${data.token}`,
-                  "x-publishable-api-key": process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "",
+                  "x-publishable-api-key": API_KEY,
                 },
               }
             );
@@ -108,7 +109,7 @@ export const authOptions: NextAuthOptions = {
         try {
           console.log("[NextAuth] Google sign-in detected, calling OAuth endpoint for:", user.email);
           const response = await fetch(
-            `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/auth/customer/oauth`,
+            `${API_URL}/auth/customer/oauth`,
             {
               method: "POST",
               headers: {
@@ -168,7 +169,7 @@ export const authOptions: NextAuthOptions = {
         while (retries > 0 && !success) {
           try {
             const response = await fetch(
-              `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/auth/customer/oauth`,
+              `${API_URL}/auth/customer/oauth`,
               {
                 method: "POST",
                 headers: {

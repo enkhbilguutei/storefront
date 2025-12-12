@@ -6,6 +6,7 @@
 import { medusa } from "@/lib/medusa";
 import { getDefaultRegion } from "@/lib/data/regions";
 import { toast } from "@/lib/toast";
+import type { CartData, CartItem } from "@/lib/store";
 
 export interface AddToCartParams {
   variantId: string;
@@ -19,8 +20,8 @@ export interface AddToCartParams {
   };
   currentCartId?: string | null;
   setCartId: (id: string) => void;
-  syncCart: () => Promise<void>;
-  addItem: (item: any) => void;
+  syncCart: () => Promise<CartData | null>;
+  addItem: (item: CartItem) => void;
   openCartNotification: () => void;
 }
 

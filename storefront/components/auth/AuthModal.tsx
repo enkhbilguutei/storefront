@@ -5,6 +5,7 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useUIStore } from "@/lib/store";
+import { API_URL } from "@/lib/config/api";
 import { loginSchema, registerSchema, type LoginInput, type RegisterInput } from "@/lib/validations";
 import { getAuthActionMessage, type AuthAction } from "@/lib/auth";
 import { 
@@ -187,7 +188,7 @@ export function AuthModal() {
 
     try {
       const registerResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/auth/customer/emailpass/register`,
+        `${API_URL}/auth/customer/emailpass/register`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -213,7 +214,7 @@ export function AuthModal() {
 
       if (regData.token) {
         await fetch(
-          `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/customers`,
+          `${API_URL}/store/customers`,
           {
             method: "POST",
             headers: {

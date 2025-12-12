@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Search, SlidersHorizontal, X, Loader2 } from "lucide-react";
 import { ProductCard } from "@/components/products/ProductCard";
 import { useRouter } from "next/navigation";
+import { API_URL } from "@/lib/config/api";
 
 interface SearchHit {
   id: string;

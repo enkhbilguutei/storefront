@@ -96,7 +96,7 @@ export default function ComparePage() {
   const handleAddToCart = async (variantId: string, productId: string, title: string, thumbnail?: string | null, unitPrice: number = 0, handle: string = "") => {
     setAddingToCart({ ...addingToCart, [variantId]: true });
     try {
-      const { cartId, setCartId, syncCart, addItem, openCartNotification } = useCartStore.getState();
+      const { cartId, setCartId, syncCart, addItem } = useCartStore.getState();
       
       await addToCart({
         variantId,
@@ -184,7 +184,7 @@ export default function ComparePage() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col bg-white">
-        <HeaderClient categories={[]} />
+        <HeaderClient categories={[]} collections={[]} />
         <main className="flex-1 flex items-center justify-center">
           <div className="flex items-center gap-3 text-gray-600">
             <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
@@ -199,7 +199,7 @@ export default function ComparePage() {
   if (products.length === 0) {
     return (
       <div className="min-h-screen flex flex-col bg-white">
-        <HeaderClient categories={[]} />
+        <HeaderClient categories={[]} collections={[]} />
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center py-20">
             <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -231,7 +231,7 @@ export default function ComparePage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      <HeaderClient categories={[]} />
+      <HeaderClient categories={[]} collections={[]} />
       
       <main className="flex-1 py-12">
         <div className="container mx-auto px-4">

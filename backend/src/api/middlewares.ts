@@ -55,5 +55,9 @@ export default defineMiddlewares({
       matcher: "/store/wishlist*",
       middlewares: [customAuthMiddleware],
     },
+    {
+      matcher: "/store/loyalty*",
+      middlewares: [customAuthMiddleware],
+    },
   ],
 });

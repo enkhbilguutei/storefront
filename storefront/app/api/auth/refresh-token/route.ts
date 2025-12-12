@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../[...nextauth]/route";
+import { API_URL } from "@/lib/config/api";
 
 /**
  * GET /api/auth/refresh-token
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
     
     if (extendedSession.user.provider === "google") {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/auth/customer/oauth`,
+        `${API_URL}/auth/customer/oauth`,
         {
           method: "POST",
           headers: {

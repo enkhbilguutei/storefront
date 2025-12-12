@@ -292,30 +292,50 @@ export function ProductFilters({ categories }: ProductFiltersProps) {
         <div className="relative">
           {renderFilterButton("category", "Ангилал", currentCategory?.name || "Ангилал")}
           {openDropdown === "category" && (
-            <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-              <button
-                onClick={() => handleCategoryChange("")}
-                className={`w-full text-left px-4 py-2.5 text-[13px] transition-colors ${
-                  !currentCategory 
-                    ? "bg-[#f5f5f7] font-medium text-[#1d1d1f]" 
-                    : "text-[#424245] hover:bg-[#f5f5f7]"
-                }`}
-              >
-                Бүгд
-              </button>
-              {categories.map((c) => (
+            <div className="absolute top-full left-0 mt-2 w-72 overflow-hidden rounded-2xl bg-white shadow-xl border border-gray-100 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="px-4 py-3 border-b border-gray-100">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-foreground/50">
+                  Ангилал
+                </div>
+                <div className="mt-0.5 text-[12px] text-foreground/60">
+                  {currentCategory?.name || "Бүгд"}
+                </div>
+              </div>
+
+              <div className="max-h-80 overflow-y-auto p-1">
                 <button
-                  key={c.id}
-                  onClick={() => handleCategoryChange(c.id)}
-                  className={`w-full text-left px-4 py-2.5 text-[13px] transition-colors ${
-                    currentCategory?.id === c.id 
-                      ? "bg-[#f5f5f7] font-medium text-[#1d1d1f]" 
-                      : "text-[#424245] hover:bg-[#f5f5f7]"
+                  onClick={() => handleCategoryChange("")}
+                  className={`w-full flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/10 ${
+                    !currentCategory
+                      ? "bg-foreground/5 text-foreground font-semibold"
+                      : "text-foreground/70 hover:bg-foreground/5 hover:text-foreground"
                   }`}
                 >
-                  {c.name}
+                  <span className="truncate">Бүгд</span>
+                  {!currentCategory && (
+                    <span className="text-[11px] font-semibold text-foreground/40">Сонгосон</span>
+                  )}
                 </button>
-              ))}
+
+                <div className="my-1 h-px bg-gray-100" />
+
+                {categories.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => handleCategoryChange(c.id)}
+                    className={`w-full flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/10 ${
+                      currentCategory?.id === c.id
+                        ? "bg-foreground/5 text-foreground font-semibold"
+                        : "text-foreground/70 hover:bg-foreground/5 hover:text-foreground"
+                    }`}
+                  >
+                    <span className="truncate">{c.name}</span>
+                    {currentCategory?.id === c.id && (
+                      <span className="text-[11px] font-semibold text-foreground/40">Сонгосон</span>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>

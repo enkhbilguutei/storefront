@@ -3,6 +3,7 @@ import { render } from "@react-email/render";
 import { OrderPlacedEmail } from "../../emails/OrderPlaced";
 import { OrderConfirmedEmail } from "../../emails/OrderConfirmed";
 import { OrderShippedEmail } from "../../emails/OrderShipped";
+import { AbandonedCartEmail } from "../../emails/AbandonedCart";
 import { Logger } from "@medusajs/framework/types";
 
 type InjectedDependencies = {
@@ -147,6 +148,54 @@ export default class EmailNotificationService {
       this.logger.info(`Order shipped email sent to ${email} for order #${order.display_id}. ID: ${data?.id}`);
     } catch (error) {
       this.logger.error(`Error sending order shipped email: ${error}`);
+    }
+  }
+
+  async sendAbandonedCartEmail(cart: any, discountCode?: string) {
+    try {
+      const email = cart.email;
+      if (!email) {
+        this.logger.warn(`Cannot send abandoned cart email: cart ${cart.id} has no email`);
+        return;
+      }
+
+      const items = cart.items.map((item: any) => ({
+        title: item.title || item.product_title,
+        quantity: item.quantity,
+        price: this.formatCurrency(item.unit_price || 0),
+        thumbnail: item.thumbnail,
+      }));
+      
+      const subtotal = this.formatCurrency(cart.subtotal || 0);
+      const storefrontUrl = process.env.STORE_URL || "https://alimhan.mn";
+      const cartUrl = `${storefrontUrl}/cart`;
+
+      const emailHtml = await render(
+        AbandonedCartEmail({
+          cartId: cart.id,
+          customerEmail: email,
+          items,
+          subtotal,
+          cartUrl,
+          discountCode: discountCode || "CART10",
+        })
+      );
+
+      const { data, error } = await this.resend.emails.send({
+        from: this.emailFrom,
+        to: [email],
+        subject: "Таны сагсанд бүтээгдэхүүн үлдсэн байна 🛒",
+        html: emailHtml,
+      });
+
+      if (error) {
+        this.logger.error(`Failed to send abandoned cart email: ${error.message}`);
+        return;
+      }
+
+      this.logger.info(`Abandoned cart email sent to ${email} for cart ${cart.id}. ID: ${data?.id}`);
+    } catch (error) {
+      this.logger.error(`Error sending abandoned cart email: ${error}`);
     }
   }
 }

@@ -4,13 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUserStore } from "@/lib/store";
 import { 
-  User, Package, MapPin, Heart, Settings, LogOut
+  User, Package, MapPin, Heart, Settings, LogOut, Trophy
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
 const accountLinks = [
   { href: "/account", label: "Профайл", icon: User },
   { href: "/account/orders", label: "Захиалгууд", icon: Package },
+  { href: "/account/loyalty", label: "Урамшуулал", icon: Trophy },
   { href: "/account/addresses", label: "Хаягууд", icon: MapPin },
   { href: "/account/wishlist", label: "Хүслийн жагсаалт", icon: Heart },
   { href: "/account/settings", label: "Тохиргоо", icon: Settings },

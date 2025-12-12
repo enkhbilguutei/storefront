@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
+import { API_KEY, API_URL } from "@/lib/config/api";
 
 interface Order {
   id: string;
@@ -52,12 +53,12 @@ export function useOrderPolling({
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/custom/orders?limit=50&order=-created_at`,
+        `${API_URL}/store/custom/orders?limit=50&order=-created_at`,
         {
           credentials: "include",
           headers: {
             "Content-Type": "application/json",
-            "x-publishable-api-key": process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "",
+            "x-publishable-api-key": API_KEY,
             Authorization: `Bearer ${accessToken}`,
           },
         }

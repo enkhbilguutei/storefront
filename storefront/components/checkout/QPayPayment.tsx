@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { API_KEY, API_URL } from "@/lib/config/api";
 import Image from "next/image";
 import { Loader2, RefreshCw, AlertCircle, CheckCircle } from "lucide-react";
 
@@ -166,8 +167,8 @@ function getBankLogo(name: string): { logo: string; color: string } | null {
   return null;
 }
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000";
-const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "";
+const BACKEND_URL = API_URL;
+const PUBLISHABLE_KEY = API_KEY;
 
 export function QPayPayment({
   orderId,

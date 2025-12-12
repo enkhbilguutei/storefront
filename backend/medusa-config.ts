@@ -65,6 +65,9 @@ module.exports = defineConfig({
     {
       resolve: "./src/modules/product_analytics",
     },
+    {
+      resolve: "./src/modules/loyalty",
+    },
     // Redis modules - only enabled when REDIS_URL is set
     ...(process.env.REDIS_URL ? [
       {

@@ -1,9 +1,10 @@
 import { MetadataRoute } from 'next';
-import { medusa } from '@/lib/medusa';
 import { getCategories } from '@/lib/data/categories';
+import { API_KEY, API_URL } from '@/lib/config/api';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://alimhan.mn';
+  const FETCH_TIMEOUT_MS = 2000;
 
   // Static pages
   const staticPages = [
@@ -30,10 +31,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Get all products
   let productPages: MetadataRoute.Sitemap = [];
   try {
-    const { products } = await medusa.store.product.list({
-      limit: 1000,
-      fields: 'handle,updated_at',
-    });
+    const response = await fetch(
+      `${API_URL}/store/products?limit=1000&fields=handle,updated_at`,
+      {
+        headers: {
+          'x-publishable-api-key': API_KEY,
+        },
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+        next: { revalidate: 3600 },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch products for sitemap: ${response.statusText}`);
+    }
+
+    const { products } = (await response.json()) as {
+      products: Array<{ handle: string; updated_at?: string | null }>;
+    };
 
     productPages = products.map((product) => ({
       url: `${baseUrl}/products/${product.handle}`,

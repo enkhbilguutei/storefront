@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useUIStore } from "@/lib/store";
 import { CloudinaryImage } from "@/components/Cloudinary";
 import { toast } from "@/lib/toast";
+import { API_KEY, API_URL } from "@/lib/config/api";
 
 interface SearchHit {
   id: string;
@@ -60,15 +61,9 @@ export function SearchModal() {
     const fetchRecommended = async () => {
       // Only run on client side
       if (typeof window === 'undefined') return;
-      
-      const backendUrl = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL;
-      const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY;
-      
-      if (!backendUrl) {
-        console.error("NEXT_PUBLIC_MEDUSA_BACKEND_URL is not defined");
-        toast.error("Тохиргооны алдаа. Админд мэдэгдэнэ үү.");
-        return;
-      }
+
+      const backendUrl = API_URL;
+      const publishableKey = API_KEY;
       
       try {
         const response = await fetch(
@@ -133,14 +128,8 @@ export function SearchModal() {
       return;
     }
 
-    const backendUrl = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL;
-    const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY;
-    
-    if (!backendUrl) {
-      console.error("NEXT_PUBLIC_MEDUSA_BACKEND_URL is not defined");
-      toast.error("Тохиргооны алдаа гарлаа.");
-      return;
-    }
+    const backendUrl = API_URL;
+    const publishableKey = API_KEY;
 
     setIsLoading(true);
     try {

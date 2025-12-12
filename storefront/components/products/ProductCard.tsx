@@ -72,7 +72,7 @@ export function ProductCard({
     
     setIsAdding(true);
     try {
-      const { cartId, setCartId, syncCart, addItem, openCartNotification } = useCartStore.getState();
+      const { cartId, setCartId, syncCart, addItem } = useCartStore.getState();
       
       await addToCart({
         variantId: id,

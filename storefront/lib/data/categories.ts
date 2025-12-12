@@ -41,12 +41,67 @@ export interface Category {
 
 const BACKEND_URL = API_URL;
 const PUBLISHABLE_KEY = API_KEY;
+const DEFAULT_FETCH_TIMEOUT_MS = 8000;
+const FETCH_TIMEOUT_MS = Number(
+  process.env.NEXT_PUBLIC_STOREFRONT_FETCH_TIMEOUT_MS ??
+    process.env.STOREFRONT_FETCH_TIMEOUT_MS ??
+    DEFAULT_FETCH_TIMEOUT_MS
+);
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function fetchWithRetry(
+  input: string,
+  init: Omit<RequestInit, "signal"> & { signal?: AbortSignal },
+  opts?: {
+    timeoutMs?: number;
+    retries?: number;
+    retryDelayMs?: number;
+  }
+) {
+  const timeoutMs = opts?.timeoutMs ?? FETCH_TIMEOUT_MS;
+  const retries = opts?.retries ?? 2;
+  const retryDelayMs = opts?.retryDelayMs ?? 250;
+
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(input, {
+        ...init,
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      return response;
+    } catch (error) {
+      lastError = error;
+      if (attempt >= retries) break;
+      await sleep(retryDelayMs * Math.pow(2, attempt));
+    }
+  }
+
+  throw lastError;
+}
+
+async function warmBackendConnection() {
+  try {
+    await fetch(`${BACKEND_URL}/store/warm`, {
+      headers: {
+        "x-publishable-api-key": PUBLISHABLE_KEY,
+      },
+      signal: AbortSignal.timeout(1500),
+      // Don’t cache the warmup request.
+      cache: "no-store",
+    });
+  } catch {
+    // best-effort
+  }
+}
 
 // Cache the categories fetch to avoid multiple calls
 export const getCategories = cache(async (): Promise<Category[]> => {
   try {
+    await warmBackendConnection();
     // Use fetch directly since SDK doesn't have productCategory endpoint
-    const response = await fetch(
+    const response = await fetchWithRetry(
       `${BACKEND_URL}/store/product-categories?include_descendants_tree=true&fields=id,name,handle,description,parent_category_id,category_children,metadata,*category_children`,
       {
         headers: {
@@ -76,7 +131,8 @@ export const getCategories = cache(async (): Promise<Category[]> => {
 
 export const getCategoryByHandle = cache(async (handle: string): Promise<Category | null> => {
   try {
-    const response = await fetch(
+    await warmBackendConnection();
+    const response = await fetchWithRetry(
       `${BACKEND_URL}/store/product-categories?handle=${handle}&include_descendants_tree=true&fields=id,name,handle,description,parent_category_id,category_children,metadata`,
       {
         headers: {

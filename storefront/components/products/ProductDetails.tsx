@@ -13,6 +13,7 @@ import { RecentSales } from "./RecentSales";
 import { CustomerReviews } from "./CustomerReviews";
 import { ReviewForm } from "./ReviewForm";
 import { TrustBadges } from "./TrustBadges";
+import ShareButton from "./ShareButton";
 import { 
   ChevronRight, 
   ShoppingBag, 
@@ -23,7 +24,6 @@ import {
   Minus,
   Plus,
   Heart,
-  Share2,
   Star,
   ChevronLeft
 } from "lucide-react";
@@ -672,12 +672,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
                 </svg>
               </button>
               
-              <button
-                className="w-14 h-14 bg-[#f5f5f7] text-[#86868b] rounded-full flex items-center justify-center hover:bg-[#e8e8ed] hover:text-[#1d1d1f] transition-all duration-200"
-                title="Хуваалцах"
-              >
-                <Share2 className="w-5 h-5" />
-              </button>
+              <ShareButton product={product} />
             </div>
           </div>
 

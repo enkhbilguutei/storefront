@@ -1,26 +1,32 @@
 "use client";
 
 import Link from "next/link";
-import { MapPin, HeadphonesIcon, Store, Search, Menu, X, ChevronDown, ChevronRight, ShoppingCart, User, Package, LogOut, Smartphone, Laptop, Plane, Gamepad2, Glasses, Crown } from "lucide-react";
+import { Search, Menu, X, ChevronDown, ChevronRight, ShoppingCart, User, Package, LogOut, Smartphone, Laptop, Plane, Gamepad2, Glasses, Crown } from "lucide-react";
 import { useUIStore, useUserStore, useCartStore } from "@/lib/store";
 import { useState, useEffect, useRef } from "react";
 import { Category } from "@/lib/data/categories";
+import type { Collection } from "@/lib/data/collections";
 import { SearchModal } from "@/components/search/SearchModal";
 import { signOut } from "next-auth/react";
 
 interface HeaderClientProps {
   categories: Category[];
+  collections: Collection[];
 }
 
-export function HeaderClient({ categories }: HeaderClientProps) {
+export function HeaderClient({ categories, collections }: HeaderClientProps) {
   const { isMobileMenuOpen, openMobileMenu, closeMobileMenu, openSearch } = useUIStore();
   const { user, isAuthenticated } = useUserStore();
   const { items } = useCartStore();
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
+  const [isCollectionsMenuOpen, setIsCollectionsMenuOpen] = useState(false);
   const megaMenuRef = useRef<HTMLDivElement>(null);
   const megaMenuTriggerRef = useRef<HTMLButtonElement>(null);
+  const collectionsMenuRef = useRef<HTMLDivElement>(null);
+  const collectionsMenuTriggerRef = useRef<HTMLButtonElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const collectionsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const cartItemCount = items?.length || 0;
 
@@ -48,6 +54,15 @@ export function HeaderClient({ categories }: HeaderClientProps) {
         setIsMegaMenuOpen(false);
         setActiveCategory(null);
       }
+
+      if (
+        collectionsMenuRef.current &&
+        !collectionsMenuRef.current.contains(event.target as Node) &&
+        collectionsMenuTriggerRef.current &&
+        !collectionsMenuTriggerRef.current.contains(event.target as Node)
+      ) {
+        setIsCollectionsMenuOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -67,6 +82,19 @@ export function HeaderClient({ categories }: HeaderClientProps) {
     timeoutRef.current = setTimeout(() => {
       setIsMegaMenuOpen(false);
       setActiveCategory(null);
+    }, 150);
+  };
+
+  const handleCollectionsMenuEnter = () => {
+    if (collectionsTimeoutRef.current) {
+      clearTimeout(collectionsTimeoutRef.current);
+    }
+    setIsCollectionsMenuOpen(true);
+  };
+
+  const handleCollectionsMenuLeave = () => {
+    collectionsTimeoutRef.current = setTimeout(() => {
+      setIsCollectionsMenuOpen(false);
     }, 150);
   };
 
@@ -185,6 +213,86 @@ export function HeaderClient({ categories }: HeaderClientProps) {
                 >
                   {isMobileMenuOpen ? <X className="h-5.5 w-5.5" /> : <Menu className="h-5.5 w-5.5" />}
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Subheader: Collections */}
+        <div className="hidden lg:block bg-white border-b border-gray-100">
+          <div className="container mx-auto px-4">
+            <div className="flex items-center justify-between h-12">
+              <div className="flex items-center gap-6">
+                <div
+                  className="relative"
+                  onMouseEnter={handleCollectionsMenuEnter}
+                  onMouseLeave={handleCollectionsMenuLeave}
+                >
+                  <button
+                    ref={collectionsMenuTriggerRef}
+                    className="inline-flex items-center gap-2 px-2 py-1.5 rounded-md text-sm font-medium text-gray-800 hover:bg-gray-50 transition-colors"
+                    aria-haspopup="menu"
+                    aria-expanded={isCollectionsMenuOpen}
+                  >
+                    Цуглуулга
+                    <ChevronDown
+                      className={`h-4 w-4 transition-transform duration-200 ${
+                        isCollectionsMenuOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {isCollectionsMenuOpen && collections.length > 0 && (
+                    <div
+                      ref={collectionsMenuRef}
+                      className="absolute left-0 top-full mt-2 w-[640px] bg-white border border-gray-200 rounded-xl shadow-xl p-5"
+                      role="menu"
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Цуглуулгууд
+                          </p>
+                          <p className="text-sm text-gray-700 mt-1">
+                            Та дуртай бүтээгдэхүүнээ цуглуулгаар нь шүүж үзээрэй.
+                          </p>
+                        </div>
+                        <Link
+                          href="/collections"
+                          onClick={() => setIsCollectionsMenuOpen(false)}
+                          className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+                        >
+                          Бүгдийг үзэх
+                        </Link>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        {collections.map((collection) => (
+                          <Link
+                            key={collection.id}
+                            href={`/collections/${collection.handle}`}
+                            onClick={() => setIsCollectionsMenuOpen(false)}
+                            className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors"
+                            role="menuitem"
+                          >
+                            <span className="text-sm font-medium text-gray-900">
+                              {collection.title}
+                            </span>
+                            <ChevronRight className="h-4 w-4 text-gray-400" />
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <Link href="/products" className="text-sm font-medium text-gray-700 hover:text-gray-900">
+                  Бүтээгдэхүүн
+                </Link>
+              </div>
+
+              <div className="text-xs text-gray-500">
+                {collections.length > 0 ? `${collections.length} цуглуулга` : ""}
               </div>
             </div>
           </div>

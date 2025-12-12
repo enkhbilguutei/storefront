@@ -10,6 +10,10 @@
   ],
   "scripts": {
     "dev": "turbo run dev",
+    "dev:mobile": "./scripts/mobile-dev.sh setup && turbo run dev:mobile",
+    "mobile:setup": "./scripts/mobile-dev.sh setup",
+    "mobile:restore": "./scripts/mobile-dev.sh restore",
+    "mobile:qr": "./scripts/mobile-qr.sh",
     "build": "turbo run build",
     "start": "turbo run start",
     "lint": "turbo run lint",
@@ -19,7 +23,7 @@
     "seed": "pnpm --filter @alimhan/admin seed"
   },
   "devDependencies": {
-    "turbo": "^2.5.4"
+    "turbo": "2.6.3"
   },
   "dependencies": {
     "swiper": "^12.0.3"
