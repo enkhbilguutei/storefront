@@ -19,7 +19,7 @@ import {
   linkSalesChannelsToStockLocationWorkflow,
   updateStoresStep,
   updateStoresWorkflow,
-} from "@medusajs/medusa/core-flows";
+} from "@medusajs/core-flows";
 import {
   createWorkflow,
   transform,

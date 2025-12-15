@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, ShieldCheck, Lock } from "lucide-react";
+import { ArrowRight, Lock, Calendar, ReceiptText } from "lucide-react";
 import Link from "next/link";
 
 interface CartSummaryProps {
@@ -22,67 +22,89 @@ export function CartSummary({ cart }: CartSummaryProps) {
     }).format(amount);
   };
 
+  const today = new Date().toLocaleDateString("mn-MN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+
   return (
-    <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-      <h2 className="text-lg font-semibold text-gray-900 mb-6">Захиалгын мэдээлэл</h2>
+    <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm shadow-slate-200/70">
+      <div className="absolute inset-x-0 top-0 h-2 bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900" aria-hidden />
+      <div className="absolute -left-4 top-32 h-8 w-8 rounded-full border border-slate-200 bg-slate-50" aria-hidden />
+      <div className="absolute -right-4 top-48 h-8 w-8 rounded-full border border-slate-200 bg-slate-50" aria-hidden />
 
-      <div className="space-y-4">
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Барааны үнэ</span>
-          <span className="font-medium text-gray-900">{formatPrice(cart.subtotal || 0)}</span>
-        </div>
-
-        {cart.discount_total && cart.discount_total > 0 ? (
-          <div className="flex justify-between text-sm text-green-600">
-            <span>Хямдрал</span>
-            <span className="font-medium">-{formatPrice(cart.discount_total)}</span>
+      <div className="relative z-10 p-6 pb-4 space-y-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">Төлбөрийн баримт</p>
+            <h2 className="text-xl font-bold text-slate-900">Захиалгын мэдээлэл</h2>
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <Calendar className="w-3.5 h-3.5" />
+              <span className="font-mono">{today}</span>
+            </div>
           </div>
-        ) : null}
-
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Хүргэлт</span>
-          <span className="font-medium text-gray-900">
-            {cart.shipping_total ? formatPrice(cart.shipping_total) : "Тооцоологдоогүй"}
-          </span>
+          <div className="shrink-0 rounded-2xl bg-slate-900 text-white px-3 py-2 flex items-center gap-2 text-xs font-semibold shadow-md shadow-slate-300/40">
+            <ReceiptText className="w-4 h-4" />
+            <span>Баримт</span>
+          </div>
         </div>
 
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Татвар</span>
-          <span className="font-medium text-gray-900">{formatPrice(cart.tax_total || 0)}</span>
-        </div>
+        <div className="space-y-4 rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-slate-600">Барааны үнэ</span>
+            <span className="font-semibold text-slate-900 font-mono">{formatPrice(cart.subtotal || 0)}</span>
+          </div>
 
-        <div className="border-t border-gray-100 pt-6 mt-6">
-          <div className="flex justify-between items-baseline">
-            <span className="text-base font-semibold text-gray-900">Нийт</span>
-            <div className="text-right">
-              <span className="text-2xl font-bold text-gray-900">
+          {cart.discount_total && cart.discount_total > 0 ? (
+            <div className="flex items-center justify-between text-sm text-emerald-600">
+              <span>Хямдрал</span>
+              <span className="font-semibold font-mono">-{formatPrice(cart.discount_total)}</span>
+            </div>
+          ) : null}
+
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-slate-600">Хүргэлт</span>
+            <span className="font-semibold text-slate-900 font-mono">
+              {cart.shipping_total ? formatPrice(cart.shipping_total) : "Тооцоологдоогүй"}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-slate-600">Татвар</span>
+            <span className="font-semibold text-slate-900 font-mono">{formatPrice(cart.tax_total || 0)}</span>
+          </div>
+
+          <div className="border-t border-dashed border-slate-200 pt-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-base font-semibold text-slate-900">Нийт</span>
+                <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600">НӨАТ орсон</span>
+              </div>
+              <span className="text-3xl font-black tracking-tight text-slate-900 font-mono">
                 {formatPrice(cart.total || 0)}
               </span>
             </div>
           </div>
-          <p className="text-xs text-gray-500 mt-2 text-right">
-            НӨАТ орсон
-          </p>
         </div>
-      </div>
 
-      <Link
-        href="/checkout"
-        className="w-full bg-gray-900 text-white rounded-xl py-4 px-6 mt-8 font-semibold text-sm hover:bg-gray-800 active:scale-[0.98] transition-all shadow-lg shadow-gray-200 hover:shadow-xl flex items-center justify-center gap-2"
-      >
-        <span>Худалдан авах</span>
-        <ArrowRight className="w-4 h-4" />
-      </Link>
+        <div className="flex items-center justify-between text-[11px] text-slate-500 bg-slate-50 border border-dashed border-slate-200 rounded-xl px-3 py-2">
+          <span>Төлбөр хийхдээ QR болон карт ашиглах боломжтой.</span>
+          <span className="font-semibold text-slate-700">Аюулгүй</span>
+        </div>
 
-      <div className="mt-6 flex items-center justify-center gap-2 text-xs text-gray-500">
-        <Lock className="w-3.5 h-3.5" />
-        <span>Аюулгүй төлбөрийн систем</span>
-      </div>
-      
-      {/* Trust Badges */}
-      <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-center gap-2 text-xs text-gray-500">
-        <ShieldCheck className="w-4 h-4 text-green-600" />
-        <span>Баталгаатай бүтээгдэхүүн</span>
+        <Link
+          href="/checkout"
+          className="hidden lg:flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 py-4 px-6 text-sm font-semibold text-white shadow-lg shadow-slate-200/60 transition-all hover:shadow-xl active:scale-[0.985]"
+        >
+          <span>Худалдан авах</span>
+          <ArrowRight className="w-4 h-4" />
+        </Link>
+
+        <div className="hidden lg:flex items-center justify-center gap-2 text-xs text-slate-500">
+          <Lock className="w-3.5 h-3.5" />
+          <span>Аюулгүй төлбөрийн систем</span>
+        </div>
       </div>
     </div>
   );

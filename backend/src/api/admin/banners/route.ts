@@ -8,6 +8,7 @@ import type BannerModuleService from "../../../modules/banner/service"
  * Lists all banners (including inactive) for admin management.
  * Query params:
  *   - placement: Filter by placement type
+ *   - section: Filter by section (for product_grid)
  *   - is_active: Filter by active status
  */
 export async function GET(
@@ -21,6 +22,10 @@ export async function GET(
     
     if (req.query.placement) {
       filters.placement = req.query.placement
+    }
+    
+    if (req.query.section) {
+      filters.section = req.query.section
     }
     
     if (req.query.is_active !== undefined) {
@@ -63,6 +68,7 @@ export async function POST(
       link,
       alt_text,
       placement,
+      section,
       sort_order = 0,
       is_active = true,
       dark_text = false,
@@ -88,6 +94,7 @@ export async function POST(
       link: link as string,
       alt_text: alt_text as string | null,
       placement: placement as string,
+      section: section as string | null,
       sort_order: sort_order as number,
       is_active: is_active as boolean,
       dark_text: dark_text as boolean,

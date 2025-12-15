@@ -63,6 +63,12 @@ interface ProductWithPrices {
   title: string;
   handle: string;
   thumbnail: string | null;
+  metadata?: Record<string, unknown> | null;
+  collection?: {
+    id: string;
+    title: string;
+    handle: string;
+  } | null;
   options?: {
     id: string;
     title: string;
@@ -84,7 +90,7 @@ async function getProducts(searchParams: { [key: string]: string | string[] | un
 
   const query: ProductQuery = {
     limit: 100, // Fetch more to allow client-side price filtering
-    fields: "id,title,handle,thumbnail,options.*,options.values.*,variants.id,variants.title,variants.options.*,variants.prices.amount,variants.prices.currency_code,+variants.calculated_price,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder",
+    fields: "id,title,handle,thumbnail,metadata,options.*,options.values.*,variants.id,variants.title,variants.options.*,variants.prices.amount,variants.prices.currency_code,+variants.calculated_price,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder",
   };
 
   // Add region_id to get calculated prices with promotions
@@ -195,9 +201,11 @@ export default async function ProductsPage({
                   <ProductCard
                     key={product.id}
                     id={firstVariant?.id ?? product.id}
+                    productId={product.id}
                     title={product.title}
                     handle={product.handle}
                     thumbnail={product.thumbnail ?? undefined}
+                    tradeInEligible={Boolean(product.metadata?.trade_in_eligible)}
                     price={
                       displayPrice
                         ? {
@@ -214,7 +222,10 @@ export default async function ProductsPage({
                           }
                         : undefined
                     }
-                    collection={(product as any).collection ?? null}
+                    inventoryQuantity={firstVariant?.inventory_quantity ?? null}
+                    manageInventory={firstVariant?.manage_inventory ?? null}
+                    allowBackorder={firstVariant?.allow_backorder ?? null}
+                    collection={product.collection ?? null}
                   />
                 );
               })}

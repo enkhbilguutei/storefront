@@ -48,7 +48,6 @@ export default function ComparePage() {
   const { products, removeProduct, clearAll } = useComparisonStore();
   const [productDetails, setProductDetails] = useState<(ProductDetails | null)[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { addItem } = useCartStore();
   const { openCartNotification } = useUIStore();
   const [addingToCart, setAddingToCart] = useState<{ [key: string]: boolean }>({});
 
@@ -58,13 +57,50 @@ export default function ComparePage() {
       try {
         const details = await Promise.all(
           products.map(async (product) => {
+            const baseFields = "+variants.inventory_quantity,+variants.options,+variants.prices,+variants.calculated_price,+options.values";
+            const resolvedProductId = product.productId ?? product.id;
+
+            const tryUpdateStoreProductId = (productId: string) => {
+              // Patch persisted store so future visits use correct product id
+              useComparisonStore.setState((state) => ({
+                products: state.products.map((p) =>
+                  p.variantId === product.variantId ? { ...p, productId, id: productId } : p
+                ),
+              }));
+            };
+
             try {
-              const response = await medusa.store.product.retrieve(product.id, {
-                fields: "+variants.inventory_quantity,+variants.options,+variants.prices,+variants.calculated_price,+options.values",
+              const response = await medusa.store.product.retrieve(resolvedProductId, {
+                fields: baseFields,
               });
+
+              // If original item missed productId, persist it now
+              if (!product.productId && response.product?.id) {
+                tryUpdateStoreProductId(response.product.id);
+              }
+
               return response.product;
-            } catch (error) {
-              console.error(`Failed to fetch product ${product.id}:`, error);
+            } catch (primaryError) {
+              // Fallback: try resolving via handle if available
+              if (product.handle) {
+                try {
+                  const listResponse = await medusa.store.product.list({
+                    handle: product.handle,
+                    fields: baseFields,
+                    limit: 1,
+                  } as any);
+
+                  const fallbackProduct = listResponse.products?.[0];
+                  if (fallbackProduct?.id) {
+                    tryUpdateStoreProductId(fallbackProduct.id);
+                    return fallbackProduct;
+                  }
+                } catch (listError) {
+                  console.error("Failed to resolve product by handle:", listError);
+                }
+              }
+
+              console.error(`Failed to fetch product ${product.id}:`, primaryError);
               return null;
             }
           })
@@ -132,7 +168,7 @@ export default function ComparePage() {
     rows.push({
       label: "Үнэ",
       values: products.map((product) => {
-        const detail = productDetails.find(d => d?.id === product.id);
+        const detail = productDetails.find(d => d?.id === (product.productId ?? product.id));
         const variant = detail?.variants?.find(v => v.id === product.variantId);
         const price = variant?.calculated_price?.calculated_amount ?? variant?.prices?.[0]?.amount;
         return price ? formatPrice(price) : "—";
@@ -143,7 +179,7 @@ export default function ComparePage() {
     rows.push({
       label: "Боломжит эсэх",
       values: products.map((product) => {
-        const detail = productDetails.find(d => d?.id === product.id);
+        const detail = productDetails.find(d => d?.id === (product.productId ?? product.id));
         const variant = detail?.variants?.find(v => v.id === product.variantId);
         return variant && variant.inventory_quantity > 0 ? "Бэлэн байгаа" : "Дууссан";
       }),
@@ -161,7 +197,7 @@ export default function ComparePage() {
       rows.push({
         label: optionTitle,
         values: products.map((product) => {
-          const detail = productDetails.find(d => d?.id === product.id);
+          const detail = productDetails.find(d => d?.id === (product.productId ?? product.id));
           const variant = detail?.variants?.find(v => v.id === product.variantId);
           const option = variant?.options?.find(o => {
             const productOption = detail?.options?.find(po => po.id === o.option_id);
@@ -228,6 +264,7 @@ export default function ComparePage() {
   }
 
   const comparisonRows = getComparisonRows();
+  const columnTemplate = `minmax(160px, 1fr) repeat(${products.length}, minmax(200px, 1fr))`;
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -236,107 +273,114 @@ export default function ComparePage() {
       <main className="flex-1 py-12">
         <div className="container mx-auto px-4">
           {/* Header */}
-          <div className="flex items-center justify-between mb-8">
-            <div>
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-8">
+            <div className="space-y-2">
               <Link
                 href="/products"
-                className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-3 transition-colors"
+                className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Буцах
               </Link>
-              <h1 className="text-3xl md:text-4xl font-semibold text-gray-900">
-                Бүтээгдэхүүн харьцуулах
-              </h1>
-              <p className="text-gray-600 mt-2">
-                {products.length} бүтээгдэхүүнийг харьцуулж байна
-              </p>
+              <div>
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-gray-900">
+                  Бүтээгдэхүүн харьцуулах
+                </h1>
+                <p className="text-gray-600 mt-1">
+                  {products.length} бүтээгдэхүүнийг харьцуулж байна
+                </p>
+              </div>
             </div>
 
             <button
               onClick={clearAll}
-              className="text-sm text-red-600 hover:text-red-700 font-medium transition-colors"
+              className="self-start text-sm text-red-600 hover:text-red-700 font-medium transition-colors"
             >
               Бүгдийг устгах
             </button>
           </div>
 
           {/* Comparison Table */}
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-            {/* Product Headers */}
-            <div className="grid gap-4 p-6 bg-gray-50 border-b border-gray-200" style={{ gridTemplateColumns: `200px repeat(${products.length}, 1fr)` }}>
-              <div className="font-semibold text-gray-900">Харьцуулалт</div>
-              {products.map((product) => {
-                return (
-                  <div key={product.variantId} className="relative">
-                    <button
-                      onClick={() => removeProduct(product.variantId)}
-                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors z-10"
-                      aria-label="Хасах"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200">
+            <div className="overflow-x-auto">
+              {/* Product Headers */}
+              <div
+                className="grid gap-4 p-4 sm:p-6 bg-gray-50 border-b border-gray-200 min-w-[720px]"
+                style={{ gridTemplateColumns: columnTemplate }}
+              >
+                <div className="font-semibold text-gray-900 text-sm sm:text-base">Харьцуулалт</div>
+                {products.map((product) => {
+                  return (
+                    <div key={product.variantId} className="relative">
+                      <button
+                        onClick={() => removeProduct(product.variantId)}
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors z-10"
+                        aria-label="Хасах"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
 
-                    <Link href={`/products/${product.handle}`} className="block group">
-                      <div className="aspect-square bg-white rounded-lg mb-3 overflow-hidden border border-gray-200 p-4 group-hover:border-blue-500 transition-colors">
-                        {product.thumbnail ? (
-                          <CloudinaryImage
-                            src={product.thumbnail}
-                            alt={product.title}
-                            width={300}
-                            height={300}
-                            className="w-full h-full object-contain"
-                          />
+                      <Link href={`/products/${product.handle}`} className="block group">
+                        <div className="aspect-square bg-white rounded-lg mb-3 overflow-hidden border border-gray-200 p-3 sm:p-4 group-hover:border-blue-500 transition-colors">
+                          {product.thumbnail ? (
+                            <CloudinaryImage
+                              src={product.thumbnail}
+                              alt={product.title}
+                              width={300}
+                              height={300}
+                              className="w-full h-full object-contain"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gray-100" />
+                          )}
+                        </div>
+                        <h3 className="font-medium text-gray-900 text-xs sm:text-sm line-clamp-2 group-hover:text-blue-600 transition-colors">
+                          {product.title}
+                        </h3>
+                      </Link>
+
+                      <button
+                        onClick={() => handleAddToCart(product.variantId, product.id, product.title, product.thumbnail)}
+                        disabled={addingToCart[product.variantId]}
+                        className="w-full mt-3 flex items-center justify-center gap-2 bg-blue-600 text-white px-3 py-2 sm:px-4 rounded-full text-xs sm:text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {addingToCart[product.variantId] ? (
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         ) : (
-                          <div className="w-full h-full bg-gray-100" />
+                          <>
+                            <ShoppingBag className="w-4 h-4" />
+                            Сагсанд нэмэх
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Comparison Rows */}
+              <div className="divide-y divide-gray-200 min-w-[720px]">
+                {comparisonRows.map((row, index) => (
+                  <div
+                    key={index}
+                    className="grid gap-4 p-4 sm:p-6 hover:bg-gray-50 transition-colors"
+                    style={{ gridTemplateColumns: columnTemplate }}
+                  >
+                    <div className="font-medium text-gray-700 text-sm sm:text-base">{row.label}</div>
+                    {row.values.map((value, i) => (
+                      <div key={i} className="text-gray-900 text-sm sm:text-base">
+                        {row.label === "Тайлбар" ? (
+                          <p className="text-sm leading-relaxed line-clamp-3">{value?.toString() ?? "—"}</p>
+                        ) : (
+                          <span className={row.label === "Боломжит эсэх" ? (value === "Бэлэн байгаа" ? "text-green-600 font-medium" : "text-red-600") : ""}>
+                            {value?.toString() ?? "—"}
+                          </span>
                         )}
                       </div>
-                      <h3 className="font-medium text-gray-900 text-sm line-clamp-2 group-hover:text-blue-600 transition-colors">
-                        {product.title}
-                      </h3>
-                    </Link>
-
-                    <button
-                      onClick={() => handleAddToCart(product.variantId, product.id, product.title, product.thumbnail)}
-                      disabled={addingToCart[product.variantId]}
-                      className="w-full mt-3 flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {addingToCart[product.variantId] ? (
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      ) : (
-                        <>
-                          <ShoppingBag className="w-4 h-4" />
-                          Сагсанд нэмэх
-                        </>
-                      )}
-                    </button>
+                    ))}
                   </div>
-                );
-              })}
-            </div>
-
-            {/* Comparison Rows */}
-            <div className="divide-y divide-gray-200">
-              {comparisonRows.map((row, index) => (
-                <div
-                  key={index}
-                  className="grid gap-4 p-6 hover:bg-gray-50 transition-colors"
-                  style={{ gridTemplateColumns: `200px repeat(${products.length}, 1fr)` }}
-                >
-                  <div className="font-medium text-gray-700">{row.label}</div>
-                  {row.values.map((value, i) => (
-                    <div key={i} className="text-gray-900">
-                      {row.label === "Тайлбар" ? (
-                        <p className="text-sm line-clamp-3">{value?.toString() ?? "—"}</p>
-                      ) : (
-                        <span className={row.label === "Боломжит эсэх" ? (value === "Бэлэн байгаа" ? "text-green-600 font-medium" : "text-red-600") : ""}>
-                          {value?.toString() ?? "—"}
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </div>

@@ -199,6 +199,7 @@ const SimplePricingPage = () => {
             <Table.Body>
               {variants.length === 0 ? (
                 <Table.Row>
+                  {/* @ts-expect-error Table.Cell forwards props to <td>, colSpan is supported at runtime */}
                   <Table.Cell colSpan={5} className="text-center py-8">
                     <Text className="text-ui-fg-subtle">Бүтээгдэхүүн олдсонгүй</Text>
                   </Table.Cell>

@@ -23,6 +23,9 @@ interface SearchHit {
       amount: number;
       currency_code: string;
     }[];
+    inventory_quantity?: number;
+    manage_inventory?: boolean;
+    allow_backorder?: boolean;
   }[];
 }
 
@@ -115,6 +118,9 @@ export function SearchResults({ initialQuery }: SearchResultsProps) {
           handle: "",
         }
       : null,
+    inventoryQuantity: hit.variants?.[0]?.inventory_quantity,
+    manageInventory: hit.variants?.[0]?.manage_inventory,
+    allowBackorder: hit.variants?.[0]?.allow_backorder,
   });
 
   return (
@@ -211,10 +217,14 @@ export function SearchResults({ initialQuery }: SearchResultsProps) {
               <ProductCard
                 key={hit.id}
                 id={product.id}
+                productId={(product as any).productId ?? product.id}
                 title={product.title}
                 handle={product.handle}
                 thumbnail={product.thumbnail}
                 price={product.price}
+                inventoryQuantity={product.inventoryQuantity}
+                manageInventory={product.manageInventory}
+                allowBackorder={product.allowBackorder}
                 collection={product.collection}
               />
             );

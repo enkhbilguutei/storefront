@@ -1,6 +1,6 @@
 import { ExecArgs } from "@medusajs/framework/types";
 import { Modules } from "@medusajs/framework/utils";
-import { createCustomerAccountWorkflow } from "@medusajs/medusa/core-flows";
+import { createCustomerAccountWorkflow } from "@medusajs/core-flows";
 
 export default async function createTestCustomer({ container }: ExecArgs) {
   const customerModuleService = container.resolve(Modules.CUSTOMER);

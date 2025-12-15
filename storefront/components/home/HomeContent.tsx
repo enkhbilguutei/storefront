@@ -1,7 +1,7 @@
 import { ProductGridSection } from "./ProductGridSection";
 import { getCategories, getProductsByCategory } from "@/lib/data/categories";
 import { getFeaturedProducts } from "@/lib/data/products";
-import { TrustBadges } from "@/components/products/TrustBadges";
+import { getProductGridBanner } from "@/lib/data/banners";
 
 export async function HomeContent() {
   // Fetch real data from database
@@ -33,21 +33,27 @@ export async function HomeContent() {
     ...ipadProducts.slice(0, 1),
   ];
   
+  // Fetch CMS banners for each section
+  const [appleBanner, gamingBanner, ipadBanner, airpodsBanner, accessoriesBanner] = await Promise.all([
+    getProductGridBanner("apple"),
+    getProductGridBanner("gaming"),
+    getProductGridBanner("ipad"),
+    getProductGridBanner("airpods"),
+    getProductGridBanner("accessories"),
+  ]);
+  
+  // Helper to convert Banner to BannerProps
+  const toBannerProps = (banner: Awaited<ReturnType<typeof getProductGridBanner>>) => {
+    if (!banner) return undefined;
+    return {
+      desktopImage: banner.image_url,
+      mobileImage: banner.mobile_image_url || banner.image_url,
+      link: banner.link,
+    };
+  };
+  
   return (
     <>
-      {/* Trust Badges Section */}
-      <section className="container mx-auto px-4 py-12 md:py-16">
-        <div className="text-center mb-8">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
-            Яагаад биднээс худалдан авах хэрэгтэй вэ?
-          </h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            100% жинхэнэ бүтээгдэхүүн, найдвартай үйлчилгээ, хурдан хүргэлт
-          </p>
-        </div>
-        <TrustBadges variant="detailed" />
-      </section>
-
       {/* Apple Products Section */}
       {appleProducts.length > 0 && (
         <ProductGridSection
@@ -55,6 +61,7 @@ export async function HomeContent() {
           subtitle="iPhone, MacBook, iPad, AirPods болон бусад"
           products={appleProducts}
           viewAllLink="/categories/i-phone"
+          banner={toBannerProps(appleBanner)}
         />
       )}
 
@@ -65,6 +72,7 @@ export async function HomeContent() {
           subtitle="PlayStation, Nintendo Switch болон дагалдах хэрэгсэл"
           products={gamingProducts}
           viewAllLink="/categories/gaming"
+          banner={toBannerProps(gamingBanner)}
         />
       )}
 
@@ -75,6 +83,7 @@ export async function HomeContent() {
           subtitle="iPad Pro, iPad Air, iPad Mini - бүх загварууд"
           products={ipadProducts}
           viewAllLink="/categories/i-pad"
+          banner={toBannerProps(ipadBanner)}
         />
       )}
 
@@ -85,6 +94,7 @@ export async function HomeContent() {
           subtitle="Таны амьдралыг хялбарчлах ухаалаг бүтээгдэхүүн"
           products={[...airpodsProducts, ...appleWatchProducts].slice(0, 6)}
           viewAllLink="/categories/air-pods"
+          banner={toBannerProps(airpodsBanner)}
         />
       )}
 
@@ -95,6 +105,7 @@ export async function HomeContent() {
           subtitle="AirTag, Apple Pencil, Magic Mouse, HomePod болон бусад"
           products={accessoriesProducts}
           viewAllLink="/categories/accessories"
+          banner={toBannerProps(accessoriesBanner)}
         />
       )}
 

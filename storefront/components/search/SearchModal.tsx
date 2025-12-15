@@ -35,7 +35,15 @@ interface SearchResult {
   estimatedTotalHits?: number;
 }
 
-const POPULAR_SEARCHES = ["Galaxy S24", "Galaxy S24 Fe", "Galaxy S24 Ultra", "Galaxy S25"];
+interface SuggestionHit {
+  title: string;
+  handle: string;
+  thumbnail?: string | null;
+  min_price?: number | null;
+  collection_title?: string | null;
+}
+
+const POPULAR_SEARCHES = ["iPhone 16 Pro", "MacBook Pro", "Galaxy S24", "PlayStation 5", "Ray-Ban Meta"];
 
 function formatPrice(amount: number, currencyCode: string = "mnt") {
   return new Intl.NumberFormat("mn-MN", {
@@ -52,19 +60,38 @@ export function SearchModal() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [recommendedProducts, setRecommendedProducts] = useState<SearchHit[]>([]);
+  const [popularSearches, setPopularSearches] = useState<string[]>(POPULAR_SEARCHES);
+  const [suggestions, setSuggestions] = useState<SuggestionHit[]>([]);
+  const [isSuggesting, setIsSuggesting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Fetch recommended products on mount
+  // Fetch recommended products + popular searches on mount
   useEffect(() => {
+    const fetchPopular = async () => {
+      try {
+        const response = await fetch(`${API_URL}/store/search/popular`);
+        if (response.ok) {
+          const data = await response.json();
+          if (Array.isArray(data?.terms) && data.terms.length) {
+            setPopularSearches(data.terms);
+          }
+          if (Array.isArray(data?.featured) && data.featured.length) {
+            setRecommendedProducts(data.featured);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch popular searches:", error);
+      }
+    };
+
     const fetchRecommended = async () => {
-      // Only run on client side
-      if (typeof window === 'undefined') return;
+      if (typeof window === "undefined") return;
 
       const backendUrl = API_URL;
       const publishableKey = API_KEY;
-      
+
       try {
         const response = await fetch(
           `${backendUrl}/store/search?q=&limit=4`,
@@ -76,16 +103,15 @@ export function SearchModal() {
         );
         if (response.ok) {
           const data = await response.json();
+          if (!data?.hits?.length) return;
           setRecommendedProducts(data.hits || []);
-        } else {
-          console.error("Failed to fetch recommended products:", response.statusText);
-          // Silently fail - recommended products are optional
         }
       } catch (error) {
         console.error("Failed to fetch recommended products:", error);
-        // Silently fail - recommended products are optional
       }
     };
+
+    fetchPopular();
     fetchRecommended();
   }, []);
 
@@ -156,20 +182,57 @@ export function SearchModal() {
     }
   }, []);
 
+  const fetchSuggestions = useCallback(async (searchQuery: string) => {
+    if (!searchQuery.trim()) {
+      setSuggestions([]);
+      return;
+    }
+
+    const backendUrl = API_URL;
+    const publishableKey = API_KEY;
+    setIsSuggesting(true);
+
+    try {
+      const response = await fetch(
+        `${backendUrl}/store/search/suggestions?q=${encodeURIComponent(searchQuery)}&limit=6`,
+        {
+          headers: {
+            "x-publishable-api-key": publishableKey || "",
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setSuggestions(data.suggestions || []);
+      }
+    } catch (error) {
+      console.error("Suggestion error:", error);
+    } finally {
+      setIsSuggesting(false);
+    }
+  }, []);
+
   // Debounced search
   useEffect(() => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
     debounceRef.current = setTimeout(() => {
-      performSearch(query);
-    }, 200);
+      if (query.trim().length >= 2) {
+        performSearch(query);
+        fetchSuggestions(query);
+      } else {
+        setResults(null);
+        setSuggestions([]);
+      }
+    }, 220);
     return () => {
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
     };
-  }, [query, performSearch]);
+  }, [query, performSearch, fetchSuggestions]);
 
   // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -224,7 +287,7 @@ export function SearchModal() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Search"
+                placeholder="Бүтээгдэхүүн, брэнд, ангилал хайх"
                 className="flex-1 text-lg sm:text-xl lg:text-2xl font-light bg-transparent focus:outline-none placeholder:text-foreground/40"
               />
               {isLoading ? (
@@ -243,16 +306,39 @@ export function SearchModal() {
 
         {/* Content */}
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 lg:py-8 overflow-y-auto h-[calc(100%-65px)] sm:h-[calc(100%-75px)] lg:h-auto lg:max-h-[calc(55vh-90px)]">
+          {/* Suggestions bar */}
+          {suggestions.length > 0 && (
+            <div className="mb-4 flex flex-wrap gap-2">
+              {suggestions.map((item) => (
+                <button
+                  key={`${item.handle}`}
+                  onClick={() => {
+                    setQuery(item.title);
+                    closeSearch();
+                    window.location.href = `/products/${item.handle}`;
+                  }}
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors text-sm"
+                >
+                  <span className="font-medium text-foreground">{item.title}</span>
+                  {item.min_price ? (
+                    <span className="text-foreground/60 text-xs">{formatPrice(item.min_price)}</span>
+                  ) : null}
+                </button>
+              ))}
+              {isSuggesting && <Loader2 className="h-4 w-4 animate-spin text-foreground/40" />}
+            </div>
+          )}
+
           {/* Mobile/Tablet Layout: Stacked */}
           <div className="lg:hidden space-y-6 sm:space-y-8">
             {/* Popular Searches */}
             {!query && (
               <div>
                 <h3 className="text-[10px] sm:text-xs font-semibold text-foreground/50 uppercase tracking-wider mb-3 sm:mb-4">
-                  POPULAR SEARCHES
+                  ИХ ХАЙЛДАГ
                 </h3>
                 <div className="space-y-2 sm:space-y-3">
-                  {POPULAR_SEARCHES.map((search) => (
+                  {popularSearches.map((search) => (
                     <button
                       key={search}
                       onClick={() => setQuery(search)}
@@ -268,7 +354,7 @@ export function SearchModal() {
             {/* Products */}
             <div>
               <h3 className="text-[10px] sm:text-xs font-semibold text-foreground/50 uppercase tracking-wider mb-3 sm:mb-4">
-                {query ? `RESULTS (${results?.estimatedTotalHits || displayProducts.length})` : "RECOMMENDED"}
+                {query ? `ҮР ДҮН (${results?.estimatedTotalHits || displayProducts.length})` : "САНАЛ БОЛГОЖ БУЙ"}
               </h3>
               <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 {displayProducts.map((product, index) => (
@@ -276,24 +362,24 @@ export function SearchModal() {
                     key={product.id}
                     href={`/products/${product.handle}`}
                     onClick={closeSearch}
-                    className={`group ${selectedIndex === index ? 'ring-2 ring-foreground/20 rounded-lg' : ''}`}
+                    className={`group ${selectedIndex === index ? 'ring-2 ring-foreground/20 rounded-xl' : ''}`}
                   >
-                    <div className="aspect-square bg-gray-50 rounded-lg overflow-hidden mb-2 sm:mb-3">
+                    <div className="aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden mb-2 sm:mb-3 flex items-center justify-center">
                       {product.thumbnail ? (
                         product.thumbnail.includes("cloudinary") ? (
                           <CloudinaryImage
                             src={product.thumbnail}
                             alt={product.title}
-                            width={200}
-                            height={200}
-                            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                            width={220}
+                            height={220}
+                            className="h-3/4 w-3/4 object-contain transition-transform duration-300 group-hover:scale-105"
                           />
                         ) : (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
                             src={product.thumbnail}
                             alt={product.title}
-                            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                            className="h-3/4 w-3/4 object-contain transition-transform duration-300 group-hover:scale-105"
                           />
                         )
                       ) : (
@@ -335,10 +421,10 @@ export function SearchModal() {
             {!query && (
               <div className="w-40 xl:w-48 shrink-0">
                 <h3 className="text-xs font-semibold text-foreground/50 uppercase tracking-wider mb-3 xl:mb-4">
-                  POPULAR SEARCHES
+                  ИХ ХАЙЛДАГ
                 </h3>
                 <div className="space-y-2 xl:space-y-3">
-                  {POPULAR_SEARCHES.map((search) => (
+                  {popularSearches.map((search) => (
                     <button
                       key={search}
                       onClick={() => setQuery(search)}
@@ -354,7 +440,7 @@ export function SearchModal() {
             {/* Right Column - Products */}
             <div className="flex-1">
               <h3 className="text-xs font-semibold text-foreground/50 uppercase tracking-wider mb-3 xl:mb-4">
-                {query ? `RESULTS (${results?.estimatedTotalHits || displayProducts.length})` : "RECOMMENDED"}
+                {query ? `ҮР ДҮН (${results?.estimatedTotalHits || displayProducts.length})` : "САНАЛ БОЛГОЖ БУЙ"}
               </h3>
               
               {/* No Results */}
@@ -375,9 +461,9 @@ export function SearchModal() {
                       key={product.id}
                       href={`/products/${product.handle}`}
                       onClick={closeSearch}
-                      className={`group ${selectedIndex === index ? 'ring-2 ring-foreground/20 rounded-lg' : ''}`}
+                      className={`group ${selectedIndex === index ? 'ring-2 ring-foreground/20 rounded-xl' : ''}`}
                     >
-                      <div className="aspect-square bg-gray-50 rounded-lg overflow-hidden mb-2 xl:mb-3">
+                      <div className="aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden mb-2 xl:mb-3 flex items-center justify-center">
                         {product.thumbnail ? (
                           product.thumbnail.includes("cloudinary") ? (
                             <CloudinaryImage
@@ -385,14 +471,14 @@ export function SearchModal() {
                               alt={product.title}
                               width={200}
                               height={200}
-                              className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                              className="h-3/4 w-3/4 object-contain group-hover:scale-105 transition-transform duration-300"
                             />
                           ) : (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
                               src={product.thumbnail}
                               alt={product.title}
-                              className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                              className="h-3/4 w-3/4 object-contain group-hover:scale-105 transition-transform duration-300"
                             />
                           )
                         ) : (

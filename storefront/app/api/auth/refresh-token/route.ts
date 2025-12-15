@@ -9,6 +9,7 @@ import { API_URL } from "@/lib/config/api";
  * Forces a session token refresh for OAuth users
  */
 export async function GET(req: NextRequest) {
+  void req;
   try {
     const session = await getServerSession(authOptions);
     

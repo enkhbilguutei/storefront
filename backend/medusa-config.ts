@@ -63,6 +63,9 @@ module.exports = defineConfig({
       resolve: "./src/modules/wishlist",
     },
     {
+      resolve: "./src/modules/trade_in",
+    },
+    {
       resolve: "./src/modules/product_analytics",
     },
     {

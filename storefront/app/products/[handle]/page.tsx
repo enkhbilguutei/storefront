@@ -16,7 +16,8 @@ export async function generateMetadata({ params }: { params: Promise<{ handle: s
     };
   }
 
-  const price = product.variants?.[0]?.calculated_price?.calculated_amount || (product.variants?.[0] as any)?.prices?.[0]?.amount;
+  const firstVariant = product.variants?.[0] as unknown as { prices?: Array<{ amount?: number }> } | undefined;
+  const price = product.variants?.[0]?.calculated_price?.calculated_amount || firstVariant?.prices?.[0]?.amount;
   const formattedPrice = price ? new Intl.NumberFormat("mn-MN", { style: "currency", currency: "MNT" }).format(price / 100) : "";
   
   const description = product.description 
@@ -70,7 +71,8 @@ async function getProduct(handle: string) {
     } = {
       handle,
       limit: 1,
-      fields: "+variants.thumbnail,+variants.images.*,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder,+variants.calculated_price,id,title,handle,description,thumbnail,images.*,options.*,options.values.*,variants.id,variants.title,variants.options.*,variants.prices.amount,variants.prices.currency_code",
+      fields:
+        "+variants.thumbnail,+variants.images.*,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder,+variants.calculated_price,id,title,handle,description,thumbnail,images.*,metadata,categories.id,categories.handle,categories.name,options.*,options.values.*,variants.id,variants.title,variants.options.*,variants.prices.amount,variants.prices.currency_code",
     };
     
     // Add region_id to get calculated prices with promotions
@@ -100,7 +102,8 @@ export default async function ProductPage({ params }: { params: Promise<{ handle
   }
 
   // Generate JSON-LD structured data for SEO
-  const price = product.variants?.[0]?.calculated_price?.calculated_amount || (product.variants?.[0] as any)?.prices?.[0]?.amount;
+  const firstVariant = product.variants?.[0] as unknown as { prices?: Array<{ amount?: number }> } | undefined;
+  const price = product.variants?.[0]?.calculated_price?.calculated_amount || firstVariant?.prices?.[0]?.amount;
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",

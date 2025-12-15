@@ -13,12 +13,12 @@
     "medusa"
   ],
   "scripts": {
-    "build": "TS_NODE_PROJECT=tsconfig.json medusa build",
-    "seed": "TS_NODE_PROJECT=tsconfig.json medusa exec ./src/scripts/seed.ts",
-    "index-products": "TS_NODE_PROJECT=tsconfig.json medusa exec ./src/scripts/index-products.ts",
-    "start": "TS_NODE_PROJECT=tsconfig.json medusa start",
-    "dev": "TS_NODE_PROJECT=tsconfig.json medusa develop",
-    "dev:mobile": "TS_NODE_PROJECT=tsconfig.json medusa develop -H 0.0.0.0 -p 9000",
+    "build": "node ./scripts/medusa-cli.cjs build",
+    "seed": "node ./scripts/medusa-cli.cjs exec ./src/scripts/seed.ts",
+    "index-products": "node ./scripts/medusa-cli.cjs exec ./src/scripts/index-products.ts",
+    "start": "node ./scripts/medusa-cli.cjs start",
+    "dev": "node ./scripts/medusa-cli.cjs develop",
+    "dev:mobile": "node ./scripts/medusa-cli.cjs develop -H 0.0.0.0 -p 9000",
     "test:integration:http": "TEST_TYPE=integration:http NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit",
     "test:integration:modules": "TEST_TYPE=integration:modules NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit",
     "test:unit": "TEST_TYPE=unit NODE_OPTIONS=--experimental-vm-modules jest --silent --runInBand --forceExit"

@@ -1,6 +1,6 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
 import { Modules } from "@medusajs/framework/utils";
-import { createCustomerAccountWorkflow } from "@medusajs/medusa/core-flows";
+import { createCustomerAccountWorkflow } from "@medusajs/core-flows";
 import jwt from "jsonwebtoken";
 
 export async function POST(

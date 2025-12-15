@@ -1,10 +1,12 @@
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Hero } from "@/components/home/Hero";
+import { BentoBanners } from "@/components/home/BentoBanners";
 import { Categories } from "@/components/home/Categories";
 import { HomeContent } from "@/components/home/HomeContent";
 import { Truck, RotateCcw, ShieldCheck } from "lucide-react";
 import type { Metadata } from "next";
+import { getBentoBanners } from "@/lib/data/banners";
 
 export const metadata: Metadata = {
   title: {
@@ -29,7 +31,9 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Home() {
+export default async function Home() {
+  const bentoBanners = await getBentoBanners();
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
@@ -37,7 +41,9 @@ export default function Home() {
       <main className="flex-1">
         <Hero />
         
+        
         <Categories />
+        <BentoBanners banners={bentoBanners} />
         
         <HomeContent />
 

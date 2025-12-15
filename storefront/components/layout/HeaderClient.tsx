@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Search, Menu, X, ChevronDown, ChevronRight, ShoppingCart, User, Package, LogOut, Smartphone, Laptop, Plane, Gamepad2, Glasses, Crown } from "lucide-react";
+import Image from "next/image";
+import { Search, Menu, X, ChevronDown, ChevronRight, ShoppingCart, User, Package, LogOut, Smartphone, Plane, Gamepad2, Glasses, Crown, type LucideIcon } from "lucide-react";
 import { useUIStore, useUserStore, useCartStore } from "@/lib/store";
 import { useState, useEffect, useRef } from "react";
 import { Category } from "@/lib/data/categories";
@@ -21,18 +22,20 @@ export function HeaderClient({ categories, collections }: HeaderClientProps) {
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
   const [isCollectionsMenuOpen, setIsCollectionsMenuOpen] = useState(false);
+  const [isSubheaderVisible, setIsSubheaderVisible] = useState(true);
   const megaMenuRef = useRef<HTMLDivElement>(null);
   const megaMenuTriggerRef = useRef<HTMLButtonElement>(null);
   const collectionsMenuRef = useRef<HTMLDivElement>(null);
   const collectionsMenuTriggerRef = useRef<HTMLButtonElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const collectionsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastScrollY = useRef(0);
   
   const cartItemCount = items?.length || 0;
 
   // Category icon mapping
   const getCategoryIcon = (handle: string) => {
-    const iconMap: Record<string, any> = {
+    const iconMap: Record<string, LucideIcon> = {
       'apple': Smartphone,
       'dji': Plane,
       'gaming': Gamepad2,
@@ -41,6 +44,38 @@ export function HeaderClient({ categories, collections }: HeaderClientProps) {
     };
     return iconMap[handle.toLowerCase()] || Package;
   };
+
+  // Handle subheader visibility on scroll
+  useEffect(() => {
+    // Ensure page starts at top on mount
+    window.scrollTo(0, 0);
+    setIsSubheaderVisible(true);
+
+    let timeoutId: NodeJS.Timeout;
+    
+    const handleScroll = () => {
+      clearTimeout(timeoutId);
+      
+      timeoutId = setTimeout(() => {
+        const currentScrollY = window.scrollY;
+        const scrollThreshold = 100;
+        
+        if (currentScrollY > scrollThreshold) {
+          setIsSubheaderVisible(false);
+        } else {
+          setIsSubheaderVisible(true);
+        }
+        
+        lastScrollY.current = currentScrollY;
+      }, 10);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      clearTimeout(timeoutId);
+    };
+  }, []);
 
   // Close mega menu when clicking outside
   useEffect(() => {
@@ -112,7 +147,7 @@ export function HeaderClient({ categories, collections }: HeaderClientProps) {
             <div className="flex items-center justify-between h-16 lg:h-20">
               {/* Logo */}
               <Link href="/" className="flex items-center">
-                <img src="/logo.png" alt="Alimhan" className="h-14 lg:h-16" />
+                <Image src="/logo.png" alt="Alimhan" width={160} height={64} className="h-14 lg:h-16 w-auto" priority />
               </Link>
 
               {/* Desktop: Categories Megamenu + Search Bar */}
@@ -123,7 +158,7 @@ export function HeaderClient({ categories, collections }: HeaderClientProps) {
                     ref={megaMenuTriggerRef}
                     onMouseEnter={handleMegaMenuEnter}
                     onMouseLeave={handleMegaMenuLeave}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all whitespace-nowrap bg-linear-to-br from-purple-500 via-pink-500 to-blue-500 text-white hover:opacity-90"
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-full transition-all whitespace-nowrap text-white shadow-lg shadow-blue-900/20 border border-white/10 bg-[linear-gradient(135deg,#0b1224,#0f1f50,#102a7a,#0ea5e9)] hover:brightness-105"
                   >
                     <Menu className="h-4 w-4" />
                     <span className="text-sm font-medium">Ангилал</span>
@@ -213,86 +248,6 @@ export function HeaderClient({ categories, collections }: HeaderClientProps) {
                 >
                   {isMobileMenuOpen ? <X className="h-5.5 w-5.5" /> : <Menu className="h-5.5 w-5.5" />}
                 </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Subheader: Collections */}
-        <div className="hidden lg:block bg-white border-b border-gray-100">
-          <div className="container mx-auto px-4">
-            <div className="flex items-center justify-between h-12">
-              <div className="flex items-center gap-6">
-                <div
-                  className="relative"
-                  onMouseEnter={handleCollectionsMenuEnter}
-                  onMouseLeave={handleCollectionsMenuLeave}
-                >
-                  <button
-                    ref={collectionsMenuTriggerRef}
-                    className="inline-flex items-center gap-2 px-2 py-1.5 rounded-md text-sm font-medium text-gray-800 hover:bg-gray-50 transition-colors"
-                    aria-haspopup="menu"
-                    aria-expanded={isCollectionsMenuOpen}
-                  >
-                    Цуглуулга
-                    <ChevronDown
-                      className={`h-4 w-4 transition-transform duration-200 ${
-                        isCollectionsMenuOpen ? "rotate-180" : ""
-                      }`}
-                    />
-                  </button>
-
-                  {isCollectionsMenuOpen && collections.length > 0 && (
-                    <div
-                      ref={collectionsMenuRef}
-                      className="absolute left-0 top-full mt-2 w-[640px] bg-white border border-gray-200 rounded-xl shadow-xl p-5"
-                      role="menu"
-                    >
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                            Цуглуулгууд
-                          </p>
-                          <p className="text-sm text-gray-700 mt-1">
-                            Та дуртай бүтээгдэхүүнээ цуглуулгаар нь шүүж үзээрэй.
-                          </p>
-                        </div>
-                        <Link
-                          href="/collections"
-                          onClick={() => setIsCollectionsMenuOpen(false)}
-                          className="text-sm font-semibold text-blue-600 hover:text-blue-700"
-                        >
-                          Бүгдийг үзэх
-                        </Link>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        {collections.map((collection) => (
-                          <Link
-                            key={collection.id}
-                            href={`/collections/${collection.handle}`}
-                            onClick={() => setIsCollectionsMenuOpen(false)}
-                            className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors"
-                            role="menuitem"
-                          >
-                            <span className="text-sm font-medium text-gray-900">
-                              {collection.title}
-                            </span>
-                            <ChevronRight className="h-4 w-4 text-gray-400" />
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <Link href="/products" className="text-sm font-medium text-gray-700 hover:text-gray-900">
-                  Бүтээгдэхүүн
-                </Link>
-              </div>
-
-              <div className="text-xs text-gray-500">
-                {collections.length > 0 ? `${collections.length} цуглуулга` : ""}
               </div>
             </div>
           </div>
@@ -392,6 +347,93 @@ export function HeaderClient({ categories, collections }: HeaderClientProps) {
           </div>
         )}
       </header>
+
+      {/* Subheader: Collections (non-sticky, hides on scroll) */}
+      <div 
+        className={`hidden lg:block bg-white border-b border-gray-100 z-40 transition-all duration-300 ease-in-out ${
+          isSubheaderVisible 
+            ? 'relative opacity-100 translate-y-0' 
+            : 'absolute opacity-0 -translate-y-full pointer-events-none'
+        }`}
+      >
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-12">
+            <div className="flex items-center gap-6">
+              <div
+                className="relative"
+                onMouseEnter={handleCollectionsMenuEnter}
+                onMouseLeave={handleCollectionsMenuLeave}
+              >
+                <button
+                  ref={collectionsMenuTriggerRef}
+                  className="inline-flex items-center gap-2 px-2 py-1.5 rounded-md text-sm font-medium text-gray-800 hover:bg-gray-50 transition-colors"
+                  aria-haspopup="menu"
+                  aria-expanded={isCollectionsMenuOpen}
+                >
+                  Цуглуулга
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform duration-200 ${
+                      isCollectionsMenuOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {isCollectionsMenuOpen && collections.length > 0 && (
+                  <div
+                    ref={collectionsMenuRef}
+                    className="absolute left-0 top-full mt-2 w-[640px] bg-white border border-gray-200 rounded-xl shadow-2xl p-5"
+                    style={{ zIndex: 100 }}
+                    role="menu"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                          Цуглуулгууд
+                        </p>
+                        <p className="text-sm text-gray-700 mt-1">
+                          Та дуртай бүтээгдэхүүнээ цуглуулгаар нь шүүж үзээрэй.
+                        </p>
+                      </div>
+                      <Link
+                        href="/collections"
+                        onClick={() => setIsCollectionsMenuOpen(false)}
+                        className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+                      >
+                        Бүгдийг үзэх
+                      </Link>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      {collections.map((collection) => (
+                        <Link
+                          key={collection.id}
+                          href={`/collections/${collection.handle}`}
+                          onClick={() => setIsCollectionsMenuOpen(false)}
+                          className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors"
+                          role="menuitem"
+                        >
+                          <span className="text-sm font-medium text-gray-900">
+                            {collection.title}
+                          </span>
+                          <ChevronRight className="h-4 w-4 text-gray-400" />
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <Link href="/products" className="text-sm font-medium text-gray-700 hover:text-gray-900">
+                Бүтээгдэхүүн
+              </Link>
+            </div>
+
+            <div className="text-xs text-gray-500">
+              {collections.length > 0 ? `${collections.length} цуглуулга` : ""}
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Mobile Menu */}
       <div 

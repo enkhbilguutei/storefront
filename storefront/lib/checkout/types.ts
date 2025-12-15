@@ -66,4 +66,5 @@ export type CheckoutFormAction =
   | { type: "SET_ERRORS"; errors: CheckoutFormErrors }
   | { type: "SET_FORM_SUBMITTED"; value: boolean }
   | { type: "RESET_FORM" }
-  | { type: "PREFILL_USER"; firstName: string; lastName: string; email: string };
+  | { type: "PREFILL_USER"; firstName: string; lastName: string; email: string }
+  | { type: "PREFILL_PHONE"; phone: string };

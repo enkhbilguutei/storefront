@@ -138,7 +138,7 @@ export const authOptions: NextAuthOptions = {
       }
       return true;
     },
-    async jwt({ token, user, account, trigger }) {
+    async jwt({ token, user, account }) {
       const extendedToken = token as ExtendedToken;
       
       if (user) {

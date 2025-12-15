@@ -3,16 +3,20 @@
 import Link from "next/link";
 import { CloudinaryImage } from "@/components/Cloudinary";
 import { ShoppingCart, Loader2, ArrowLeftRight } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useCartStore, useUIStore } from "@/lib/store";
 import { useComparisonStore } from "@/lib/store/comparison-store";
 import { addToCart } from "@/lib/cart/addToCart";
+import { isTradeInEligibleAppleProductText, TRADE_IN_BADGE_TEXT, TRADE_IN_BADGE_TITLE } from "@/lib/tradein";
+import { toast } from "@/lib/toast";
 
 interface ProductCardProps {
-  id: string;
+  id: string; // variant id for cart
+  productId: string;
   title: string;
   handle: string;
   thumbnail?: string;
+  tradeInEligible?: boolean;
   price?: {
     amount: number;
     currencyCode: string;
@@ -26,20 +30,27 @@ interface ProductCardProps {
     title: string;
     handle: string;
   } | null;
+  inventoryQuantity?: number | null;
+  manageInventory?: boolean | null;
+  allowBackorder?: boolean | null;
 }
 
 export function ProductCard({
   id,
+  productId,
   title,
   handle,
   thumbnail,
+  tradeInEligible,
   price,
   originalPrice,
-  collection
+  collection,
+  inventoryQuantity,
+  manageInventory,
+  allowBackorder
 }: ProductCardProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const { addItem } = useCartStore();
   const { openCartNotification } = useUIStore();
   const { toggleProduct, isInComparison } = useComparisonStore();
   
@@ -55,6 +66,19 @@ export function ProductCard({
     ? Math.round(((originalPrice.amount - price.amount) / originalPrice.amount) * 100)
     : 0;
 
+  const isTradeInEligible =
+    typeof tradeInEligible === "boolean"
+      ? tradeInEligible
+      : isTradeInEligibleAppleProductText({ handle, title });
+
+  // Lightweight stock check for grid cards (fallback to true if data missing)
+  const isInStock = useMemo(() => {
+    if (manageInventory === false) return true;
+    if (allowBackorder) return true;
+    if (inventoryQuantity == null) return true; // unknown → allow
+    return inventoryQuantity > 0;
+  }, [allowBackorder, inventoryQuantity, manageInventory]);
+
   const formatPrice = (amount: number) => {
     const formatted = new Intl.NumberFormat("mn-MN", {
       minimumFractionDigits: 0,
@@ -69,6 +93,10 @@ export function ProductCard({
     e.stopPropagation();
     
     if (isAdding) return;
+    if (!isInStock) {
+      toast.error("Барааны нөөц дууссан байна.");
+      return;
+    }
     
     setIsAdding(true);
     try {
@@ -129,10 +157,29 @@ export function ProductCard({
           </div>
         )}
 
+        {/* Out of stock badge */}
+        {!isInStock && (
+          <div className="absolute top-2 right-2 bg-gray-800/80 text-white px-2 py-1 rounded font-semibold text-xs md:text-sm">
+            Дууссан
+          </div>
+        )}
+
         {/* Discount Badge */}
-        {isOnSale && discountPercentage > 0 && (
+        {isOnSale && discountPercentage > 0 && isInStock && (
           <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded font-bold text-xs md:text-sm">
             {discountPercentage}% хямдрал
+          </div>
+        )}
+
+        {/* Trade-in Badge (Apple only) */}
+        {isTradeInEligible && (
+          <div className="absolute bottom-2 left-2">
+            <span
+              title={TRADE_IN_BADGE_TITLE}
+              className="bg-white/90 backdrop-blur-sm text-gray-900 px-2 py-1 rounded font-semibold text-[10px] md:text-xs border border-gray-200 shadow-sm"
+            >
+              {TRADE_IN_BADGE_TEXT}
+            </span>
           </div>
         )}
       </div>
@@ -170,14 +217,16 @@ export function ProductCard({
           {/* Add to Cart Button */}
           <button
             onClick={handleAddToCart}
-            disabled={isAdding}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 md:py-2.5 px-3 md:px-4 rounded-lg font-medium text-xs md:text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            disabled={isAdding || !isInStock}
+            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 md:py-2.5 px-3 md:px-4 rounded-lg font-medium text-xs md:text-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {isAdding ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Нэмж байна...
               </>
+            ) : !isInStock ? (
+              "Дууссан"
             ) : (
               <>
                 <ShoppingCart className="h-4 w-4" />
@@ -192,7 +241,8 @@ export function ProductCard({
               e.preventDefault();
               e.stopPropagation();
               toggleProduct({
-                id: id,
+                id: productId,
+                productId,
                 variantId: id,
                 title,
                 handle,

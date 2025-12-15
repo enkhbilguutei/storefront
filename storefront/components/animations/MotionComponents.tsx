@@ -1,10 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ReactNode } from "react";
 
 interface AnimatedListProps {
-  children: ReactNode;
+  children: any;
   className?: string;
   staggerDelay?: number;
 }
@@ -29,7 +28,7 @@ export function AnimatedList({ children, className, staggerDelay = 0.05 }: Anima
 }
 
 interface AnimatedListItemProps {
-  children: ReactNode;
+  children: any;
   className?: string;
 }
 
@@ -50,7 +49,7 @@ export function AnimatedListItem({ children, className }: AnimatedListItemProps)
 }
 
 interface FadeInProps {
-  children: ReactNode;
+  children: any;
   className?: string;
   delay?: number;
 }
@@ -70,7 +69,7 @@ export function FadeIn({ children, className, delay = 0 }: FadeInProps) {
 }
 
 interface SlideInProps {
-  children: ReactNode;
+  children: any;
   className?: string;
   direction?: "left" | "right" | "up" | "down";
 }
@@ -97,7 +96,7 @@ export function SlideIn({ children, className, direction = "up" }: SlideInProps)
 }
 
 interface ScaleInProps {
-  children: ReactNode;
+  children: any;
   className?: string;
 }
 
@@ -135,7 +134,7 @@ export function AnimatedCounter({ value, className }: CounterProps) {
 }
 
 interface PressableProps {
-  children: ReactNode;
+  children: any;
   className?: string;
   onClick?: () => void;
 }

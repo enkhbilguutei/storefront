@@ -3,7 +3,7 @@ import { Modules } from "@medusajs/framework/utils";
 import { 
   addShippingMethodToCartWorkflow,
   updateCartWorkflow,
-} from "@medusajs/medusa/core-flows";
+} from "@medusajs/core-flows";
 
 interface FastCheckoutBody {
   email: string;

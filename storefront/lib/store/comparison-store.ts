@@ -2,7 +2,8 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export interface ComparisonProduct {
-  id: string;
+  id: string; // kept for backward compatibility; use productId
+  productId?: string;
   variantId: string;
   title: string;
   handle: string;

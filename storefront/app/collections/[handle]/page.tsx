@@ -38,6 +38,9 @@ interface VariantWithPrices {
   id: string
   prices?: { amount: number; currency_code: string }[]
   calculated_price?: CalculatedPrice
+  inventory_quantity?: number | null
+  manage_inventory?: boolean | null
+  allow_backorder?: boolean | null
 }
 
 interface ProductWithPrices {
@@ -45,6 +48,7 @@ interface ProductWithPrices {
   title: string
   handle: string
   thumbnail: string | null
+  metadata?: Record<string, unknown> | null
   variants?: VariantWithPrices[] | null
 }
 
@@ -65,7 +69,7 @@ export default async function CollectionPage({
   const query = {
     limit: 100,
     fields:
-      "id,title,handle,thumbnail,variants.id,variants.prices.amount,variants.prices.currency_code,+variants.calculated_price",
+      "id,title,handle,thumbnail,metadata,variants.id,variants.prices.amount,variants.prices.currency_code,+variants.calculated_price,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder",
     collection_id: [collection.id],
     ...(region?.id ? { region_id: region.id } : {}),
   } as unknown as Parameters<typeof medusa.store.product.list>[0]
@@ -112,9 +116,11 @@ export default async function CollectionPage({
                   <ProductCard
                     key={product.id}
                     id={firstVariant?.id ?? product.id}
+                    productId={product.id}
                     title={product.title}
                     handle={product.handle}
                     thumbnail={product.thumbnail ?? undefined}
+                    tradeInEligible={Boolean(product.metadata?.trade_in_eligible)}
                     price={
                       displayPrice
                         ? {
@@ -131,6 +137,9 @@ export default async function CollectionPage({
                           }
                         : undefined
                     }
+                    inventoryQuantity={firstVariant?.inventory_quantity ?? null}
+                    manageInventory={firstVariant?.manage_inventory ?? null}
+                    allowBackorder={firstVariant?.allow_backorder ?? null}
                   />
                 )
               })}

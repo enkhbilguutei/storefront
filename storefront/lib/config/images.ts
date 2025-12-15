@@ -24,6 +24,10 @@ export const categoryImages: Record<string, string> = {
   // Accessories
   "accessories": "https://res.cloudinary.com/do1xiqlxi/image/upload/v1764699601/store-card-13-accessories-nav-202509_eip4rx.png",
   "дагалдах-хэрэгсэл": "https://res.cloudinary.com/do1xiqlxi/image/upload/v1764699601/store-card-13-accessories-nav-202509_eip4rx.png",
+
+  // Store groupings
+  "gaming": "https://res.cloudinary.com/do1xiqlxi/image/upload/v1764699600/PlayStation_logo.svg_zj5umb.png",
+  "collectibles": "https://res.cloudinary.com/do1xiqlxi/image/upload/v1764700038/pop-mart-app-icon_tekqgj.webp",
   
   // Partner Brands
   "ray-ban": "https://res.cloudinary.com/do1xiqlxi/image/upload/v1764699600/rayban-meta_owjhu1.png",
@@ -39,7 +43,7 @@ export const defaultCategoryImage = "https://res.cloudinary.com/do1xiqlxi/image/
 
 // Keywords to image mapping for fuzzy matching
 const keywordMappings: Array<{ keywords: string[]; imageKey: keyof typeof categoryImages }> = [
-  { keywords: ["iphone"], imageKey: "iphone" },
+  { keywords: ["iphone", "iph"], imageKey: "iphone" },
   { keywords: ["mac", "macbook", "imac"], imageKey: "mac" },
   { keywords: ["ipad"], imageKey: "ipad" },
   { keywords: ["watch"], imageKey: "watch" },
@@ -48,6 +52,8 @@ const keywordMappings: Array<{ keywords: string[]; imageKey: keyof typeof catego
   { keywords: ["tv", "apple-tv"], imageKey: "apple-tv" },
   { keywords: ["homepod"], imageKey: "homepod" },
   { keywords: ["accessor", "дагалдах"], imageKey: "accessories" },
+  { keywords: ["gaming", "game", "ps", "playstation", "nintendo", "switch"], imageKey: "gaming" },
+  { keywords: ["collectible", "collectibles", "popmart", "pop-mart"], imageKey: "collectibles" },
   { keywords: ["ray", "ban", "meta"], imageKey: "ray-ban" },
   { keywords: ["dji", "drone"], imageKey: "dji" },
   { keywords: ["playstation", "ps5", "ps4"], imageKey: "playstation" },
@@ -55,21 +61,31 @@ const keywordMappings: Array<{ keywords: string[]; imageKey: keyof typeof catego
   { keywords: ["popmart", "pop-mart"], imageKey: "popmart" },
 ];
 
+function normalizeHandle(value: string) {
+  return value.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+}
+
 /**
  * Get the image URL for a category based on its handle
  * Supports exact matches and fuzzy keyword matching
  */
 export function getCategoryImage(handle: string): string {
   const lowerHandle = handle.toLowerCase();
+  const normalizedHandle = normalizeHandle(handle);
   
   // Check for exact match first
   if (categoryImages[lowerHandle]) {
     return categoryImages[lowerHandle];
   }
+
+  // Check for normalized match (e.g. i-pad -> ipad, air-pods -> airpods)
+  if (categoryImages[normalizedHandle]) {
+    return categoryImages[normalizedHandle];
+  }
   
   // Check for keyword matches
   for (const { keywords, imageKey } of keywordMappings) {
-    if (keywords.some(keyword => lowerHandle.includes(keyword))) {
+    if (keywords.some((keyword) => normalizedHandle.includes(normalizeHandle(keyword)))) {
       return categoryImages[imageKey];
     }
   }

@@ -18,6 +18,7 @@ interface Banner {
 
 const placementLabels: Record<string, string> = {
   hero: "Үндсэн слайд (16:6)",
+  bento: "Бенто баннер (16:5)",
 }
 
 const BannersPage = () => {
@@ -98,6 +99,7 @@ const BannersPage = () => {
           >
             <option value="all">Бүгд</option>
             <option value="hero">Үндсэн слайд (16:6)</option>
+            <option value="bento">Бенто баннер (16:5)</option>
           </select>
           <Button size="small" variant="secondary" onClick={() => navigate("/banners/new")}>
             <PlusMini />

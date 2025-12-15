@@ -10,6 +10,16 @@ export default defineMiddlewares({
       middlewares: [],
     },
     {
+      // Allow unauthenticated access to search suggestions
+      matcher: "/store/search/suggestions",
+      middlewares: [],
+    },
+    {
+      // Allow unauthenticated access to popular searches
+      matcher: "/store/search/popular",
+      middlewares: [],
+    },
+    {
       // Allow unauthenticated access to banners (public CMS content)
       matcher: "/store/banners",
       middlewares: [],

@@ -7,7 +7,7 @@ import {
 import {
   createInventoryLevelsWorkflow,
   createProductsWorkflow,
-} from "@medusajs/medusa/core-flows";
+} from "@medusajs/core-flows";
 
 interface ProductVariant {
   title: string;

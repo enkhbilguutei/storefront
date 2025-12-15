@@ -4,7 +4,7 @@ import {
   Modules,
   ProductStatus,
 } from "@medusajs/framework/utils";
-import { createProductCategoriesWorkflow, createProductsWorkflow } from "@medusajs/medusa/core-flows";
+import { createProductCategoriesWorkflow, createProductsWorkflow } from "@medusajs/core-flows";
 
 export default async function seedRealProducts({ container }: ExecArgs) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER);

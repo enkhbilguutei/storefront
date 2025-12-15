@@ -5,7 +5,7 @@ import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { useUserStore } from "@/lib/store";
 import { 
-  User, ChevronDown, Package, MapPin, Heart, 
+  User, Package, MapPin, Heart, 
   Settings, LogOut, UserCircle, Loader2
 } from "lucide-react";
 

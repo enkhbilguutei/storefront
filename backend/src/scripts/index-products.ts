@@ -35,48 +35,34 @@ export default async function indexProducts({ container }: ExecArgs) {
 
     console.log(`Found ${products.length} products to index\n`);
 
-    // Get variant IDs to fetch prices
+    // Fetch price sets with prices to derive variant prices
+    const priceSets = await pricingService.listPriceSets({}, { relations: ["prices"] });
+
+    const priceSetMap = new Map<string, number[]>();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const variantIds = products.flatMap((p: any) => p.variants?.map((v: any) => v.id) || []);
-    
-    // Fetch prices for all variants from pricing module
-    let variantPricesMap: Record<string, number[]> = {};
-    if (variantIds.length > 0) {
-      try {
-        const priceSets = await pricingService.listPriceSets(
-          {},
-          { relations: ["prices"] }
-        );
-        
-        // Build a map of variant_id -> prices
+    (priceSets as any[]).forEach((priceSet) => {
+      const amounts = (priceSet.prices || [])
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        priceSets.forEach((priceSet: any) => {
-          if (priceSet.prices) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            priceSet.prices.forEach((price: any) => {
-              // Prices are linked via price_set_id
-              const amount = price.amount;
-              if (amount != null) {
-                // We'll aggregate all prices by price_set for now
-                if (!variantPricesMap[priceSet.id]) {
-                  variantPricesMap[priceSet.id] = [];
-                }
-                variantPricesMap[priceSet.id].push(Number(amount));
-              }
-            });
-          }
-        });
-      } catch (e) {
-        console.log("Note: Could not fetch prices from pricing module:", e);
-      }
-    }
+        .map((p: any) => Number(p.amount))
+        .filter((amount: number) => !Number.isNaN(amount));
+      priceSetMap.set(priceSet.id, amounts);
+    });
 
     // Transform products to MeiliSearch documents
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const documents = products.map((product: any) => {
-      // Collect all prices for this product's variants
-      const allPrices: number[] = [];
-      
+      const variantEntries = (product.variants || []).map((variant: any) => {
+        const amounts = priceSetMap.get(variant.price_set_id) || [];
+        return {
+          id: variant.id,
+          title: variant.title,
+          sku: variant.sku,
+          prices: amounts.map((amount) => ({ amount, currency_code: "mnt" })),
+        };
+      });
+
+      const allPrices = variantEntries.flatMap((v) => v.prices?.map((p) => p.amount) || []);
+
       return {
         id: product.id,
         title: product.title,
@@ -88,15 +74,7 @@ export default async function indexProducts({ container }: ExecArgs) {
         category_ids: product.categories?.map((c: { id: string }) => c.id) || [],
         category_names: product.categories?.map((c: { name: string }) => c.name) || [],
         tags: product.tags?.map((t: { value: string }) => t.value) || [],
-        variants: product.variants?.map((v: {
-          id: string;
-          title: string;
-          sku?: string | null;
-        }) => ({
-          id: v.id,
-          title: v.title,
-          sku: v.sku,
-        })),
+        variants: variantEntries,
         min_price: allPrices.length > 0 ? Math.min(...allPrices) : 0,
         max_price: allPrices.length > 0 ? Math.max(...allPrices) : 0,
         created_at: product.created_at,

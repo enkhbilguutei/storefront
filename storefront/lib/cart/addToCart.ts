@@ -85,7 +85,19 @@ export async function addToCart({
     return true;
   } catch (error) {
     console.error("Error adding to cart:", error);
-    toast.error("Сагсанд нэмэхэд алдаа гарлаа. Дахин оролдоно уу.");
+    const message =
+      (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+      (error as Error)?.message ||
+      "";
+    const normalized = message.toLowerCase();
+
+    if (normalized.includes("stock location")) {
+      toast.error("Энэ бараанд нөөцийн байршил холбогдоогүй байна. Дэлгүүрийн админтай холбогдоно уу.");
+    } else if (normalized.includes("out of stock") || normalized.includes("inventory")) {
+      toast.error("Барааны нөөц дууссан байна.");
+    } else {
+      toast.error("Сагсанд нэмэхэд алдаа гарлаа. Дахин оролдоно уу.");
+    }
     return false;
   }
 }

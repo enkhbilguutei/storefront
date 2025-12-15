@@ -1,0 +1,23 @@
+[
+  {
+    "tac_prefix": "35671081",
+    "brand": "apple",
+    "device_type": "iphone",
+    "model_keyword": "iphone 13 pro",
+    "priority": 20
+  },
+  {
+    "tac_prefix": "35881501",
+    "brand": "apple",
+    "device_type": "iphone",
+    "model_keyword": "iphone 14 pro",
+    "priority": 18
+  },
+  {
+    "tac_prefix": "35994461",
+    "brand": "apple",
+    "device_type": "iphone",
+    "model_keyword": "iphone 15 pro",
+    "priority": 18
+  }
+]

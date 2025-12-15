@@ -63,10 +63,33 @@ function formReducer(state: CheckoutFormState, action: CheckoutFormAction): Chec
         lastName: state.lastName || action.lastName,
         email: state.email || action.email,
       };
+    case "PREFILL_PHONE":
+      return {
+        ...state,
+        phone: state.phone || action.phone,
+      };
     default:
       return state;
   }
 }
+
+type CustomerLike = {
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  phone?: string;
+};
+
+type AddressLike = {
+  id?: string;
+  city?: string;
+  province?: string;
+  address_1?: string;
+  address_2?: string;
+  phone?: string;
+  first_name?: string;
+  last_name?: string;
+};
 
 export function useCheckout() {
   const router = useRouter();
@@ -95,7 +118,7 @@ export function useCheckout() {
   
   // Customer data from backend
   const [customerData, setCustomerData] = useReducer(
-    (state: { customer: any; addresses: any[]; isFetching: boolean }, 
+    (state: { customer: CustomerLike | null; addresses: AddressLike[]; isFetching: boolean }, 
      action: Partial<typeof state>) => ({ ...state, ...action }),
     { customer: null, addresses: [], isFetching: true }
   );
@@ -114,7 +137,7 @@ export function useCheckout() {
   }, [currencyCode]);
   
   // Fill form from saved address
-  const fillFromAddress = useCallback((address: any) => {
+  const fillFromAddress = useCallback((address: AddressLike | null | undefined) => {
     if (!address) return;
     
     dispatch({ type: "SET_FIELD", field: "city", value: address.city || "Улаанбаатар" });
@@ -128,10 +151,10 @@ export function useCheckout() {
       dispatch({ type: "SET_FIELD", field: "building", value: addressParts[addressParts.length - 1] || "" });
     }
     
-    if (address.phone && !formState.phone) {
-      dispatch({ type: "SET_FIELD", field: "phone", value: address.phone });
+    if (address.phone) {
+      dispatch({ type: "PREFILL_PHONE", phone: address.phone });
     }
-  }, [formState.phone]);
+  }, []);
 
   // Fetch cart on mount
   useEffect(() => {
@@ -211,7 +234,7 @@ export function useCheckout() {
         );
         
         let customer = null;
-        let addresses: any[] = [];
+        let addresses: AddressLike[] = [];
         
         if (customerRes.ok) {
           const data = await customerRes.json();
@@ -234,9 +257,9 @@ export function useCheckout() {
             email: customer.email || "",
           });
           
-          // Auto-fill phone if saved
-          if (customer.phone && !formState.phone) {
-            dispatch({ type: "SET_FIELD", field: "phone", value: customer.phone });
+          // Auto-fill phone if saved (only if user hasn't entered a value)
+          if (customer.phone) {
+            dispatch({ type: "PREFILL_PHONE", phone: customer.phone });
           }
         }
       } catch (err) {

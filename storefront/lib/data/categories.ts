@@ -17,6 +17,7 @@ function transformProduct(product: any) {
     title: product.title,
     handle: product.handle,
     thumbnail: product.thumbnail || undefined,
+    tradeInEligible: Boolean(product?.metadata?.trade_in_eligible),
     price: price ? {
       amount: calculatedPrice?.calculated_amount || price.amount,
       currencyCode: price.currency_code.toUpperCase(),
@@ -25,6 +26,9 @@ function transformProduct(product: any) {
       amount: calculatedPrice.original_amount,
       currencyCode: price?.currency_code.toUpperCase() || 'MNT',
     } : undefined,
+    inventoryQuantity: firstVariant.inventory_quantity ?? null,
+    manageInventory: firstVariant.manage_inventory ?? null,
+    allowBackorder: firstVariant.allow_backorder ?? null,
   };
 }
 
@@ -133,7 +137,7 @@ export const getCategoryByHandle = cache(async (handle: string): Promise<Categor
   try {
     await warmBackendConnection();
     const response = await fetchWithRetry(
-      `${BACKEND_URL}/store/product-categories?handle=${handle}&include_descendants_tree=true&fields=id,name,handle,description,parent_category_id,category_children,metadata`,
+      `${BACKEND_URL}/store/product-categories?handle=${handle}&include_descendants_tree=true&fields=id,name,handle,description,parent_category_id,category_children,metadata,*category_children`,
       {
         headers: {
           "x-publishable-api-key": PUBLISHABLE_KEY,
@@ -205,7 +209,7 @@ export const getProductsByCategory = cache(async (categoryId: string) => {
     } = {
       category_id: categoryIds,
       limit: 50,
-      fields: "id,title,handle,thumbnail,options.*,options.values.*,variants.id,variants.title,variants.options.*,variants.prices.amount,variants.prices.currency_code,+variants.calculated_price,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder",
+      fields: "id,title,handle,thumbnail,metadata,options.*,options.values.*,variants.id,variants.title,variants.options.*,variants.prices.amount,variants.prices.currency_code,+variants.calculated_price,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder",
     };
     
     // Add region_id to get calculated prices with promotions

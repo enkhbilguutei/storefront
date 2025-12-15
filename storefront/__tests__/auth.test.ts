@@ -8,6 +8,8 @@
  * 4. Profile retrieval
  */
 
+import { loginSchema, registerSchema } from "../lib/validations";
+
 const MEDUSA_BACKEND_URL = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || 'http://localhost:9000';
 const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || '';
 
@@ -192,9 +194,6 @@ describe('Medusa Auth Flow', () => {
 });
 
 describe('Validation Schema Tests', () => {
-  // Import validation schemas
-  const { loginSchema, registerSchema } = require('../lib/validations');
-
   describe('Login Schema', () => {
     it('should validate correct login data', () => {
       const result = loginSchema.safeParse({

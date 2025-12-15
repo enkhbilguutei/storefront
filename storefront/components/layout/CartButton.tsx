@@ -3,29 +3,11 @@
 import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
 import { useCartStore } from "@/lib/store";
-import { useEffect, useState } from "react";
 
 export function CartButton() {
   const { items } = useCartStore();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
-
-  if (!mounted) {
-    return (
-      <Link 
-        href="/cart" 
-        className="text-foreground/80 hover:text-foreground transition-colors p-2 rounded-full w-10 h-10 flex items-center justify-center relative"
-        aria-label="Сагс"
-      >
-        <ShoppingCart className="h-5 w-5" strokeWidth={1.5} />
-      </Link>
-    );
-  }
 
   return (
     <Link 

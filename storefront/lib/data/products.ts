@@ -7,6 +7,7 @@ interface HomePageProduct {
   title: string;
   handle: string;
   thumbnail?: string;
+  tradeInEligible?: boolean;
   price?: {
     amount: number;
     currencyCode: string;
@@ -15,6 +16,9 @@ interface HomePageProduct {
     amount: number;
     currencyCode: string;
   };
+  inventoryQuantity?: number | null;
+  manageInventory?: boolean | null;
+  allowBackorder?: boolean | null;
 }
 
 /**
@@ -34,6 +38,7 @@ function transformProduct(product: any): HomePageProduct | null {
     title: product.title,
     handle: product.handle,
     thumbnail: product.thumbnail || undefined,
+    tradeInEligible: Boolean(product?.metadata?.trade_in_eligible),
     price: price ? {
       amount: calculatedPrice?.calculated_amount || price.amount,
       currencyCode: price.currency_code.toUpperCase(),
@@ -42,6 +47,9 @@ function transformProduct(product: any): HomePageProduct | null {
       amount: calculatedPrice.original_amount,
       currencyCode: price?.currency_code.toUpperCase() || 'MNT',
     } : undefined,
+    inventoryQuantity: firstVariant.inventory_quantity ?? null,
+    manageInventory: firstVariant.manage_inventory ?? null,
+    allowBackorder: firstVariant.allow_backorder ?? null,
   };
 }
 
@@ -66,7 +74,9 @@ export const getProducts = cache(async (options?: {
     } = {
       limit: options?.limit || 20,
       offset: options?.offset || 0,
-      fields: options?.fields || "id,title,handle,thumbnail,options.*,options.values.*,variants.id,variants.title,variants.options.*,variants.prices.amount,variants.prices.currency_code,+variants.calculated_price,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder",
+      fields:
+        options?.fields ||
+        "id,title,handle,thumbnail,metadata,options.*,options.values.*,variants.id,variants.title,variants.options.*,variants.prices.amount,variants.prices.currency_code,+variants.calculated_price,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder",
     };
     
     if (region?.id) {

@@ -5,7 +5,6 @@ import { useCartStore, useUIStore } from "@/lib/store";
 import { CloudinaryImage } from "@/components/Cloudinary";
 import Link from "next/link";
 import { X, Check, ShoppingBag } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
 import { AnimatedCounter } from "@/components/animations/MotionComponents";
 
 // Simple visibility store to avoid setState in effects
