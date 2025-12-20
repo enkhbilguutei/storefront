@@ -26,11 +26,9 @@ class ProductAnalyticsModuleService extends MedusaService({
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
     
     const views = await this.listProductViews({
-      filters: {
-        product_id: productId,
-        viewed_at: {
-          $gte: fiveMinutesAgo,
-        },
+      product_id: productId,
+      viewed_at: {
+        $gte: fiveMinutesAgo,
       },
     })
 
@@ -63,11 +61,9 @@ class ProductAnalyticsModuleService extends MedusaService({
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
     
     const sales = await this.listProductSales({
-      filters: {
-        product_id: productId,
-        sold_at: {
-          $gte: twentyFourHoursAgo,
-        },
+      product_id: productId,
+      sold_at: {
+        $gte: twentyFourHoursAgo,
       },
     })
 
@@ -108,26 +104,24 @@ class ProductAnalyticsModuleService extends MedusaService({
     productId: string,
     options?: { limit?: number; offset?: number }
   ) {
-    return await this.listProductReviews({
-      filters: {
+    return await this.listProductReviews(
+      {
         product_id: productId,
         is_approved: true,
       },
-      skip: options?.offset || 0,
-      take: options?.limit || 10,
-      order: {
-        created_at: "DESC",
-      },
-    })
+      {
+        skip: options?.offset || 0,
+        take: options?.limit || 10,
+        order: { created_at: "DESC" },
+      }
+    )
   }
 
   // Get average rating for a product
   async getAverageRating(productId: string): Promise<{ average: number; count: number }> {
     const reviews = await this.listProductReviews({
-      filters: {
-        product_id: productId,
-        is_approved: true,
-      },
+      product_id: productId,
+      is_approved: true,
     })
 
     if (reviews.length === 0) {

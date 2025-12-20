@@ -1,10 +1,12 @@
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ProductCard } from "@/components/products/ProductCard";
-import { ProductFilters } from "@/components/products/ProductFilters";
+import { ProductFiltersSidebar } from "@/components/products/ProductFiltersSidebar";
 import { medusa } from "@/lib/medusa";
 import { getCategories } from "@/lib/data/categories";
+import { getCollections } from "@/lib/data/collections";
 import { getDefaultRegion } from "@/lib/data/regions";
+import { extractFilterOptions } from "@/lib/utils/filterUtils";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -153,6 +155,10 @@ export default async function ProductsPage({
   const params = await searchParams;
   const products = await getProducts(params);
   const categories = await getCategories();
+  const collections = await getCollections();
+  
+  // Extract dynamic filter options from products
+  const filterOptions = extractFilterOptions(products as unknown as Parameters<typeof extractFilterOptions>[0]);
 
   const activeCategory = params.category_id 
     ? categories.find(c => c.id === params.category_id)?.name 
@@ -175,18 +181,27 @@ export default async function ProductsPage({
           </div>
         </div>
 
-        {/* Filters Bar - Horizontal, minimal */}
-        <div className="border-b border-gray-100 sticky top-[88px] bg-white/95 backdrop-blur-md z-30">
-          <div className="container mx-auto px-4">
-            <ProductFilters categories={categories} />
-          </div>
-        </div>
-
-        {/* Product Grid */}
+        {/* Content with Sidebar */}
         <div className="container mx-auto px-4 py-8 md:py-12">
-          {products.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-              {products.map((product) => {
+          <div className="flex gap-8">
+            {/* Left Sidebar - Filters */}
+            <aside className="w-64 shrink-0">
+              <ProductFiltersSidebar 
+                categories={categories}
+                collections={collections}
+                tags={filterOptions.tags}
+                availableOptions={filterOptions.availableOptions}
+                priceRange={filterOptions.priceRange}
+                pageType="products"
+              />
+            </aside>
+
+            {/* Main Content */}
+            <div className="flex-1 min-w-0">
+              {/* Product Grid */}
+              {products.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                  {products.map((product) => {
                 const firstVariant = product.variants?.[0];
                 const calculatedPrice = firstVariant?.calculated_price;
                 const firstPrice = firstVariant?.prices?.[0];
@@ -237,6 +252,8 @@ export default async function ProductsPage({
               </p>
             </div>
           )}
+            </div>
+          </div>
         </div>
       </main>
 

@@ -5,11 +5,11 @@ import { useCartStore } from "@/lib/store";
 import { CartItem } from "@/components/cart/CartItem";
 import { CartSummary } from "@/components/cart/CartSummary";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Loader2,
   RefreshCw,
   ArrowRight,
-  ShoppingBag,
 } from "lucide-react";
 
 // Line item type for display (compatible with CartItem component)
@@ -103,8 +103,14 @@ export function CartContent() {
     return (
       <main className="flex-1 flex items-center justify-center py-24 bg-white">
         <div className="w-full max-w-xl px-6 text-center">
-          <div className="mx-auto mb-6 w-16 h-16 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center">
-            <ShoppingBag className="w-7 h-7 text-gray-400" />
+          <div className="mx-auto mb-6 w-20 h-20 flex items-center justify-center">
+            <Image 
+              src="/pngtree-sad-cartoon-apple-vector-png-image_20975407.png" 
+              alt="Сагс хоосон" 
+              width={80} 
+              height={80}
+              className="w-20 h-20 object-contain"
+            />
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3 tracking-tight">

@@ -1,9 +1,11 @@
 "use client"
 
 import { useState } from "react"
+import { useSession } from "next-auth/react"
 import { Star, Upload, X } from "lucide-react"
 import { toast } from "@/lib/toast"
 import { CloudinaryImage } from "@/components/Cloudinary"
+import { API_KEY, API_URL } from "@/lib/config/api"
 
 interface ReviewFormProps {
   productId: string
@@ -11,6 +13,7 @@ interface ReviewFormProps {
 }
 
 export function ReviewForm({ productId, onSuccess }: ReviewFormProps) {
+  const { data: session } = useSession()
   const [rating, setRating] = useState(0)
   const [hoverRating, setHoverRating] = useState(0)
   const [title, setTitle] = useState("")
@@ -34,13 +37,26 @@ export function ReviewForm({ productId, onSuccess }: ReviewFormProps) {
     setIsSubmitting(true)
 
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL
+      const backendUrl = API_URL
+
+      if (!backendUrl || !API_KEY) {
+        toast.error("Серверийн тохиргоо алга байна. NEXT_PUBLIC_MEDUSA_BACKEND_URL болон NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY-г шалгана уу.")
+        return
+      }
+
+      if (!session?.accessToken) {
+        toast.error("Үнэлгээ үлдээхийн тулд нэвтэрнэ үү")
+        return
+      }
+
       const response = await fetch(
         `${backendUrl}/store/product-analytics/reviews/${productId}`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "x-publishable-api-key": API_KEY,
+            Authorization: `Bearer ${session.accessToken}`,
           },
           credentials: "include",
           body: JSON.stringify({
@@ -58,7 +74,9 @@ export function ReviewForm({ productId, onSuccess }: ReviewFormProps) {
       }
 
       if (!response.ok) {
-        throw new Error("Failed to submit review")
+        const errorBody = await response.json().catch(() => null)
+        const message = errorBody?.message || "Үнэлгээ илгээхэд алдаа гарлаа. Дахин оролдоно уу."
+        throw new Error(message)
       }
 
       const data = await response.json()
@@ -75,7 +93,8 @@ export function ReviewForm({ productId, onSuccess }: ReviewFormProps) {
       }
     } catch (error) {
       console.error("Failed to submit review:", error)
-      toast.error("Үнэлгээ илгээхэд алдаа гарлаа. Дахин оролдоно уу.")
+      const message = error instanceof Error ? error.message : "Үнэлгээ илгээхэд алдаа гарлаа. Дахин оролдоно уу."
+      toast.error(message)
     } finally {
       setIsSubmitting(false)
     }

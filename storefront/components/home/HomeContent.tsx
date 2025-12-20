@@ -1,4 +1,4 @@
-import { ProductGridSection } from "./ProductGridSection";
+import { ProductCarouselSection } from "./ProductCarouselSection";
 import { getCategories, getProductsByCategory } from "@/lib/data/categories";
 import { getFeaturedProducts } from "@/lib/data/products";
 import { getProductGridBanner } from "@/lib/data/banners";
@@ -56,7 +56,7 @@ export async function HomeContent() {
     <>
       {/* Apple Products Section */}
       {appleProducts.length > 0 && (
-        <ProductGridSection
+        <ProductCarouselSection
           title="Best of Apple"
           subtitle="iPhone, MacBook, iPad, AirPods болон бусад"
           products={appleProducts}
@@ -67,7 +67,7 @@ export async function HomeContent() {
 
       {/* Gaming Section */}
       {gamingProducts.length > 0 && (
-        <ProductGridSection
+        <ProductCarouselSection
           title="Gaming & Entertainment"
           subtitle="PlayStation, Nintendo Switch болон дагалдах хэрэгсэл"
           products={gamingProducts}
@@ -78,7 +78,7 @@ export async function HomeContent() {
 
       {/* iPad Collection */}
       {ipadProducts.length > 0 && (
-        <ProductGridSection
+        <ProductCarouselSection
           title="iPad Collection"
           subtitle="iPad Pro, iPad Air, iPad Mini - бүх загварууд"
           products={ipadProducts}
@@ -89,7 +89,7 @@ export async function HomeContent() {
 
       {/* AirPods & Apple Watch */}
       {(airpodsProducts.length > 0 || appleWatchProducts.length > 0) && (
-        <ProductGridSection
+        <ProductCarouselSection
           title="AirPods & Apple Watch"
           subtitle="Таны амьдралыг хялбарчлах ухаалаг бүтээгдэхүүн"
           products={[...airpodsProducts, ...appleWatchProducts].slice(0, 6)}
@@ -100,7 +100,7 @@ export async function HomeContent() {
 
       {/* Accessories */}
       {accessoriesProducts.length > 0 && (
-        <ProductGridSection
+        <ProductCarouselSection
           title="Accessories"
           subtitle="AirTag, Apple Pencil, Magic Mouse, HomePod болон бусад"
           products={accessoriesProducts}
@@ -111,7 +111,7 @@ export async function HomeContent() {
 
       {/* All Products */}
       {allProducts.length > 0 && (
-        <ProductGridSection
+        <ProductCarouselSection
           title="Бүх бүтээгдэхүүн"
           subtitle="Манай дэлгүүрийн бүх санал"
           products={allProducts.slice(0, 12)}

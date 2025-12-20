@@ -72,10 +72,10 @@ export function ViewingCounter({ productId }: ViewingCounterProps) {
   }
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2 bg-orange-50 border border-orange-200 rounded-lg text-sm animate-pulse-soft">
-      <Eye className="w-4 h-4 text-orange-600" />
-      <span className="text-orange-800">
-        <span className="font-semibold">{viewers}</span> хүн энэ бүтээгдэхүүнийг харж байна
+    <div className="flex items-center gap-2 px-3 py-2 bg-[#EF233C]/5 border border-[#EF233C]/20 rounded-lg text-sm">
+      <Eye className="w-4 h-4 text-[#D90429]" />
+      <span className="text-[#2B2D42]">
+        <span className="font-semibold">{viewers}</span> хүн үзэж байна
       </span>
     </div>
   )

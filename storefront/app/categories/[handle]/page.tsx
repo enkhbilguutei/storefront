@@ -1,8 +1,9 @@
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ProductCard } from "@/components/products/ProductCard";
-import { SortSelect } from "@/components/categories/SortSelect";
+import { ProductFiltersSidebar } from "@/components/products/ProductFiltersSidebar";
 import { getCategoryByHandle, getProductsByCategory } from "@/lib/data/categories";
+import { getCategories } from "@/lib/data/categories";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight, Package } from "lucide-react";
@@ -78,16 +79,21 @@ export default async function CategoryPage({
     notFound();
   }
   
+  const allCategories = await getCategories();
   const products = (await getProductsByCategory(category.id)) as unknown as CategoryProduct[];
   
   // Sort products based on query params
   const sortedProducts = [...products];
-  const sortOrder = query.sort as string;
+  const sortOrder = query.sort as string || query.order as string;
   
   if (sortOrder === 'price_asc') {
     sortedProducts.sort((a, b) => (a.price?.amount ?? 0) - (b.price?.amount ?? 0));
   } else if (sortOrder === 'price_desc') {
     sortedProducts.sort((a, b) => (b.price?.amount ?? 0) - (a.price?.amount ?? 0));
+  } else if (sortOrder === 'name_asc') {
+    sortedProducts.sort((a, b) => a.title.localeCompare(b.title, 'mn'));
+  } else if (sortOrder === 'name_desc') {
+    sortedProducts.sort((a, b) => b.title.localeCompare(a.title, 'mn'));
   } else if (sortOrder === 'newest') {
     sortedProducts.reverse();
   }
@@ -128,21 +134,26 @@ export default async function CategoryPage({
         </div>
 
         <div className="container mx-auto px-4 py-8">
-          {/* Filter Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-            <p className="text-secondary">
-              {sortedProducts.length} бүтээгдэхүүн олдлоо
-            </p>
-            
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-secondary">Эрэмбэлэх:</span>
-              <SortSelect currentSort={sortOrder} />
-            </div>
-          </div>
+          <div className="flex gap-8">
+            {/* Left Sidebar - Filters */}
+            <aside className="w-64 shrink-0">
+              <ProductFiltersSidebar 
+                categories={allCategories.filter(c => c.id !== category.id)}
+                pageType="category"
+              />
+            </aside>
 
-          {/* Product Grid */}
-          {sortedProducts.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {/* Main Content */}
+            <div className="flex-1 min-w-0">
+              <div className="mb-6">
+                <p className="text-[#86868b] text-[15px]">
+                  {sortedProducts.length} бүтээгдэхүүн
+                </p>
+              </div>
+
+              {/* Product Grid */}
+              {sortedProducts.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {sortedProducts.map((product) => {
                 return (
                   <ProductCard
@@ -162,25 +173,27 @@ export default async function CategoryPage({
                   />
                 );
               })}
+                </div>
+              ) : (
+                <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
+                  <Package className="h-16 w-16 text-secondary mx-auto mb-4" strokeWidth={1} />
+                  <p className="text-foreground text-lg font-medium mb-2">
+                    Бүтээгдэхүүн олдсонгүй
+                  </p>
+                  <p className="text-secondary mb-6">
+                    Энэ ангилалд одоогоор бүтээгдэхүүн байхгүй байна.
+                  </p>
+                  <Link 
+                    href="/products"
+                    className="inline-flex items-center gap-2 bg-foreground text-background px-6 py-3 rounded-full font-medium hover:bg-foreground/90 transition-colors"
+                  >
+                    Бүх бүтээгдэхүүн үзэх
+                    <ChevronRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
-              <Package className="h-16 w-16 text-secondary mx-auto mb-4" strokeWidth={1} />
-              <p className="text-foreground text-lg font-medium mb-2">
-                Бүтээгдэхүүн олдсонгүй
-              </p>
-              <p className="text-secondary mb-6">
-                Энэ ангилалд одоогоор бүтээгдэхүүн байхгүй байна.
-              </p>
-              <Link 
-                href="/products"
-                className="inline-flex items-center gap-2 bg-foreground text-background px-6 py-3 rounded-full font-medium hover:bg-foreground/90 transition-colors"
-              >
-                Бүх бүтээгдэхүүн үзэх
-                <ChevronRight className="h-4 w-4" />
-              </Link>
-            </div>
-          )}
+          </div>
         </div>
       </main>
 

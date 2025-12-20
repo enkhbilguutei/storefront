@@ -193,11 +193,13 @@ export function HeaderClient({ categories, collections }: HeaderClientProps) {
                 {/* User Menu */}
                 {isAuthenticated && user ? (
                   <div className="hidden lg:flex items-center gap-2 relative group">
-                    <button className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded-lg transition-colors">
-                      <User className="h-5 w-5 text-gray-700" />
+                    <button className="flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors">
+                      <div className="w-8 h-8 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-medium">
+                        {user.firstName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || "У"}
+                      </div>
                       <div className="flex flex-col items-start">
                         <span className="text-[10px] text-gray-500">Сайн байна уу</span>
-                        <span className="text-sm font-medium text-gray-900">{user.firstName || "Хэрэглэгч"}</span>
+                        <span className="text-sm font-medium text-gray-900">{user.firstName || user.name || "Хэрэглэгч"}</span>
                       </div>
                     </button>
                     
@@ -221,8 +223,10 @@ export function HeaderClient({ categories, collections }: HeaderClientProps) {
                     </div>
                   </div>
                 ) : (
-                  <Link href="/auth/login" className="hidden lg:flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded-lg transition-colors">
-                    <User className="h-5 w-5 text-gray-700" />
+                  <Link href="/auth/login" className="hidden lg:flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors">
+                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                      <User className="h-4 w-4 text-gray-600" />
+                    </div>
                     <div className="flex flex-col items-start">
                       <span className="text-[10px] text-gray-500">Сайн байна уу</span>
                       <span className="text-sm font-medium text-gray-900">Нэвтрэх</span>
@@ -465,8 +469,8 @@ export function HeaderClient({ categories, collections }: HeaderClientProps) {
             {isAuthenticated && user ? (
               <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-full bg-gray-300 text-gray-700 flex items-center justify-center font-semibold text-lg">
-                    {user.firstName?.[0] || user.email[0].toUpperCase()}
+                  <div className="w-12 h-12 rounded-full bg-gray-900 text-white flex items-center justify-center font-medium text-sm">
+                    {user.firstName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || "У"}
                   </div>
                   <div>
                     <p className="font-medium text-gray-900">{user.firstName || "Хэрэглэгч"}</p>

@@ -13,6 +13,10 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
+    
+    /* Type resolution - force React 18 types */
+    "types": ["react", "react-dom"],
+    "typeRoots": ["../../node_modules/@types"],
 
     /* Linting */
     "strict": true,
@@ -20,5 +24,5 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["."]
+  "include": [".", "./react-compat.d.ts"]
 }

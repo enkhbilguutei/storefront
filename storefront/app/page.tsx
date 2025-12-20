@@ -1,7 +1,7 @@
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Hero } from "@/components/home/Hero";
-import { BentoBanners } from "@/components/home/BentoBanners";
+import { BentoGrid } from "@/components/home/BentoGrid";
 import { Categories } from "@/components/home/Categories";
 import { HomeContent } from "@/components/home/HomeContent";
 import { Truck, RotateCcw, ShieldCheck } from "lucide-react";
@@ -43,7 +43,7 @@ export default async function Home() {
         
         
         <Categories />
-        <BentoBanners banners={bentoBanners} />
+        <BentoGrid banners={bentoBanners} />
         
         <HomeContent />
 

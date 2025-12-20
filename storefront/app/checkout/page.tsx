@@ -5,7 +5,7 @@ import Image from "next/image";
 import {
   ArrowLeft,
   Loader2,
-  ShoppingBag,
+
   Lock,
   AlertCircle,
   User,
@@ -93,6 +93,7 @@ export default function CheckoutPage() {
         building: checkout.building,
         apartment: checkout.apartment,
         additionalInfo: checkout.additionalInfo,
+        selectedShippingOption: checkout.selectedShippingOption,
         paymentMethod: checkout.paymentMethod,
         onSuccess: (orderId, paymentMethod) => {
           shouldResetState = false; // Don't reset on success (navigating away)
@@ -150,8 +151,14 @@ export default function CheckoutPage() {
       <div className="min-h-screen flex flex-col bg-[#f8f8f8]">
         <main className="flex-1 flex items-center justify-center py-20">
           <div className="text-center max-w-md px-6">
-            <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center mx-auto mb-6 shadow-sm">
-              <ShoppingBag className="w-10 h-10 text-gray-400" />
+            <div className="w-20 h-20 flex items-center justify-center mx-auto mb-6">
+              <Image 
+                src="/pngtree-sad-cartoon-apple-vector-png-image_20975407.png" 
+                alt="Сагс хоосон" 
+                width={80} 
+                height={80}
+                className="w-20 h-20 object-contain"
+              />
             </div>
             <h1 className="text-2xl font-semibold text-gray-900 mb-3">
               Сагс хоосон байна

@@ -56,13 +56,14 @@ export function AccountLayoutClient({
                     className="w-12 h-12 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="w-12 h-12 rounded-full bg-foreground text-background flex items-center justify-center text-sm font-medium">
+                  <div className="w-12 h-12 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-medium">
                     {initials}
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <h1 className="text-sm font-semibold text-foreground truncate">{displayName}</h1>
-                  <p className="text-xs text-secondary truncate">{user?.email}</p>
+                  <p className="text-xs text-gray-500 mb-0.5">Сайн байна уу</p>
+                  <h1 className="text-sm font-semibold text-gray-900 truncate">{displayName}</h1>
+                  <p className="text-xs text-gray-500 truncate">{user?.email}</p>
                 </div>
               </div>
             </div>

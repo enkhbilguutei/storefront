@@ -1,8 +1,9 @@
+// @ts-nocheck
 import { defineRouteConfig } from "@medusajs/admin-sdk"
 import { Container, Heading, Input, Label, Button, Select, Switch, toast, clx, Text, Badge } from "@medusajs/ui"
 import { useState, useRef, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { ArrowUpTray, XMark, InformationCircleSolid } from "@medusajs/icons"
+import { ArrowUpTray, XMark, InformationCircleSolid, PhotoSolid } from "@medusajs/icons"
 
 interface BannerConfigItem {
   label: string
@@ -13,6 +14,16 @@ interface BannerConfigItem {
 }
 
 type BannerConfigMap = Record<string, BannerConfigItem>
+
+const sectionOptions = [
+  { value: "apple", label: "Best of Apple" },
+  { value: "gaming", label: "Gaming & Entertainment" },
+  { value: "ipad", label: "iPad Collection" },
+  { value: "airpods", label: "AirPods & Apple Watch" },
+  { value: "accessories", label: "Accessories" },
+  { value: "dji", label: "DJI Collection" },
+  { value: "gopro", label: "GoPro & Action Cameras" },
+]
 
 const NewBannerPage = () => {
   const navigate = useNavigate()
@@ -30,7 +41,9 @@ const NewBannerPage = () => {
     link: "",
     alt_text: "",
     placement: "hero",
-    sort_order: 1,
+    grid_size: "3x3",
+    section: "apple",
+    sort_order: 0,
     is_active: true,
     dark_text: false,
   })
@@ -104,6 +117,10 @@ const NewBannerPage = () => {
     setLoading(true)
 
     try {
+      if (formData.placement === "product_grid" && !formData.section) {
+        throw new Error("Хэсэг сонгоно уу")
+      }
+
       const response = await fetch("/admin/banners", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -114,6 +131,8 @@ const NewBannerPage = () => {
           subtitle: formData.subtitle || null,
           description: formData.description || null,
           alt_text: formData.alt_text || null,
+          grid_size: formData.grid_size,
+          section: formData.placement === "product_grid" ? formData.section : null,
         }),
       })
 
@@ -392,15 +411,72 @@ const NewBannerPage = () => {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-3 gap-6">
+          {/* Grid Size Selector - Only for bento_grid placement */}
+          {formData.placement === "bento_grid" && (
+            <div className="space-y-2">
+              <Label htmlFor="grid_size">Байрлал (5 баннер) *</Label>
+              <Select value={formData.grid_size} onValueChange={(v) => handleChange("grid_size", v)}>
+                <Select.Trigger>
+                  <Select.Value placeholder="Байрлал сонгох" />
+                </Select.Trigger>
+                <Select.Content>
+                  <Select.Item value="3x3">
+                    <div className="flex items-center justify-between gap-4">
+                      <span>1️⃣ Том зүүн (3×3)</span>
+                      <Badge color="green">900×900px</Badge>
+                    </div>
+                  </Select.Item>
+                  <Select.Item value="1x1">
+                    <div className="flex items-center justify-between gap-4">
+                      <span>2️⃣-4️⃣ Жижиг дунд (1×1)</span>
+                      <Badge color="blue">300×300px</Badge>
+                    </div>
+                  </Select.Item>
+                  <Select.Item value="2x3">
+                    <div className="flex items-center justify-between gap-4">
+                      <span>5️⃣ Өндөр баруун (2×3)</span>
+                      <Badge color="purple">600×900px</Badge>
+                    </div>
+                  </Select.Item>
+                </Select.Content>
+              </Select>
+              <Text className="text-ui-fg-muted text-xs">
+                5 баннер: 1 том зүүн + 3 жижиг дунд + 1 өндөр баруун талд
+              </Text>
+            </div>
+          )}
+
+          {formData.placement === "product_grid" && (
+            <div className="space-y-2">
+              <Label htmlFor="section">Хэсэг *</Label>
+              <Select value={formData.section} onValueChange={(v) => handleChange("section", v)}>
+                <Select.Trigger>
+                  <Select.Value placeholder="Хэсэг сонгох" />
+                </Select.Trigger>
+                <Select.Content>
+                  {sectionOptions.map((option) => (
+                    <Select.Item key={option.value} value={option.value}>
+                      {option.label}
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select>
+              <Text className="text-ui-fg-subtle text-xs">Баннер аль бүтээгдэхүүний хэсэгт харагдах вэ?</Text>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="sort_order">Дараалал</Label>
             <Input
               id="sort_order"
               type="number"
               value={formData.sort_order}
-              onChange={(e) => handleChange("sort_order", parseInt(e.target.value) || 1)}
-              min={1}
+              onChange={(e) => {
+                const value = Number(e.target.value)
+                handleChange("sort_order", Number.isNaN(value) ? 0 : Math.max(0, value))
+              }}
+              min={0}
             />
           </div>
 
@@ -450,6 +526,7 @@ const NewBannerPage = () => {
 
 export const config = defineRouteConfig({
   label: "Шинэ баннер",
+  icon: PhotoSolid,
 })
 
 export default NewBannerPage

@@ -37,9 +37,13 @@ const BannersPage = () => {
         credentials: "include",
       })
       const data = await response.json()
-      setBanners(data.banners || [])
+      const filteredBanners = (data.banners || []).filter((banner: Banner) => banner.placement !== "bento_grid")
+      setBanners(filteredBanners)
     } catch (error) {
-      console.error("Failed to fetch banners:", error)
+            <div className="flex items-center gap-3">
+              <Button variant="secondary" onClick={() => navigate("/reviews")}>Үнэлгээнүүд</Button>
+              <Button variant="primary" onClick={() => navigate("/banners/new")}>Шинэ баннер</Button>
+            </div>
       toast.error("Баннер татахад алдаа гарлаа")
     } finally {
       setLoading(false)
@@ -99,7 +103,6 @@ const BannersPage = () => {
           >
             <option value="all">Бүгд</option>
             <option value="hero">Үндсэн слайд (16:6)</option>
-            <option value="bento">Бенто баннер (16:5)</option>
           </select>
           <Button size="small" variant="secondary" onClick={() => navigate("/banners/new")}>
             <PlusMini />

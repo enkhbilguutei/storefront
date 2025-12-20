@@ -302,7 +302,7 @@ export function useCheckout() {
     if (!email.trim()) newErrors.email = "И-мэйл оруулна уу";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) newErrors.email = "И-мэйл хаяг буруу байна";
     if (!phone.trim()) newErrors.phone = "Утас оруулна уу";
-    else if (!/^\d{8,9}$/.test(phone.replace(/\s/g, ""))) newErrors.phone = "8-9 оронтой дугаар оруулна уу";
+    else if (!/^\d{8}$/.test(phone.replace(/\s/g, ""))) newErrors.phone = "8 оронтой дугаар оруулна уу";
 
     if (deliveryMethod === "delivery") {
       if (!city) newErrors.city = "Хот сонгоно уу";
@@ -400,6 +400,8 @@ export function useCheckout() {
     setApartment: (v: string) => setField("apartment", v),
     additionalInfo: formState.additionalInfo,
     setAdditionalInfo: (v: string) => setField("additionalInfo", v),
+    selectedShippingOption: formState.selectedShippingOption,
+    setSelectedShippingOption: (v: string | null) => setField("selectedShippingOption", v),
     paymentMethod: formState.paymentMethod as PaymentMethod,
     setPaymentMethod: (v: PaymentMethod) => setField("paymentMethod", v),
     

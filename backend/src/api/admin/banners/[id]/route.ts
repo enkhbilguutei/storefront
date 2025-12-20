@@ -54,6 +54,7 @@ export async function PUT(
       link,
       alt_text,
       placement,
+      grid_size,
       sort_order,
       is_active,
       dark_text,
@@ -86,6 +87,7 @@ export async function PUT(
     if (image_url !== undefined) updateData.image_url = image_url
     if (link !== undefined) updateData.link = link
     if (placement !== undefined) updateData.placement = placement
+    if (grid_size !== undefined) updateData.grid_size = grid_size
     
     // Numeric and boolean fields
     if (sort_order !== undefined) updateData.sort_order = sort_order

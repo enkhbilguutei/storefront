@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react"
 import { Star, ThumbsUp, BadgeCheck } from "lucide-react"
 import { CloudinaryImage } from "@/components/Cloudinary"
+import { API_KEY, API_URL } from "@/lib/config/api"
+import { useSession } from "next-auth/react"
 
 interface Review {
   id: string
@@ -14,13 +16,16 @@ interface Review {
   verified_purchase: boolean
   helpful_count: number
   created_at: string
+  is_approved?: boolean
 }
 
 interface CustomerReviewsProps {
   productId: string
+  refreshKey?: number
 }
 
-export function CustomerReviews({ productId }: CustomerReviewsProps) {
+export function CustomerReviews({ productId, refreshKey }: CustomerReviewsProps) {
+  const { data: session } = useSession()
   const [reviews, setReviews] = useState<Review[]>([])
   const [rating, setRating] = useState<{ average: number; count: number } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -28,9 +33,14 @@ export function CustomerReviews({ productId }: CustomerReviewsProps) {
   useEffect(() => {
     const fetchReviews = async () => {
       try {
-        const backendUrl = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL
+        const backendUrl = API_URL
         const response = await fetch(
-          `${backendUrl}/store/product-analytics/reviews/${productId}?limit=5`
+          `${backendUrl}/store/product-analytics/reviews/${productId}?limit=5`,
+          {
+            headers: {
+              "x-publishable-api-key": API_KEY,
+            },
+          }
         )
 
         if (response.ok) {
@@ -46,14 +56,19 @@ export function CustomerReviews({ productId }: CustomerReviewsProps) {
     }
 
     fetchReviews()
-  }, [productId])
+  }, [productId, refreshKey])
 
   const handleMarkHelpful = async (reviewId: string) => {
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL
+      const backendUrl = API_URL
       const response = await fetch(
         `${backendUrl}/store/product-analytics/reviews/${reviewId}/helpful`,
-        { method: "POST" }
+        { 
+          method: "POST",
+          headers: {
+            "x-publishable-api-key": API_KEY,
+          },
+        }
       )
 
       if (response.ok) {
@@ -81,7 +96,11 @@ export function CustomerReviews({ productId }: CustomerReviewsProps) {
   }
 
   if (!rating || rating.count === 0) {
-    return null
+    return (
+      <div className="text-sm text-gray-500">
+        Одоогоор баталгаажсан үнэлгээ байхгүй байна.
+      </div>
+    )
   }
 
   return (
@@ -134,6 +153,11 @@ export function CustomerReviews({ productId }: CustomerReviewsProps) {
                       <span>Баталгаажсан</span>
                     </div>
                   )}
+                  {review.is_approved === false && (
+                    <div className="flex items-center gap-1 text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+                      <span>Хүлээгдэж байна</span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 mt-1">
                   <div className="flex">
@@ -184,13 +208,17 @@ export function CustomerReviews({ productId }: CustomerReviewsProps) {
             )}
 
             {/* Helpful Button */}
-            <button
-              onClick={() => handleMarkHelpful(review.id)}
-              className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <ThumbsUp className="w-4 h-4" />
-              <span>Тустай ({review.helpful_count})</span>
-            </button>
+            {review.is_approved === false ? (
+              <p className="text-xs text-gray-500">Таны үнэлгээ баталгаажсаны дараа нийтлэгдэнэ.</p>
+            ) : (
+              <button
+                onClick={() => handleMarkHelpful(review.id)}
+                className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                <ThumbsUp className="w-4 h-4" />
+                <span>Тустай ({review.helpful_count})</span>
+              </button>
+            )}
           </div>
         ))}
       </div>

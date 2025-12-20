@@ -16,15 +16,42 @@ export async function GET(
   try {
     const analyticsService = req.scope.resolve("product_analytics")
 
-    const reviews = await analyticsService.getProductReviews(productId, {
+    // Always include approved reviews
+    const approvedReviews = await analyticsService.getProductReviews(productId, {
       limit,
       offset,
     })
 
     const ratingData = await analyticsService.getAverageRating(productId)
 
+    // If user is authenticated, include their latest review even if pending approval
+    const customer_id = (req as any).auth?.actor_id || (req as any).auth_context?.actor_id
+    let myReview = null
+
+    if (customer_id) {
+      const mine = await analyticsService.listProductReviews(
+        {
+          product_id: productId,
+          customer_id,
+        },
+        {
+          order: { created_at: "DESC" },
+          take: 1,
+        }
+      )
+
+      if (mine?.[0]) {
+        const existsInApproved = approvedReviews.some((r: any) => r.id === mine[0].id)
+        if (!existsInApproved) {
+          myReview = mine[0]
+        }
+      }
+    }
+
+    const combinedReviews = myReview ? [myReview, ...approvedReviews] : approvedReviews
+
     return res.json({
-      reviews,
+      reviews: combinedReviews,
       rating: ratingData,
       limit,
       offset,
@@ -59,7 +86,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const customerService = req.scope.resolve("customer")
 
     // Get customer info from context (set by auth middleware)
-    const customer_id = (req as any).auth?.actor_id
+    const customer_id = (req as any).auth?.actor_id || (req as any).auth_context?.actor_id
     if (!customer_id) {
       return res.status(401).json({ message: "Authentication required" })
     }
@@ -98,5 +125,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     return res.status(500).json({ message: "Failed to create review" })
   }
 }
+
+// Note: AUTHENTICATE is false at module level, but we still apply customAuthMiddleware in middlewares.ts
 
 export const AUTHENTICATE = false

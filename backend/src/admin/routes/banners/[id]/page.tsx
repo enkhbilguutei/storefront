@@ -14,6 +14,7 @@ interface Banner {
   link: string
   alt_text: string | null
   placement: string
+  grid_size: string
   sort_order: number
   is_active: boolean
   dark_text: boolean
@@ -32,6 +33,12 @@ type BannerConfigMap = Record<string, BannerConfigItem>
 const EditBannerPage = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  
+  // Don't render this component for /banners/new - let the new route handle it
+  if (id === "new") {
+    return null
+  }
+  
   const [loading, setLoading] = useState(false)
   const [fetching, setFetching] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -60,6 +67,12 @@ const EditBannerPage = () => {
 
   useEffect(() => {
     const fetchBanner = async () => {
+      // Don't fetch if this is the "new" route
+      if (id === "new") {
+        setFetching(false)
+        return
+      }
+      
       try {
         const response = await fetch(`/admin/banners/${id}`, {
           credentials: "include",
@@ -143,6 +156,7 @@ const EditBannerPage = () => {
           link: formData.link,
           alt_text: formData.alt_text || null,
           placement: formData.placement,
+          grid_size: formData.grid_size,
           sort_order: formData.sort_order,
           is_active: formData.is_active,
           dark_text: formData.dark_text,
@@ -193,33 +207,33 @@ const EditBannerPage = () => {
 
       <form onSubmit={handleSubmit} className="px-6 py-4 space-y-6">
         <div className="grid grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <Label htmlFor="title">Гарчиг</Label>
-            <Input
-              id="title"
-              value={formData.title || ""}
-              onChange={(e) => handleChange("title", e.target.value)}
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="title">Гарчиг</Label>
+                <Input
+                  id="title"
+                  value={formData.title || ""}
+                  onChange={(e) => handleChange("title", e.target.value)}
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="subtitle">Дэд гарчиг</Label>
-            <Input
-              id="subtitle"
-              value={formData.subtitle || ""}
-              onChange={(e) => handleChange("subtitle", e.target.value)}
-            />
-          </div>
-        </div>
+              <div className="space-y-2">
+                <Label htmlFor="subtitle">Дэд гарчиг</Label>
+                <Input
+                  id="subtitle"
+                  value={formData.subtitle || ""}
+                  onChange={(e) => handleChange("subtitle", e.target.value)}
+                />
+              </div>
+            </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="description">Тайлбар</Label>
-          <Input
-            id="description"
-            value={formData.description || ""}
-            onChange={(e) => handleChange("description", e.target.value)}
-          />
-        </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Тайлбар</Label>
+              <Input
+                id="description"
+                value={formData.description || ""}
+                onChange={(e) => handleChange("description", e.target.value)}
+              />
+            </div>
 
         <div className="space-y-2">
           <Label>Зураг *</Label>
@@ -415,7 +429,42 @@ const EditBannerPage = () => {
             )}
           </div>
 
-          <div className="space-y-2">
+          {/* Grid Size Selector - Only for bento_grid placement */}
+          {formData.placement === "bento_grid" && (
+            <div className="space-y-2">
+              <Label htmlFor="grid_size">Байрлал (5 баннер) *</Label>
+              <Select value={formData.grid_size} onValueChange={(v) => handleChange("grid_size", v)}>
+                <Select.Trigger>
+                  <Select.Value placeholder="Байрлал сонгох" />
+                </Select.Trigger>
+                <Select.Content>
+                  <Select.Item value="3x3">
+                    <div className="flex items-center justify-between gap-4">
+                      <span>1️⃣ Том зүүн (3×3)</span>
+                      <Badge color="green">900×900px</Badge>
+                    </div>
+                  </Select.Item>
+                  <Select.Item value="1x1">
+                    <div className="flex items-center justify-between gap-4">
+                      <span>2️⃣-4️⃣ Жижиг дунд (1×1)</span>
+                      <Badge color="blue">300×300px</Badge>
+                    </div>
+                  </Select.Item>
+                  <Select.Item value="2x3">
+                    <div className="flex items-center justify-between gap-4">
+                      <span>5️⃣ Өндөр баруун (2×3)</span>
+                      <Badge color="purple">600×900px</Badge>
+                    </div>
+                  </Select.Item>
+                </Select.Content>
+              </Select>
+              <Text className="text-ui-fg-muted text-xs">
+                5 баннер: 1 том зүүн + 3 жижиг дунд + 1 өндөр баруун талд
+              </Text>
+            </div>
+          )}
+
+          <div className="space-y-2">""
             <Label htmlFor="sort_order">Дараалал</Label>
             <Input
               id="sort_order"

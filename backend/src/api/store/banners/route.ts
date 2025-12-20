@@ -18,6 +18,16 @@ export async function GET(
 ): Promise<void> {
   try {
     const bannerService = req.scope.resolve<BannerModuleService>(BANNER_MODULE)
+    
+    if (!bannerService) {
+      console.error("Banner service not found in scope")
+      res.status(500).json({ 
+        message: "Banner service not initialized",
+        error: "Service resolution failed"
+      })
+      return
+    }
+    
     const placement = req.query.placement as string | undefined
     const section = req.query.section as string | undefined
     
@@ -46,9 +56,13 @@ export async function GET(
     res.json({ banners: activeBanners })
   } catch (error) {
     console.error("Failed to fetch banners:", error)
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
+    const errorStack = error instanceof Error ? error.stack : undefined
+    console.error("Error stack:", errorStack)
+    
     res.status(500).json({ 
       message: "Failed to fetch banners",
-      error: error instanceof Error ? error.message : "Unknown error"
+      error: errorMessage
     })
   }
 }

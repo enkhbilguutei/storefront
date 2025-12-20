@@ -1,7 +1,9 @@
 import { Header } from "@/components/layout/Header"
 import { Footer } from "@/components/layout/Footer"
 import { ProductCard } from "@/components/products/ProductCard"
+import { ProductFiltersSidebar } from "@/components/products/ProductFiltersSidebar"
 import { getCollectionByHandle } from "@/lib/data/collections"
+import { getCategories } from "@/lib/data/categories"
 import { getDefaultRegion } from "@/lib/data/regions"
 import { medusa } from "@/lib/medusa"
 import { notFound } from "next/navigation"
@@ -54,10 +56,13 @@ interface ProductWithPrices {
 
 export default async function CollectionPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ handle: string }>
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
   const { handle } = await params
+  const query = await searchParams
   const collection = await getCollectionByHandle(handle)
 
   if (!collection) {
@@ -65,8 +70,9 @@ export default async function CollectionPage({
   }
 
   const region = await getDefaultRegion()
+  const allCategories = await getCategories()
 
-  const query = {
+  const queryObj = {
     limit: 100,
     fields:
       "id,title,handle,thumbnail,metadata,variants.id,variants.prices.amount,variants.prices.currency_code,+variants.calculated_price,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder",
@@ -76,10 +82,32 @@ export default async function CollectionPage({
 
   let products: ProductWithPrices[] = []
   try {
-    const response = await medusa.store.product.list(query)
+    const response = await medusa.store.product.list(queryObj)
     products = (response.products as unknown as ProductWithPrices[]) ?? []
   } catch (error) {
     console.error("Failed to fetch collection products:", error)
+  }
+
+  // Sort products based on query params
+  const sortedProducts = [...products]
+  const sortOrder = query.sort as string || query.order as string
+  
+  if (sortOrder === 'price_asc') {
+    sortedProducts.sort((a, b) => {
+      const priceA = a.variants?.[0]?.calculated_price?.calculated_amount ?? a.variants?.[0]?.prices?.[0]?.amount ?? 0
+      const priceB = b.variants?.[0]?.calculated_price?.calculated_amount ?? b.variants?.[0]?.prices?.[0]?.amount ?? 0
+      return priceA - priceB
+    })
+  } else if (sortOrder === 'price_desc') {
+    sortedProducts.sort((a, b) => {
+      const priceA = a.variants?.[0]?.calculated_price?.calculated_amount ?? a.variants?.[0]?.prices?.[0]?.amount ?? 0
+      const priceB = b.variants?.[0]?.calculated_price?.calculated_amount ?? b.variants?.[0]?.prices?.[0]?.amount ?? 0
+      return priceB - priceA
+    })
+  } else if (sortOrder === 'name_asc') {
+    sortedProducts.sort((a, b) => a.title.localeCompare(b.title, 'mn'))
+  } else if (sortOrder === 'name_desc') {
+    sortedProducts.sort((a, b) => b.title.localeCompare(a.title, 'mn'))
   }
 
   return (
@@ -93,15 +121,26 @@ export default async function CollectionPage({
               {collection.title}
             </h1>
             <p className="text-[#86868b] text-[15px] md:text-[17px] mt-1">
-              {products.length} бүтээгдэхүүн
+              {sortedProducts.length} бүтээгдэхүүн
             </p>
           </div>
         </div>
 
         <div className="container mx-auto px-4 py-8 md:py-12">
-          {products.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-              {products.map((product) => {
+          <div className="flex gap-8">
+            {/* Left Sidebar - Filters */}
+            <aside className="w-64 shrink-0">
+              <ProductFiltersSidebar 
+                categories={allCategories}
+                pageType="collection"
+              />
+            </aside>
+
+            {/* Main Content */}
+            <div className="flex-1 min-w-0">
+              {sortedProducts.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                  {sortedProducts.map((product) => {
                 const firstVariant = product.variants?.[0]
                 const calculatedPrice = firstVariant?.calculated_price
                 const firstPrice = firstVariant?.prices?.[0]
@@ -149,6 +188,8 @@ export default async function CollectionPage({
               <p className="text-[#86868b] text-[17px]">Бүтээгдэхүүн олдсонгүй.</p>
             </div>
           )}
+            </div>
+          </div>
         </div>
       </main>
 

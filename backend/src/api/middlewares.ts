@@ -69,5 +69,9 @@ export default defineMiddlewares({
       matcher: "/store/loyalty*",
       middlewares: [customAuthMiddleware],
     },
+    {
+      matcher: "/store/product-analytics/reviews*",
+      middlewares: [customAuthMiddleware],
+    },
   ],
 });

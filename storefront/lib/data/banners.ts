@@ -7,7 +7,7 @@ const PUBLISHABLE_KEY = API_KEY
 /**
  * Banner placement types matching the backend module
  */
-export type BannerPlacement = "hero" | "bento" | "product_grid"
+export type BannerPlacement = "hero" | "bento" | "bento_grid" | "product_grid"
 
 /**
  * Banner types matching the backend module
@@ -23,6 +23,7 @@ export interface Banner {
   alt_text: string | null
   placement: BannerPlacement
   section: string | null
+  grid_size: string // For bento_grid: "3x3" (pos1), "1x1" (pos2-4), "2x3" (pos5)
   sort_order: number
   is_active: boolean
   dark_text: boolean
@@ -50,6 +51,8 @@ async function fetchBanners(placement?: BannerPlacement, section?: string): Prom
         "x-publishable-api-key": PUBLISHABLE_KEY,
       },
       next: { revalidate: 60 }, // ISR: revalidate every 60 seconds
+      // Add timeout and better error handling for connection issues
+      signal: AbortSignal.timeout(5000), // 5 second timeout
     })
     
     if (!response.ok) {
@@ -60,7 +63,18 @@ async function fetchBanners(placement?: BannerPlacement, section?: string): Prom
     const data = await response.json()
     return data.banners || []
   } catch (error) {
-    console.error("Failed to fetch banners:", error)
+    // More detailed error logging for debugging
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        console.error("Banner fetch timeout - backend may not be running")
+      } else if (error.message.includes('ECONNREFUSED')) {
+        console.error("Cannot connect to backend - ensure it's running on", BACKEND_URL)
+      } else {
+        console.error("Failed to fetch banners:", error.message)
+      }
+    } else {
+      console.error("Failed to fetch banners:", error)
+    }
     return []
   }
 }
@@ -78,12 +92,13 @@ export const getHeroBanners = unstable_cache(
 )
 
 /**
- * Get bento grid banners
+ * Get bento grid banners (multi-tile layout)
  * Cached with 60-second ISR revalidation
+ * Returns all active bento_grid banners sorted by sort_order
  */
 export const getBentoBanners = unstable_cache(
   async (): Promise<Banner[]> => {
-    return fetchBanners("bento")
+    return fetchBanners("bento_grid")
   },
   ["bento-banners"],
   { revalidate: 60 }

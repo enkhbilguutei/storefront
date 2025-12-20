@@ -15,6 +15,8 @@
     "rootDir": "./",
     "baseUrl": "./",
     "jsx": "react-jsx",
+    "types": ["node"],
+    "typeRoots": ["./node_modules/@types"],
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "checkJs": false,

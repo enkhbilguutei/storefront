@@ -19,6 +19,7 @@ interface CompleteCheckoutParams {
   building: string;
   apartment: string;
   additionalInfo: string;
+  selectedShippingOption: string | null;
   paymentMethod: PaymentMethod;
   onSuccess: (orderId: string, paymentMethod: PaymentMethod) => void;
   clearCart: () => void;
@@ -28,7 +29,7 @@ const checkoutSchema = z.object({
   firstName: z.string().min(1, "Нэр оруулна уу"),
   lastName: z.string().min(1, "Овог оруулна уу"),
   email: z.string().email("Имэйл хаяг буруу байна"),
-  phone: z.string().min(8, "Утасны дугаар буруу байна"),
+  phone: z.string().regex(/^\d{8}$/, "Утасны дугаар 8 оронтой байх ёстой"),
   deliveryMethod: z.enum(["delivery", "pickup"]),
   address: z.string().optional(),
   apartment: z.string().optional(),
@@ -57,6 +58,7 @@ export async function completeCheckout({
   building,
   apartment,
   additionalInfo,
+  selectedShippingOption,
   paymentMethod,
   onSuccess,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -88,13 +90,16 @@ export async function completeCheckout({
     const addressPayload = {
       first_name: validatedData.firstName,
       last_name: validatedData.lastName,
-      address_1: validatedData.address,
-      city: "Ulaanbaatar",
+      address_1: validatedData.address || street,
+      address_2: [building, apartment].filter(Boolean).join(", ") || undefined,
+      city,
       country_code: "mn",
       phone: validatedData.phone,
-      company: validatedData.apartment, // Using company field for apartment/details
       postal_code: "10000", // Default postal code
       province: deliveryMethod === "delivery" ? `${district}, ${khoroo}` : "",
+      metadata: {
+        additional_info: additionalInfo || undefined,
+      },
     };
 
     const { cart: updatedCart } = await medusa.store.cart.update(cartId, {
@@ -104,6 +109,7 @@ export async function completeCheckout({
       metadata: {
         payment_method: paymentMethod,
         delivery_method: deliveryMethod,
+        additional_info: additionalInfo || undefined,
       },
     });
     console.log(`[Checkout] Cart updated.`);
@@ -115,11 +121,18 @@ export async function completeCheckout({
     });
     
     if (shipping_options.length > 0) {
-      let selectedOption;
-      if (deliveryMethod === "pickup") {
-        selectedOption = shipping_options.find((opt) => opt.name.toLowerCase().includes("авах"));
-      } else {
-        selectedOption = shipping_options.find((opt) => !opt.name.toLowerCase().includes("авах"));
+      const preferredOption = selectedShippingOption
+        ? shipping_options.find((opt) => opt.id === selectedShippingOption)
+        : undefined;
+
+      let selectedOption = preferredOption;
+
+      if (!selectedOption) {
+        if (deliveryMethod === "pickup") {
+          selectedOption = shipping_options.find((opt) => opt.name.toLowerCase().includes("авах"));
+        } else {
+          selectedOption = shipping_options.find((opt) => !opt.name.toLowerCase().includes("авах"));
+        }
       }
 
       if (!selectedOption) {
@@ -137,12 +150,16 @@ export async function completeCheckout({
     }
 
     // Step 4: Force payment session update/init
-    console.log(`[Checkout] Fetching regions...`);
-    const { regions } = await medusa.store.region.list();
-    const region = regions[0]; // Assuming single region for now
+    console.log(`[Checkout] Fetching region...`);
+    const regionId = updatedCart.region_id || cart.region_id;
+    const region = regionId 
+      ? (await medusa.store.region.retrieve(regionId)).region
+      : (await medusa.store.region.list()).regions[0];
     
-    // Use system default provider
-    const providerId = region.payment_providers?.find(p => p.id === "pp_system_default")?.id || "pp_system_default";
+    // Use provider available in region, prefer system default
+    const providerId = region.payment_providers?.find((p) => p.id === "pp_system_default")?.id
+      || region.payment_providers?.[0]?.id
+      || "pp_system_default";
     console.log(`[Checkout] Using payment provider: ${providerId}`);
     
     console.log(`[Checkout] Initiating payment session...`);

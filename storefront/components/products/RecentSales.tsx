@@ -38,10 +38,10 @@ export function RecentSales({ productId }: RecentSalesProps) {
   }
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-sm">
-      <TrendingUp className="w-4 h-4 text-green-600" />
-      <span className="text-green-800">
-        Сүүлийн 24 цагт <span className="font-semibold">{salesCount}</span> ширхэг зарагдсан
+    <div className="flex items-center gap-2 px-3 py-2 bg-[#8D99AF]/5 border border-[#8D99AF]/20 rounded-lg text-sm">
+      <TrendingUp className="w-4 h-4 text-[#2B2D42]" />
+      <span className="text-[#2B2D42]">
+        24 цагт <span className="font-semibold">{salesCount}</span> зарагдсан
       </span>
     </div>
   )
