@@ -1,7 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { BANNER_MODULE } from "../../../modules/banner"
 import type BannerModuleService from "../../../modules/banner/service"
-import { validateBody, createBannerSchema } from "../../validations"
+import { validateBody, createBannerSchema, formatValidationErrors } from "../../validations"
 
 /**
  * GET /admin/banners
@@ -65,7 +65,7 @@ export async function POST(
     if (!validationResult.success) {
       res.status(400).json({
         message: "Validation failed",
-        errors: validationResult.errors,
+        errors: formatValidationErrors(validationResult.errors),
       })
       return
     }

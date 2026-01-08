@@ -222,7 +222,7 @@ export default function ComparePage() {
     return (
       <div className="min-h-screen flex flex-col bg-white">
         <HeaderClient categories={[]} collections={[]} />
-        <main className="flex-1 flex items-center justify-center">
+        <main className="flex-1 flex items-center justify-center pt-16">
           <div className="flex items-center gap-3 text-gray-600">
             <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
             <span>Ачааллаж байна...</span>
@@ -237,7 +237,7 @@ export default function ComparePage() {
     return (
       <div className="min-h-screen flex flex-col bg-white">
         <HeaderClient categories={[]} collections={[]} />
-        <main className="flex-1 flex items-center justify-center">
+        <main className="flex-1 flex items-center justify-center pt-16">
           <div className="text-center py-20">
             <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <svg className="w-12 h-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -271,7 +271,7 @@ export default function ComparePage() {
     <div className="min-h-screen flex flex-col bg-white">
       <HeaderClient categories={[]} collections={[]} />
       
-      <main className="flex-1 py-12">
+      <main className="flex-1 py-12 pt-16">
         <div className="container mx-auto px-4">
           {/* Header */}
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-8">

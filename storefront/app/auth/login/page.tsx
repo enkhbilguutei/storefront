@@ -15,7 +15,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
       
-      <main className="flex-1 flex items-center justify-center py-12 px-4">
+      <main className="flex-1 flex items-center justify-center py-12 px-4 pt-16">
         <Suspense fallback={<div className="w-full max-w-md animate-pulse" />}>
           <LoginForm />
         </Suspense>

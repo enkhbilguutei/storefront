@@ -117,27 +117,61 @@ const NewBannerPage = () => {
     setLoading(true)
 
     try {
+      // Validate required fields
+      if (!formData.image_url) {
+        throw new Error("Зураг оруулна уу")
+      }
+      if (!formData.link) {
+        throw new Error("Холбоос оруулна уу")
+      }
       if (formData.placement === "product_grid" && !formData.section) {
         throw new Error("Хэсэг сонгоно уу")
       }
+
+      const payload = {
+        title: formData.title || null,
+        subtitle: formData.subtitle || null,
+        description: formData.description || null,
+        image_url: formData.image_url,
+        mobile_image_url: formData.mobile_image_url || null,
+        link: formData.link,
+        alt_text: formData.alt_text || null,
+        placement: formData.placement,
+        section: formData.placement === "product_grid" ? formData.section : null,
+        grid_size: formData.grid_size,
+        sort_order: formData.sort_order,
+        is_active: formData.is_active,
+        dark_text: formData.dark_text,
+        starts_at: null,
+        ends_at: null,
+        metadata: null,
+      }
+
+      console.log("Submitting banner payload:", payload)
 
       const response = await fetch("/admin/banners", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          ...formData,
-          title: formData.title || null,
-          subtitle: formData.subtitle || null,
-          description: formData.description || null,
-          alt_text: formData.alt_text || null,
-          grid_size: formData.grid_size,
-          section: formData.placement === "product_grid" ? formData.section : null,
-        }),
+        body: JSON.stringify(payload),
       })
+
+      console.log("Banner submission response status:", response.status)
 
       if (!response.ok) {
         const error = await response.json()
+        console.error("Banner creation error:", error)
+        
+        // Display detailed validation errors if available
+        if (error.errors && Array.isArray(error.errors)) {
+          const errorMessages = error.errors
+            .map((e: any) => {
+              const field = e.field || e.path?.join?.('.') || 'Unknown field'
+              return `${field}: ${e.message}`
+            })
+            .join('\n')
+          throw new Error(errorMessages)
+        }
         throw new Error(error.message || "Failed to create banner")
       }
 

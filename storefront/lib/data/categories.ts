@@ -3,6 +3,11 @@ import { cache } from "react";
 import { getDefaultRegion } from "./regions";
 import { API_URL, API_KEY } from "@/lib/config/api";
 
+interface ColorVariant {
+  value: string;
+  hex?: string;
+}
+
 // Transform product for home page display
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function transformProduct(product: any) {
@@ -12,8 +17,22 @@ function transformProduct(product: any) {
   const price = firstVariant.prices?.[0];
   const calculatedPrice = firstVariant.calculated_price;
 
+  // Extract unique colors from product options
+  const colorOption = product.options?.find((opt: any) => 
+    opt.title?.toLowerCase() === 'color' || opt.title?.toLowerCase() === 'өнгө'
+  );
+  
+  const colors: ColorVariant[] = colorOption?.values?.map((val: any) => ({
+    value: val.value || val,
+  })) || [];
+
+  // Get rating from metadata
+  const rating = product.metadata?.rating ? parseFloat(product.metadata.rating) : undefined;
+  const reviewCount = product.metadata?.review_count ? parseInt(product.metadata.review_count) : undefined;
+
   return {
     id: firstVariant.id,
+    productId: product.id,
     title: product.title,
     handle: product.handle,
     thumbnail: product.thumbnail || undefined,
@@ -29,6 +48,9 @@ function transformProduct(product: any) {
     inventoryQuantity: firstVariant.inventory_quantity ?? null,
     manageInventory: firstVariant.manage_inventory ?? null,
     allowBackorder: firstVariant.allow_backorder ?? null,
+    rating,
+    reviewCount,
+    colors,
   };
 }
 

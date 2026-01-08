@@ -14,9 +14,11 @@ export default function CartPage() {
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Header />
-      <CartErrorBoundary>
-        <CartContent />
-      </CartErrorBoundary>
+      <main className="pt-16">
+        <CartErrorBoundary>
+          <CartContent />
+        </CartErrorBoundary>
+      </main>
       <Footer />
     </div>
   );

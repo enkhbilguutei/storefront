@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Search, Menu, X, ChevronDown, ChevronRight, ShoppingCart, User, Package, LogOut, Smartphone, Plane, Gamepad2, Glasses, Crown, type LucideIcon } from "lucide-react";
+import { Search, ChevronDown, ShoppingCart, User, Package, LogOut, Smartphone, Plane, Gamepad2, Glasses, Crown, Menu, X, ChevronRight, type LucideIcon } from "lucide-react";
 import { useUIStore, useUserStore, useCartStore } from "@/lib/store";
 import { useState, useEffect, useRef } from "react";
 import { Category } from "@/lib/data/categories";
@@ -23,20 +23,18 @@ export function HeaderClient({ categories, collections, isHomePage = false }: He
   const { items } = useCartStore();
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
-  const [isCollectionsMenuOpen, setIsCollectionsMenuOpen] = useState(false);
-  const [isSubheaderVisible, setIsSubheaderVisible] = useState(true);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [heroBgIsDark, setHeroBgIsDark] = useState(true);
   const megaMenuRef = useRef<HTMLDivElement>(null);
-  const megaMenuTriggerRef = useRef<HTMLButtonElement>(null);
-  const collectionsMenuRef = useRef<HTMLDivElement>(null);
-  const collectionsMenuTriggerRef = useRef<HTMLButtonElement>(null);
+  const categoriesRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const collectionsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastScrollY = useRef(0);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const lastScrollY = useRef(0);
   
   const cartItemCount = items?.length || 0;
 
-  // Category icon mapping
   const getCategoryIcon = (handle: string) => {
     const iconMap: Record<string, LucideIcon> = {
       'apple': Smartphone,
@@ -48,306 +46,161 @@ export function HeaderClient({ categories, collections, isHomePage = false }: He
     return iconMap[handle.toLowerCase()] || Package;
   };
 
-  // Handle subheader visibility and header background on scroll
   useEffect(() => {
-    // Ensure page starts at top on mount
-    window.scrollTo(0, 0);
-    setIsSubheaderVisible(true);
-    setIsScrolled(false);
-
-    let timeoutId: NodeJS.Timeout;
-    
-    const handleScroll = () => {
-      clearTimeout(timeoutId);
-      
-      timeoutId = setTimeout(() => {
-        const currentScrollY = window.scrollY;
-        const scrollThreshold = 100;
-        
-        // Toggle header background when scrolling past 50px
-        setIsScrolled(currentScrollY > 50);
-        
-        if (currentScrollY > scrollThreshold) {
-          setIsSubheaderVisible(false);
-        } else {
-          setIsSubheaderVisible(true);
-        }
-        
-        lastScrollY.current = currentScrollY;
-      }, 10);
+    const handleContrastChange = (event: CustomEvent) => {
+      setHeroBgIsDark(event.detail.isDark);
     };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      clearTimeout(timeoutId);
-    };
+    window.addEventListener('hero-contrast-change', handleContrastChange as EventListener);
+    return () => window.removeEventListener('hero-contrast-change', handleContrastChange as EventListener);
   }, []);
 
-  // Close mega menu when clicking outside
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      setIsScrolled(currentScrollY > 0);
+      
+      if (currentScrollY < 10) {
+        setIsHeaderVisible(true);
+      } else if (currentScrollY > lastScrollY.current && currentScrollY > 80) {
+        setIsHeaderVisible(false);
+      } else if (currentScrollY < lastScrollY.current) {
+        setIsHeaderVisible(true);
+      }
+      
+      lastScrollY.current = currentScrollY;
+    };
+    
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (
-        megaMenuRef.current && 
-        !megaMenuRef.current.contains(event.target as Node) &&
-        megaMenuTriggerRef.current &&
-        !megaMenuTriggerRef.current.contains(event.target as Node)
-      ) {
+      if (megaMenuRef.current && !megaMenuRef.current.contains(event.target as Node) && categoriesRef.current && !categoriesRef.current.contains(event.target as Node)) {
         setIsMegaMenuOpen(false);
         setActiveCategory(null);
       }
-
-      if (
-        collectionsMenuRef.current &&
-        !collectionsMenuRef.current.contains(event.target as Node) &&
-        collectionsMenuTriggerRef.current &&
-        !collectionsMenuTriggerRef.current.contains(event.target as Node)
-      ) {
-        setIsCollectionsMenuOpen(false);
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleMegaMenuEnter = () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
+  const handleCategoriesEnter = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
     setIsMegaMenuOpen(true);
-    if (!activeCategory && categories.length > 0) {
-      setActiveCategory(categories[0]);
-    }
+    if (!activeCategory && categories.length > 0) setActiveCategory(categories[0]);
   };
 
-  const handleMegaMenuLeave = () => {
+  const handleCategoriesLeave = () => {
     timeoutRef.current = setTimeout(() => {
       setIsMegaMenuOpen(false);
       setActiveCategory(null);
     }, 150);
   };
 
-  const handleCollectionsMenuEnter = () => {
-    if (collectionsTimeoutRef.current) {
-      clearTimeout(collectionsTimeoutRef.current);
-    }
-    setIsCollectionsMenuOpen(true);
-  };
-
-  const handleCollectionsMenuLeave = () => {
-    collectionsTimeoutRef.current = setTimeout(() => {
-      setIsCollectionsMenuOpen(false);
-    }, 150);
-  };
-
   return (
     <>
-      <header className={`${
-        isHomePage ? 'fixed' : 'sticky'
-      } top-0 left-0 right-0 z-50 w-full transition-all duration-300 ${
+      <header className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 ${
         isHomePage 
           ? isScrolled 
-            ? 'bg-white/95 backdrop-blur-md shadow-sm' 
-            : 'bg-transparent'
-          : 'bg-white shadow-sm'
-      }`}>
-        {/* Main Header */}
-        <div className={`transition-colors duration-300 ${
-          isHomePage 
-            ? isScrolled ? 'border-b border-gray-200' : 'border-b border-white/10'
-            : 'border-b border-gray-200'
-        }`}>
-          <div className="container mx-auto px-4">
-            <div className="flex items-center justify-between h-16 lg:h-20">
-              {/* Logo */}
-              <Link href="/" className="flex items-center relative z-10">
-                <Image src="/logo.png" alt="Alimhan" width={160} height={64} className="h-14 lg:h-16 w-auto drop-shadow-lg" priority />
+            ? 'bg-white' 
+            : 'bg-gradient-to-b from-black/40 via-black/10 to-transparent'
+          : 'bg-white'
+      } ${isHeaderVisible ? 'translate-y-0' : '-translate-y-full'}`}>
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-20">
+            <Link href="/" className="flex items-center">
+              <Image src="/logo.png" alt="Alimhan" width={180} height={60} className={`h-14 w-auto transition-all duration-500 ${isHomePage && !isScrolled ? 'drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]' : ''}`} priority />
+            </Link>
+
+            <nav className="hidden lg:flex items-center flex-1 ml-8">
+              <div ref={categoriesRef} className="relative" onMouseEnter={handleCategoriesEnter} onMouseLeave={handleCategoriesLeave}>
+                <button className={`flex items-center gap-1 px-4 py-2 text-sm font-semibold transition-all duration-300 ${isHomePage && !isScrolled ? 'text-white hover:text-gray-200 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]' : 'text-gray-900 hover:text-gray-700'}`}>
+                  Ангилал
+                  <ChevronDown className={`h-4 w-4 transition-transform ${isMegaMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
+
+              {collections.slice(0, 5).map((collection) => (
+                <Link key={collection.id} href={`/collections/${collection.handle}`} className={`px-4 py-2 text-sm font-semibold transition-all duration-300 ${isHomePage && !isScrolled ? 'text-white hover:text-gray-200 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]' : 'text-gray-900 hover:text-gray-700'}`}>
+                  {collection.title}
+                </Link>
+              ))}
+            </nav>
+
+            <div className="flex items-center gap-3">
+              <button onClick={openSearch} className={`hidden lg:flex items-center gap-2 px-4 py-2 rounded-full border-2 transition-all duration-300 ${isHomePage && !isScrolled ? 'border-white/40 hover:border-white/60 text-white backdrop-blur-sm bg-white/10 hover:bg-white/20 drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]' : 'border-gray-300 hover:border-gray-400 text-gray-900 bg-white'}`}>
+                <Search className="h-4 w-4" />
+                <span className="text-sm font-medium">Хайх</span>
+              </button>
+
+              <button onClick={openSearch} className={`lg:hidden p-2.5 transition-all duration-300 rounded-full ${isHomePage && !isScrolled ? 'text-white hover:text-gray-200 drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] hover:bg-white/10' : 'text-gray-900 hover:text-gray-700'}`}>
+                <Search className="h-5 w-5" />
+              </button>
+
+              <Link href="/cart" className={`relative p-2.5 transition-all duration-300 rounded-full ${isHomePage && !isScrolled ? 'text-white hover:text-gray-200 drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] hover:bg-white/10' : 'text-gray-900 hover:text-gray-700'}`}>
+                <ShoppingCart className="h-5 w-5" />
+                {cartItemCount > 0 && <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-lg">{cartItemCount}</span>}
               </Link>
 
-              {/* Desktop: Categories Megamenu + Search Bar */}
-              <div className="hidden lg:flex flex-1 max-w-3xl mx-8 gap-3 items-center">
-                {/* Categories Mega Menu Trigger */}
-                {categories.length > 0 && (
-                  <button
-                    ref={megaMenuTriggerRef}
-                    onMouseEnter={handleMegaMenuEnter}
-                    onMouseLeave={handleMegaMenuLeave}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-full transition-all whitespace-nowrap shadow-lg border ${
-                      isHomePage && !isScrolled
-                        ? 'bg-white/90 backdrop-blur-sm text-gray-900 border-white/20 shadow-black/10'
-                        : 'bg-[linear-gradient(135deg,#0b1224,#0f1f50,#102a7a,#0ea5e9)] text-white border-white/10 shadow-blue-900/20'
-                    } hover:brightness-105`}
-                  >
-                    <Menu className="h-4 w-4" />
-                    <span className="text-sm font-medium">Ангилал</span>
-                    <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isMegaMenuOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                )}
-
-                {/* Search Bar */}
-                <div className="relative flex-1">
-                  <input
-                    type="text"
-                    placeholder="Утас, ТВ, гэрийн техник хайх..."
-                    onClick={openSearch}
-                    className={`w-full px-4 py-2.5 pl-11 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm cursor-pointer transition-colors ${
-                      isHomePage && !isScrolled
-                        ? 'bg-white/90 backdrop-blur-sm border border-white/20 text-gray-900 placeholder:text-gray-600'
-                        : 'bg-gray-50 border border-gray-200 focus:border-transparent'
-                    }`}
-                    readOnly
-                  />
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                </div>
-              </div>
-
-              {/* Right Actions */}
-              <div className="flex items-center gap-2 lg:gap-4">
-                {/* Mobile Search */}
-                <button 
-                  onClick={openSearch}
-                  className={`lg:hidden p-2.5 rounded-lg transition-colors active:scale-95 ${
-                    isHomePage && !isScrolled ? 'hover:bg-white/10 backdrop-blur-sm' : 'hover:bg-gray-100'
-                  }`}
-                  aria-label="Хайх"
-                >
-                  <Search className={`h-5.5 w-5.5 ${
-                    isHomePage && !isScrolled ? 'text-white drop-shadow-lg' : 'text-gray-700'
-                  }`} />
+              <div className="hidden lg:block relative" ref={userMenuRef}>
+                <button onClick={() => setIsUserMenuOpen(!isUserMenuOpen)} className={`p-2.5 transition-all duration-300 rounded-full ${isHomePage && !isScrolled ? 'text-white hover:text-gray-200 drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] hover:bg-white/10' : 'text-gray-900 hover:text-gray-700'}`}>
+                  <User className="h-5 w-5" />
                 </button>
 
-                {/* User Menu */}
-                {isAuthenticated && user ? (
-                  <div className="hidden lg:flex items-center gap-2 relative group">
-                    <button className={`flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors ${
-                      isHomePage && !isScrolled ? 'hover:bg-white/10 backdrop-blur-sm' : 'hover:bg-gray-50'
-                    }`}>
-                      <div className="w-8 h-8 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-medium">
-                        {user.firstName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || "У"}
-                      </div>
-                      <div className="flex flex-col items-start">
-                        <span className={`text-[10px] ${
-                          isHomePage && !isScrolled ? 'text-white/70' : 'text-gray-500'
-                        }`}>Сайн байна уу</span>
-                        <span className={`text-sm font-medium ${
-                          isHomePage && !isScrolled ? 'text-white drop-shadow-lg' : 'text-gray-900'
-                        }`}>{user.firstName || user.name || "Хэрэглэгч"}</span>
-                      </div>
-                    </button>
-                    
-                    {/* Dropdown */}
-                    <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                      <Link href="/account" className="flex items-center gap-2 px-4 py-2.5 hover:bg-gray-50 text-sm text-gray-700 first:rounded-t-lg">
-                        <User className="h-4 w-4" />
-                        Профайл
-                      </Link>
-                      <Link href="/account/orders" className="flex items-center gap-2 px-4 py-2.5 hover:bg-gray-50 text-sm text-gray-700">
-                        <Package className="h-4 w-4" />
-                        Захиалгууд
-                      </Link>
-                      <button 
-                        onClick={() => signOut({ callbackUrl: "/" })}
-                        className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-gray-50 text-sm text-red-600 last:rounded-b-lg"
-                      >
-                        <LogOut className="h-4 w-4" />
-                        Гарах
-                      </button>
-                    </div>
+                {isUserMenuOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 py-2">
+                    {isAuthenticated && user ? (
+                      <>
+                        <div className="px-4 py-3 border-b border-gray-100">
+                          <p className="text-sm font-medium text-gray-900">{user.firstName || user.name || "Хэрэглэгч"}</p>
+                          <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                        </div>
+                        <Link href="/account" className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setIsUserMenuOpen(false)}>
+                          <User className="h-4 w-4" />Профайл
+                        </Link>
+                        <Link href="/account/orders" className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setIsUserMenuOpen(false)}>
+                          <Package className="h-4 w-4" />Захиалгууд
+                        </Link>
+                        <button onClick={() => { setIsUserMenuOpen(false); signOut({ callbackUrl: "/" }); }} className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-gray-50">
+                          <LogOut className="h-4 w-4" />Гарах
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Link href="/auth/login" className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setIsUserMenuOpen(false)}>Нэвтрэх</Link>
+                        <Link href="/auth/register" className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setIsUserMenuOpen(false)}>Бүртгүүлэх</Link>
+                      </>
+                    )}
                   </div>
-                ) : (
-                  <Link href="/auth/login" className={`hidden lg:flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors ${
-                    isHomePage && !isScrolled ? 'hover:bg-white/10 backdrop-blur-sm' : 'hover:bg-gray-50'
-                  }`}>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      isHomePage && !isScrolled ? 'bg-white/20 backdrop-blur-sm' : 'bg-gray-100'
-                    }`}>
-                      <User className={`h-4 w-4 ${
-                        isHomePage && !isScrolled ? 'text-white' : 'text-gray-600'
-                      }`} />
-                    </div>
-                    <div className="flex flex-col items-start">
-                      <span className={`text-[10px] ${
-                        isHomePage && !isScrolled ? 'text-white/70' : 'text-gray-500'
-                      }`}>Сайн байна уу</span>
-                      <span className={`text-sm font-medium ${
-                        isHomePage && !isScrolled ? 'text-white drop-shadow-lg' : 'text-gray-900'
-                      }`}>Нэвтрэх</span>
-                    </div>
-                  </Link>
                 )}
-
-                {/* Cart */}
-                <Link href="/cart" className={`relative p-2.5 rounded-lg transition-colors active:scale-95 ${
-                  isHomePage && !isScrolled ? 'hover:bg-white/10 backdrop-blur-sm' : 'hover:bg-gray-100'
-                }`}>
-                  <ShoppingCart className={`h-5.5 w-5.5 lg:h-6 lg:w-6 ${
-                    isHomePage && !isScrolled ? 'text-white drop-shadow-lg' : 'text-gray-700'
-                  }`} />
-                  {cartItemCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-sm">
-                      {cartItemCount}
-                    </span>
-                  )}
-                </Link>
-
-                {/* Mobile Menu Toggle */}
-                <button 
-                  onClick={isMobileMenuOpen ? closeMobileMenu : openMobileMenu}
-                  className={`lg:hidden p-2.5 rounded-lg transition-colors active:scale-95 ${
-                    isHomePage && !isScrolled ? 'hover:bg-white/10 backdrop-blur-sm' : 'hover:bg-gray-100'
-                  }`}
-                  aria-label="Цэс"
-                >
-                  {isMobileMenuOpen ? (
-                    <X className={`h-5.5 w-5.5 ${
-                      isHomePage && !isScrolled ? 'text-white drop-shadow-lg' : 'text-gray-700'
-                    }`} />
-                  ) : (
-                    <Menu className={`h-5.5 w-5.5 ${
-                      isHomePage && !isScrolled ? 'text-white drop-shadow-lg' : 'text-gray-700'
-                    }`} />
-                  )}
-                </button>
               </div>
+
+              <button onClick={isMobileMenuOpen ? closeMobileMenu : openMobileMenu} className={`lg:hidden p-2.5 transition-all duration-300 rounded-full ${isHomePage && !isScrolled ? 'text-white hover:text-gray-200 drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] hover:bg-white/10' : 'text-gray-900 hover:text-gray-700'}`}>
+                {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Mega Menu Dropdown */}
         {isMegaMenuOpen && categories.length > 0 && (
-          <div 
-            ref={megaMenuRef}
-            onMouseEnter={handleMegaMenuEnter}
-            onMouseLeave={handleMegaMenuLeave}
-            className="absolute left-0 right-0 top-full z-50 bg-white border-t border-gray-100 shadow-2xl"
-          >
+          <div ref={megaMenuRef} onMouseEnter={handleCategoriesEnter} onMouseLeave={handleCategoriesLeave} className="absolute left-0 right-0 top-full bg-white shadow-2xl border-t border-gray-100">
             <div className="container mx-auto px-4">
-              <div className="flex py-8">
-                {/* Category List */}
-                <div className="w-72 border-r border-gray-100 pr-8">
-                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 px-3">Ангилал</h3>
+              <div className="flex py-8 gap-8">
+                <div className="w-64">
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Бүх ангилал</h3>
                   <ul className="space-y-1">
                     {categories.map((category) => {
                       const CategoryIcon = getCategoryIcon(category.handle);
                       return (
                         <li key={category.id}>
-                          <button
-                            onMouseEnter={() => setActiveCategory(category)}
-                            onClick={() => {
-                              setIsMegaMenuOpen(false);
-                              window.location.href = `/categories/${category.handle}`;
-                            }}
-                            className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-all ${
-                              activeCategory?.id === category.id 
-                                ? 'bg-blue-50 text-blue-700' 
-                                : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                            }`}
-                          >
-                            <CategoryIcon className={`h-5 w-5 ${
-                              activeCategory?.id === category.id ? 'text-blue-600' : 'text-gray-500'
-                            }`} />
-                            <span className="text-sm font-medium flex-1">{category.name}</span>
-                            <ChevronRight className="h-4 w-4 opacity-40" />
+                          <button onMouseEnter={() => setActiveCategory(category)} onClick={() => window.location.href = `/categories/${category.handle}`} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all ${activeCategory?.id === category.id ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'}`}>
+                            <CategoryIcon className="h-5 w-5" />
+                            <span className="text-sm font-medium">{category.name}</span>
                           </button>
                         </li>
                       );
@@ -355,290 +208,146 @@ export function HeaderClient({ categories, collections, isHomePage = false }: He
                   </ul>
                 </div>
 
-                {/* Category Details with Subcategories */}
                 {activeCategory && (
-                  <div className="flex-1 pl-8">
-                    <div className="mb-6">
-                      <div className="flex items-center gap-3 mb-2">
-                        {(() => {
-                          const CategoryIcon = getCategoryIcon(activeCategory.handle);
-                          return <CategoryIcon className="h-7 w-7 text-gray-900" />;
-                        })()}
-                        <div>
-                          <h3 className="text-lg font-bold text-gray-900">{activeCategory.name}</h3>
-                          {activeCategory.description && (
-                            <p className="text-sm text-gray-600 mt-0.5">{activeCategory.description}</p>
-                          )}
-                        </div>
-                      </div>
-                      <Link
-                        href={`/categories/${activeCategory.handle}`}
-                        onClick={() => setIsMegaMenuOpen(false)}
-                        className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors mt-2"
-                      >
-                        Бүх {activeCategory.name} үзэх
-                        <ChevronRight className="h-4 w-4" />
-                      </Link>
-                    </div>
-
-                    {/* Subcategories Grid */}
-                    {activeCategory.category_children && activeCategory.category_children.length > 0 && (
-                      <div>
-                        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Дэд ангилал</h4>
-                        <div className="grid grid-cols-2 gap-3">
-                          {activeCategory.category_children.map((subcat) => (
-                            <Link
-                              key={subcat.id}
-                              href={`/categories/${subcat.handle}`}
-                              onClick={() => setIsMegaMenuOpen(false)}
-                              className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors group"
-                            >
-                              <Package className="h-4 w-4 text-gray-500 group-hover:text-gray-700" />
-                              <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">{subcat.name}</span>
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">{activeCategory.name}</h3>
+                    {activeCategory.description && <p className="text-sm text-gray-600 mb-6 max-w-2xl">{activeCategory.description}</p>}
+                    <Link href={`/categories/${activeCategory.handle}`} onClick={() => setIsMegaMenuOpen(false)} className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700">
+                      Бүгдийг үзэх
+                      <ChevronRight className="h-4 w-4" />
+                    </Link>
                   </div>
                 )}
               </div>
             </div>
           </div>
         )}
+      </header>
 
-        {/* Subheader: Collections - now inside fixed header */}
-        <div 
-          className={`hidden lg:block transition-all duration-300 ease-in-out border-t ${
-            isHomePage
-              ? isScrolled ? 'border-gray-200' : 'border-white/10'
-              : 'border-gray-200'
-          } ${
-            isSubheaderVisible 
-              ? 'opacity-100 max-h-12' 
-              : 'opacity-0 max-h-0 overflow-hidden pointer-events-none'
-          }`}
-        >
-          <div className="container mx-auto px-4">
-            <div className="flex items-center justify-between h-12">
-              <div className="flex items-center gap-6">
-                <div
-                  className="relative"
-                  onMouseEnter={handleCollectionsMenuEnter}
-                  onMouseLeave={handleCollectionsMenuLeave}
-                >
-                  <button
-                    ref={collectionsMenuTriggerRef}
-                    className={`inline-flex items-center gap-2 px-2 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                      isHomePage && !isScrolled
-                        ? 'text-white hover:bg-white/10 backdrop-blur-sm'
-                        : 'text-gray-800 hover:bg-gray-50'
-                    }`}
-                    aria-haspopup="menu"
-                    aria-expanded={isCollectionsMenuOpen}
-                  >
-                    Цуглуулга
-                    <ChevronDown
-                      className={`h-4 w-4 transition-transform duration-200 ${
-                        isCollectionsMenuOpen ? "rotate-180" : ""
-                      }`}
-                    />
-                  </button>
+      <div className={`fixed inset-0 z-50 lg:hidden transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+        <div className={`fixed inset-0 bg-white overflow-y-auto transition-transform duration-300 ease-out ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+            <div className="px-6 py-6">
+              {/* Close button */}
+              <div className="flex justify-end mb-6">
+                <button onClick={closeMobileMenu} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                  <X className="h-6 w-6 text-gray-900" />
+                </button>
+              </div>
+              {/* Search Bar */}
+              <button 
+                onClick={() => { closeMobileMenu(); openSearch(); }} 
+                className="w-full flex items-center gap-3 px-4 py-3 mb-6 border-2 border-dashed border-gray-300 rounded-full hover:border-gray-400 transition-colors"
+              >
+                <Search className="h-5 w-5 text-gray-600" />
+                <span className="text-gray-600">Хайх</span>
+              </button>
 
-                {isCollectionsMenuOpen && collections.length > 0 && (
-                  <div
-                    ref={collectionsMenuRef}
-                    className="absolute left-0 top-full mt-2 w-[640px] bg-white border border-gray-200 rounded-xl shadow-2xl p-5"
-                    style={{ zIndex: 100 }}
-                    role="menu"
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                          Цуглуулгууд
-                        </p>
-                        <p className="text-sm text-gray-700 mt-1">
-                          Та дуртай бүтээгдэхүүнээ цуглуулгаар нь шүүж үзээрэй.
-                        </p>
-                      </div>
-                      <Link
-                        href="/collections"
-                        onClick={() => setIsCollectionsMenuOpen(false)}
-                        className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+              {/* Shop by Category Section */}
+              <div className="mb-8">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 px-1">АНГИЛАЛААР ХАЙХ</h3>
+                <ul className="space-y-0">
+                  {categories.map((category, index) => (
+                    <li key={category.id}>
+                      <Link 
+                        href={`/categories/${category.handle}`} 
+                        className="flex items-center justify-between py-4 px-1 border-b border-gray-200 hover:bg-gray-50 transition-colors" 
+                        onClick={closeMobileMenu}
                       >
-                        Бүгдийг үзэх
+                        <span className="text-xl font-bold text-gray-900">{category.name}</span>
+                        <ChevronRight className="h-6 w-6 text-gray-400" />
                       </Link>
-                    </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
 
-                    <div className="grid grid-cols-2 gap-2">
-                      {collections.map((collection) => (
-                        <Link
-                          key={collection.id}
-                          href={`/collections/${collection.handle}`}
-                          onClick={() => setIsCollectionsMenuOpen(false)}
-                          className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors"
-                          role="menuitem"
+              {/* Collections Section */}
+              {collections.length > 0 && (
+                <div className="mb-8 pb-8 border-b border-gray-200">
+                  <ul className="space-y-0">
+                    {collections.map((collection) => (
+                      <li key={collection.id}>
+                        <Link 
+                          href={`/collections/${collection.handle}`} 
+                          className="flex items-center justify-between py-4 px-1 hover:bg-gray-50 transition-colors" 
+                          onClick={closeMobileMenu}
                         >
-                          <span className="text-sm font-medium text-gray-900">
-                            {collection.title}
-                          </span>
-                          <ChevronRight className="h-4 w-4 text-gray-400" />
+                          <span className="text-lg font-semibold text-gray-900">{collection.title}</span>
+                          <ChevronRight className="h-5 w-5 text-gray-400" />
                         </Link>
-                      ))}
-                    </div>
-                  </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Auth / Account Section */}
+              <div className="mb-8 pb-8 border-b border-gray-200">
+                {isAuthenticated && user ? (
+                  <ul className="space-y-0">
+                    <li>
+                      <Link 
+                        href="/account" 
+                        className="flex items-center justify-between py-4 px-1 hover:bg-gray-50 transition-colors" 
+                        onClick={closeMobileMenu}
+                      >
+                        <span className="text-lg font-semibold text-gray-900">Профайл</span>
+                        <ChevronRight className="h-5 w-5 text-gray-400" />
+                      </Link>
+                    </li>
+                    <li>
+                      <Link 
+                        href="/account/orders" 
+                        className="flex items-center justify-between py-4 px-1 hover:bg-gray-50 transition-colors" 
+                        onClick={closeMobileMenu}
+                      >
+                        <span className="text-lg font-semibold text-gray-900">Захиалгууд</span>
+                        <ChevronRight className="h-5 w-5 text-gray-400" />
+                      </Link>
+                    </li>
+                    <li>
+                      <button 
+                        onClick={() => { closeMobileMenu(); signOut({ callbackUrl: "/" }); }} 
+                        className="w-full flex items-center justify-between py-4 px-1 hover:bg-gray-50 transition-colors text-left"
+                      >
+                        <span className="text-lg font-semibold text-red-600">Гарах</span>
+                      </button>
+                    </li>
+                  </ul>
+                ) : (
+                  <>
+                    <Link 
+                      href="/auth/login" 
+                      className="block text-lg font-bold text-gray-900 py-3 px-1" 
+                      onClick={closeMobileMenu}
+                    >
+                      Нэвтрэх / Бүртгүүлэх
+                    </Link>
+                  </>
                 )}
               </div>
 
-              <Link href="/products" className={`text-sm font-medium transition-colors ${
-                isHomePage && !isScrolled ? 'text-white hover:text-white/80' : 'text-gray-700 hover:text-gray-900'
-              }`}>
-                Бүтээгдэхүүн
-              </Link>
-            </div>
-
-            <div className={`text-xs ${
-              isHomePage && !isScrolled ? 'text-white/70' : 'text-gray-500'
-            }`}>
-              {collections.length > 0 ? `${collections.length} цуглуулга` : ""}
-            </div>
-          </div>
-        </div>
-      </div>
-      </header>
-
-      {/* Mobile Menu - Full Screen Samsung Style */}
-      <div 
-        className={`fixed inset-0 z-60 lg:hidden transition-all duration-300 ${
-          isMobileMenuOpen ? 'visible' : 'invisible'
-        }`}
-      >
-        <div 
-          className={`absolute inset-0 bg-white transition-opacity duration-300 overflow-y-auto ${
-            isMobileMenuOpen ? 'opacity-100' : 'opacity-0'
-          }`}
-        >
-          {/* Header with Search and Close */}
-          <div className="sticky top-0 bg-white z-10 px-4 pt-4 pb-3">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex-1 relative">
-                <input
-                  type="text"
-                  placeholder="Search"
-                  onClick={() => {
-                    closeMobileMenu();
-                    openSearch();
-                  }}
-                  className="w-full px-4 py-3 pl-11 bg-gray-100 rounded-full text-sm focus:outline-none cursor-pointer"
-                  readOnly
-                />
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-              </div>
-              <button 
-                onClick={closeMobileMenu} 
-                className="p-2 hover:bg-gray-100 rounded-full"
-                aria-label="Хаах"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-          </div>
-
-          <div className="px-4 pb-8">
-            {/* Categories Section */}
-            <div className="mb-8">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 px-4">SHOP BY CATEGORY</h3>
-              <div className="space-y-0 border-t border-gray-200">
-                {categories.map((category) => (
-                  <Link
-                    key={category.id}
-                    href={`/categories/${category.handle}`}
-                    onClick={closeMobileMenu}
-                    className="flex items-center justify-between px-4 py-5 border-b border-gray-200 hover:bg-gray-50 transition-colors"
-                  >
-                    <span className="text-2xl font-semibold text-gray-900">{category.name}</span>
-                    <ChevronRight className="h-5 w-5 text-gray-400" />
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            {/* Additional Links */}
-            <div className="space-y-0 border-t border-gray-200 mb-8">
-              <Link
-                href="/collections"
-                onClick={closeMobileMenu}
-                className="flex items-center justify-between px-4 py-5 border-b border-gray-200 hover:bg-gray-50 transition-colors"
-              >
-                <span className="text-lg font-medium text-gray-900">Цуглуулга</span>
-                <ChevronRight className="h-5 w-5 text-gray-400" />
-              </Link>
-              <Link
-                href="/products"
-                onClick={closeMobileMenu}
-                className="flex items-center justify-between px-4 py-5 border-b border-gray-200 hover:bg-gray-50 transition-colors"
-              >
-                <span className="text-lg font-medium text-gray-900">Бүх бүтээгдэхүүн</span>
-                <ChevronRight className="h-5 w-5 text-gray-400" />
-              </Link>
-            </div>
-
-            {/* User Section */}
-            <div className="space-y-0 border-t border-gray-200">
-              {isAuthenticated && user ? (
-                <>
-                  <div className="px-4 py-5 border-b border-gray-200">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-12 h-12 rounded-full bg-gray-900 text-white flex items-center justify-center font-medium">
-                        {user.firstName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || "У"}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-gray-900">{user.firstName || "Хэрэглэгч"}</p>
-                        <p className="text-sm text-gray-500">{user.email}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <Link
-                    href="/account"
-                    onClick={closeMobileMenu}
-                    className="flex items-center justify-between px-4 py-4 border-b border-gray-200 hover:bg-gray-50 transition-colors"
-                  >
-                    <span className="text-base text-gray-900">Профайл</span>
-                    <ChevronRight className="h-5 w-5 text-gray-400" />
-                  </Link>
-                  <Link
-                    href="/account/orders"
-                    onClick={closeMobileMenu}
-                    className="flex items-center justify-between px-4 py-4 border-b border-gray-200 hover:bg-gray-50 transition-colors"
-                  >
-                    <span className="text-base text-gray-900">Захиалгууд</span>
-                    <ChevronRight className="h-5 w-5 text-gray-400" />
-                  </Link>
-                  <button
-                    onClick={() => {
-                      closeMobileMenu();
-                      signOut({ callbackUrl: "/" });
-                    }}
-                    className="w-full flex items-center justify-between px-4 py-4 border-b border-gray-200 hover:bg-gray-50 transition-colors text-left"
-                  >
-                    <span className="text-base text-red-600">Гарах</span>
-                    <LogOut className="h-5 w-5 text-red-400" />
-                  </button>
-                </>
-              ) : (
-                <Link
-                  href="/auth/login"
+              {/* Cart Section */}
+              <div>
+                <Link 
+                  href="/cart" 
+                  className="flex items-center justify-between py-4 px-1 hover:bg-gray-50 transition-colors" 
                   onClick={closeMobileMenu}
-                  className="flex items-center justify-between px-4 py-5 border-b border-gray-200 hover:bg-gray-50 transition-colors"
                 >
-                  <span className="text-base font-medium text-gray-900">Нэвтрэх / Бүртгүүлэх</span>
-                  <ChevronRight className="h-5 w-5 text-gray-400" />
+                  <span className="text-lg font-semibold text-gray-900">Сагс</span>
+                  <div className="flex items-center gap-2">
+                    {cartItemCount > 0 && (
+                      <span className="bg-blue-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                        {cartItemCount}
+                      </span>
+                    )}
+                    <ChevronRight className="h-5 w-5 text-gray-400" />
+                  </div>
                 </Link>
-              )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
       <SearchErrorBoundary>
         <SearchModal />

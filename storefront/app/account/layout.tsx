@@ -22,11 +22,13 @@ export default function AccountLayout({
         <Header />
       </div>
       <MobileAccountHeader />
-      <AccountErrorBoundary>
-        <AccountLayoutClient>
-          {children}
-        </AccountLayoutClient>
-      </AccountErrorBoundary>
+      <div className="lg:pt-16">
+        <AccountErrorBoundary>
+          <AccountLayoutClient>
+            {children}
+          </AccountLayoutClient>
+        </AccountErrorBoundary>
+      </div>
       <Footer />
     </div>
   );

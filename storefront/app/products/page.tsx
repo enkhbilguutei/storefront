@@ -168,7 +168,7 @@ export default async function ProductsPage({
     <div className="min-h-screen flex flex-col bg-white">
       <Header />
       
-      <main className="flex-1">
+      <main className="flex-1 pt-16">
         {/* Minimal Hero */}
         <div className="border-b border-gray-100">
           <div className="container mx-auto px-4 py-8 md:py-12">

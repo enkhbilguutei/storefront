@@ -16,7 +16,7 @@ export default async function CollectionsPage() {
     <div className="min-h-screen flex flex-col bg-white">
       <Header />
 
-      <main className="flex-1">
+      <main className="flex-1 pt-16">
         <div className="border-b border-gray-100">
           <div className="container mx-auto px-4 py-8 md:py-12">
             <h1 className="text-[28px] md:text-[40px] font-semibold text-[#1d1d1f] tracking-tight">

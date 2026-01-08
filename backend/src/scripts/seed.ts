@@ -446,6 +446,10 @@ export default async function seedDemoData({ container }: ExecArgs) {
       weight: 187,
       status: ProductStatus.PUBLISHED,
       shipping_profile_id: shippingProfile.id,
+      metadata: {
+        rating: "4.8",
+        review_count: "1250",
+      },
       images: [
         {
           url: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-15-pro-finish-select-202309-6-1inch-naturaltitanium?wid=5120&hei=2880&fmt=p-jpg&qlt=80&.v=1692846363993",
@@ -493,6 +497,10 @@ export default async function seedDemoData({ container }: ExecArgs) {
       weight: 1550,
       status: ProductStatus.PUBLISHED,
       shipping_profile_id: shippingProfile.id,
+      metadata: {
+        rating: "4.9",
+        review_count: "892",
+      },
       images: [
         {
           url: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mbp14-spacegray-select-202310?wid=904&hei=840&fmt=jpeg&qlt=90&.v=1697311054290",
@@ -526,6 +534,10 @@ export default async function seedDemoData({ container }: ExecArgs) {
       weight: 461,
       status: ProductStatus.PUBLISHED,
       shipping_profile_id: shippingProfile.id,
+      metadata: {
+        rating: "4.7",
+        review_count: "563",
+      },
       images: [
         {
           url: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/ipad-air-storage-select-202207-blue-wifi?wid=5120&hei=2880&fmt=p-jpg&qlt=80&.v=1654902977555",
@@ -560,6 +572,10 @@ export default async function seedDemoData({ container }: ExecArgs) {
       weight: 50,
       status: ProductStatus.PUBLISHED,
       shipping_profile_id: shippingProfile.id,
+      metadata: {
+        rating: "4.6",
+        review_count: "2340",
+      },
       images: [
         {
           url: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/MTJV3?wid=1144&hei=1144&fmt=jpeg&qlt=90&.v=1694014871985",
@@ -586,6 +602,10 @@ export default async function seedDemoData({ container }: ExecArgs) {
       weight: 32,
       status: ProductStatus.PUBLISHED,
       shipping_profile_id: shippingProfile.id,
+      metadata: {
+        rating: "4.8",
+        review_count: "1892",
+      },
       images: [
         {
           url: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/watch-s9-aluminum-midnight-nc-sport-band-midnight-se-cell-202309?wid=1200&hei=630&fmt=jpeg&qlt=95&.v=1693550496566",
@@ -619,6 +639,10 @@ export default async function seedDemoData({ container }: ExecArgs) {
       weight: 249,
       status: ProductStatus.PUBLISHED,
       shipping_profile_id: shippingProfile.id,
+      metadata: {
+        rating: "4.9",
+        review_count: "421",
+      },
       images: [
         {
           url: "https://dji-official-aps.djicdn.com/cms/uploads/0a6e0a600a600a600a600a600a600a60.jpg",

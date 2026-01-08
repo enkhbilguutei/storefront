@@ -2,8 +2,14 @@ import { medusa } from "@/lib/medusa";
 import { cache } from "react";
 import { getDefaultRegion } from "./regions";
 
+interface ColorVariant {
+  value: string;
+  hex?: string;
+}
+
 interface HomePageProduct {
   id: string; // variant ID for cart
+  productId: string;
   title: string;
   handle: string;
   thumbnail?: string;
@@ -19,6 +25,9 @@ interface HomePageProduct {
   inventoryQuantity?: number | null;
   manageInventory?: boolean | null;
   allowBackorder?: boolean | null;
+  rating?: number;
+  reviewCount?: number;
+  colors?: ColorVariant[];
 }
 
 /**
@@ -33,8 +42,22 @@ function transformProduct(product: any): HomePageProduct | null {
   const price = firstVariant.prices?.[0];
   const calculatedPrice = firstVariant.calculated_price;
 
+  // Extract unique colors from product options
+  const colorOption = product.options?.find((opt: any) => 
+    opt.title?.toLowerCase() === 'color' || opt.title?.toLowerCase() === 'өнгө'
+  );
+  
+  const colors: ColorVariant[] = colorOption?.values?.map((val: any) => ({
+    value: val.value || val,
+  })) || [];
+
+  // Get rating from metadata (fallback to demo data)
+  const rating = product.metadata?.rating ? parseFloat(product.metadata.rating) : undefined;
+  const reviewCount = product.metadata?.review_count ? parseInt(product.metadata.review_count) : undefined;
+
   return {
     id: firstVariant.id, // Use variant ID for cart functionality
+    productId: product.id,
     title: product.title,
     handle: product.handle,
     thumbnail: product.thumbnail || undefined,
@@ -50,6 +73,9 @@ function transformProduct(product: any): HomePageProduct | null {
     inventoryQuantity: firstVariant.inventory_quantity ?? null,
     manageInventory: firstVariant.manage_inventory ?? null,
     allowBackorder: firstVariant.allow_backorder ?? null,
+    rating,
+    reviewCount,
+    colors,
   };
 }
 

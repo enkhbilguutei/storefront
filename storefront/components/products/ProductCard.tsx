@@ -2,13 +2,18 @@
 
 import Link from "next/link";
 import { CloudinaryImage } from "@/components/Cloudinary";
-import { ShoppingCart, Loader2, ArrowLeftRight } from "lucide-react";
+import { ShoppingCart, Loader2, ArrowLeftRight, Star } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useCartStore, useUIStore } from "@/lib/store";
 import { useComparisonStore } from "@/lib/store/comparison-store";
 import { addToCart } from "@/lib/cart/addToCart";
 import { isTradeInEligibleAppleProductText, TRADE_IN_BADGE_TEXT, TRADE_IN_BADGE_TITLE } from "@/lib/tradein";
 import { toast } from "@/lib/toast";
+
+interface ColorVariant {
+  value: string;
+  hex?: string;
+}
 
 interface ProductCardProps {
   id: string; // variant id for cart
@@ -33,6 +38,9 @@ interface ProductCardProps {
   inventoryQuantity?: number | null;
   manageInventory?: boolean | null;
   allowBackorder?: boolean | null;
+  rating?: number;
+  reviewCount?: number;
+  colors?: ColorVariant[];
 }
 
 export function ProductCard({
@@ -47,7 +55,10 @@ export function ProductCard({
   collection,
   inventoryQuantity,
   manageInventory,
-  allowBackorder
+  allowBackorder,
+  rating = 4.5,
+  reviewCount = 0,
+  colors = [],
 }: ProductCardProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -86,6 +97,31 @@ export function ProductCard({
     }).format(amount);
     
     return `₮${formatted}`;
+  };
+
+  // Color mapping for common color names
+  const getColorHex = (colorName: string): string => {
+    const colorMap: Record<string, string> = {
+      'natural titanium': '#E5E4DF',
+      'blue titanium': '#5B8FA3',
+      'black titanium': '#2D2D2D',
+      'white titanium': '#F5F5F0',
+      'space gray': '#7D7D7D',
+      'silver': '#E3E3E8',
+      'gold': '#F9D7C4',
+      'midnight': '#1F2937',
+      'starlight': '#FAF9F7',
+      'purple': '#9F7AEA',
+      'blue': '#3B82F6',
+      'green': '#10B981',
+      'yellow': '#F59E0B',
+      'red': '#EF4444',
+      'pink': '#EC4899',
+      'black': '#1F2937',
+      'white': '#F9FAFB',
+    };
+    
+    return colorMap[colorName.toLowerCase()] || '#9CA3AF';
   };
 
   const handleAddToCart = async (e: React.MouseEvent) => {
@@ -132,14 +168,20 @@ export function ProductCard({
   };
 
   return (
-    <Link 
-      href={`/products/${handle}`}
-      className="group block bg-white border border-gray-200 rounded-lg overflow-hidden transition-shadow duration-200"
-    >
+    <div className="group bg-white rounded-xl md:rounded-2xl overflow-hidden transition-all duration-300 border border-gray-200 hover:border-gray-300 flex flex-col h-full">
+      {/* PICK Label */}
+      {isOnSale && (
+        <div className="px-3 md:px-4 pt-2 md:pt-3 pb-1">
+          <span className="text-[10px] md:text-xs font-semibold text-blue-600 uppercase tracking-wider">
+            Хямдрал
+          </span>
+        </div>
+      )}
+
       {/* Image Section */}
-      <div className="relative aspect-square bg-gray-50 overflow-hidden">
+      <Link href={`/products/${handle}`} className="relative aspect-[4/5] bg-white overflow-hidden px-4 md:px-6 pt-4 md:pt-6 pb-3 md:pb-4">
         {thumbnail ? (
-          <div className="absolute inset-0 flex items-center justify-center p-4">
+          <div className="absolute inset-0 flex items-center justify-center p-6 md:p-8">
             <CloudinaryImage
               src={thumbnail}
               alt={title}
@@ -150,124 +192,144 @@ export function ProductCard({
           </div>
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-            <span className="text-gray-400 text-sm">Зураггүй</span>
+            <span className="text-gray-400 text-xs md:text-sm">Зураггүй</span>
           </div>
         )}
 
-        {/* Collection Badge */}
-        {collection && (
-          <div className="absolute top-2 left-2">
-            <span className="bg-blue-600 text-white px-2 py-1 text-[9px] md:text-[10px] font-semibold rounded">
-              {collection.title}
-            </span>
-          </div>
-        )}
-
-        {/* Out of stock badge */}
+        {/* Badges */}
         {!isInStock && (
-          <div className="absolute top-2 right-2 bg-gray-800/80 text-white px-2 py-1 rounded font-semibold text-xs md:text-sm">
+          <div className="absolute top-3 md:top-4 right-3 md:right-4 bg-gray-900/90 backdrop-blur-sm text-white px-2 md:px-2.5 py-0.5 md:py-1 rounded-md font-semibold text-[10px] md:text-xs">
             Дууссан
           </div>
         )}
-
-        {/* Discount Badge */}
-        {isOnSale && discountPercentage > 0 && isInStock && (
-          <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded font-bold text-xs md:text-sm">
-            {discountPercentage}% хямдрал
-          </div>
-        )}
-
-        {/* Trade-in Badge (Apple only) */}
-        {isTradeInEligible && (
-          <div className="absolute bottom-2 left-2">
-            <span
-              title={TRADE_IN_BADGE_TITLE}
-              className="bg-white/90 backdrop-blur-sm text-gray-900 px-2 py-1 rounded font-semibold text-[10px] md:text-xs border border-gray-200 shadow-sm"
-            >
-              {TRADE_IN_BADGE_TEXT}
-            </span>
-          </div>
-        )}
-      </div>
+      </Link>
 
       {/* Content Section */}
-      <div className="p-3 md:p-4">
+      <div className="px-3 md:px-4 pb-3 md:pb-4 flex-1 flex flex-col">
         {/* Title */}
-        <h3 className="text-sm md:text-base font-medium text-gray-900 line-clamp-2 mb-2 h-10 md:h-12">
-          {title}
-        </h3>
+        <Link href={`/products/${handle}`}>
+          <h3 className="text-sm md:text-base lg:text-lg font-bold text-gray-900 mb-1.5 md:mb-2 line-clamp-2 min-h-[2.5rem] md:min-h-[3rem]">
+            {title}
+          </h3>
+        </Link>
 
-        {/* Price Section */}
-        <div className="mb-3">
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            {price && (
-              <span className="text-base md:text-lg font-bold text-gray-900">
-                {formatPrice(price.amount)}
-              </span>
-            )}
-            {isOnSale && originalPrice && (
-              <span className="text-xs md:text-sm text-gray-500 line-through">
-                {formatPrice(originalPrice.amount)}
-              </span>
-            )}
-          </div>
-          {isOnSale && discountPercentage > 0 && (
-            <span className="text-xs text-green-600 font-medium">
-              {discountPercentage}% хямдарлаа
+        {/* Rating - Samsung style */}
+        {reviewCount > 0 && (
+          <div className="flex items-center gap-1.5 md:gap-2 mb-2 md:mb-3">
+            <div className="flex items-center">
+              {[...Array(5)].map((_, i) => (
+                <Star
+                  key={i}
+                  className={`h-3 md:h-4 w-3 md:w-4 ${
+                    i < Math.floor(rating)
+                      ? "fill-orange-400 text-orange-400"
+                      : i < rating
+                      ? "fill-orange-400 text-orange-400 opacity-50"
+                      : "fill-gray-200 text-gray-200"
+                  }`}
+                />
+              ))}
+            </div>
+            <span className="text-xs md:text-sm font-bold text-gray-900">
+              {rating.toFixed(1)}
             </span>
+            <span className="text-xs md:text-sm text-gray-500">
+              ({reviewCount > 999 ? `${Math.floor(reviewCount / 1000)}k+` : reviewCount}+)
+            </span>
+          </div>
+        )}
+
+        {/* Color Swatches with label - Samsung style */}
+        {colors.length > 0 && (
+          <div className="mb-3 md:mb-4">
+            <p className="text-xs md:text-sm text-gray-700 mb-1.5 md:mb-2 font-medium truncate">
+              {colors[0].value}
+            </p>
+            <div className="flex items-center gap-1.5 md:gap-2">
+              {colors.slice(0, 4).map((color, index) => (
+                <button
+                  key={index}
+                  onClick={(e) => e.preventDefault()}
+                  className="w-6 h-6 md:w-7 md:h-7 rounded-full border-2 border-gray-300 hover:border-gray-900 transition-colors flex-shrink-0"
+                  style={{ backgroundColor: color.hex || getColorHex(color.value) }}
+                  title={color.value}
+                />
+              ))}
+              {colors.length > 4 && (
+                <span className="text-xs md:text-sm text-gray-600">
+                  +{colors.length - 4}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Price Section - Samsung style */}
+        <div className="mb-3 md:mb-4 mt-auto">
+          {price && (
+            <p className="text-xl md:text-2xl font-bold text-gray-900 mb-0.5 md:mb-1">
+              {formatPrice(price.amount)}
+            </p>
+          )}
+          {originalPrice && (
+            <p className="text-[11px] md:text-sm text-gray-500 line-clamp-1">
+              Үндсэн: {formatPrice(originalPrice.amount)}
+            </p>
           )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-2">
-          {/* Add to Cart Button */}
+        {/* Action Buttons - Samsung style */}
+        <div className="space-y-1.5 md:space-y-2">
           <button
             onClick={handleAddToCart}
             disabled={isAdding || !isInStock}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 md:py-2.5 px-3 md:px-4 rounded-lg font-medium text-xs md:text-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full bg-black hover:bg-gray-900 text-white py-2.5 md:py-3.5 px-3 md:px-4 rounded-full font-semibold text-xs md:text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 md:gap-2 min-h-[44px]"
           >
             {isAdding ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Нэмж байна...
+                <Loader2 className="h-3.5 md:h-4 w-3.5 md:w-4 animate-spin" />
+                <span className="hidden sm:inline">Нэмж байна...</span>
+                <span className="sm:hidden">...</span>
               </>
             ) : !isInStock ? (
               "Дууссан"
             ) : (
-              <>
-                <ShoppingCart className="h-4 w-4" />
-                Сагслах
-              </>
+              "Худалдаж авах"
             )}
           </button>
 
-          {/* Compare Button */}
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              toggleProduct({
-                id: productId,
-                productId,
-                variantId: id,
-                title,
-                handle,
-                thumbnail,
-                price,
-              });
-            }}
-            className={`px-3 md:px-4 py-2 md:py-2.5 rounded-lg font-medium text-xs md:text-sm transition-colors border flex items-center justify-center gap-1.5 ${
-              mounted && isInCompare 
-                ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700" 
-                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-            }`}
-            title={mounted && isInCompare ? "Харьцуулалтаас хасах" : "Харьцуулалтад нэмэх"}
-          >
-            <ArrowLeftRight className="h-4 w-4" />
-            <span className="hidden sm:inline">Харьцуулах</span>
-          </button>
+          <Link href={`/products/${handle}`} className="block">
+            <button className="w-full bg-white hover:bg-gray-50 text-gray-900 py-2.5 md:py-3.5 px-3 md:px-4 rounded-full font-semibold text-xs md:text-sm border-2 border-gray-300 hover:border-gray-400 transition-colors min-h-[44px]">
+              <span className="hidden sm:inline">Дэлгэрэнгүй үзэх</span>
+              <span className="sm:hidden">Дэлгэрэнгүй</span>
+            </button>
+          </Link>
+        </div>
+
+        {/* Compare Checkbox - Samsung style */}
+        <div className="mt-2 md:mt-3 pt-2 md:pt-3 border-t border-gray-100">
+          <label className="flex items-center gap-2 cursor-pointer min-h-[44px] -m-2 p-2">
+            <input
+              type="checkbox"
+              checked={mounted && isInCompare}
+              onChange={(e) => {
+                e.stopPropagation();
+                toggleProduct({
+                  id: productId,
+                  productId,
+                  variantId: id,
+                  title,
+                  handle,
+                  thumbnail,
+                  price,
+                });
+              }}
+              className="w-4 h-4 md:w-5 md:h-5 rounded border-gray-300 text-black focus:ring-black focus:ring-offset-0"
+            />
+            <span className="text-xs md:text-sm text-gray-700 font-medium">Харьцуулах</span>
+          </label>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }

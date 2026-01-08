@@ -51,7 +51,7 @@ export const trackViewSchema = z.object({
 
 export const createReviewSchema = z.object({
   rating: z.number().int().min(1, "Үнэлгээ 1-5 хооронд байх ёстой").max(5, "Үнэлгээ 1-5 хооронд байх ёстой"),
-  title: z.string().min(1, "Гарчиг оруулна уу").max(100, "Гарчиг 100 тэмдэгтээс хэтрэхгүй байх ёстой").optional(),
+  title: z.string().max(100, "Гарчиг 100 тэмдэгтээс хэтрэхгүй байх ёстой").optional(),
   comment: z.string().min(10, "Сэтгэгдэл дор хаяж 10 тэмдэгттэй байх ёстой").max(1000, "Сэтгэгдэл 1000 тэмдэгтээс хэтрэхгүй байх ёстой"),
   photos: z.array(z.string().url("Зураг URL форматтай байх ёстой")).max(5, "5-аас олон зураг оруулах боломжгүй").optional(),
 });
@@ -93,17 +93,71 @@ export const qpayCallbackSchema = z.object({
 
 // Banner validations (admin)
 export const createBannerSchema = z.object({
-  title: z.string().min(1, "Гарчиг оруулна уу"),
-  subtitle: z.string().optional(),
-  description: z.string().optional(),
-  image_url: z.string().url("Зургийн URL буруу байна"),
-  link_url: z.string().url("Холбоосын URL буруу байна").optional(),
-  button_text: z.string().optional(),
-  placement: z.enum(["hero", "secondary", "promotion"]),
+  title: z.string().nullable(),
+  subtitle: z.string().nullable(),
+  description: z.string().nullable(),
+  image_url: z.string().min(1, "Зургийн URL шаардлагатай").refine(
+    (val) => {
+      // Accept full URLs or Cloudinary public IDs
+      if (val.startsWith('http://') || val.startsWith('https://')) {
+        try {
+          new URL(val)
+          return true
+        } catch {
+          return false
+        }
+      }
+      // Accept Cloudinary public IDs (non-URL strings)
+      return val.length > 0
+    },
+    { message: "Зургийн URL буруу байна" }
+  ),
+  mobile_image_url: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined ? null : val),
+    z.string().refine(
+      (val) => {
+        if (val.startsWith('http://') || val.startsWith('https://')) {
+          try {
+            new URL(val)
+            return true
+          } catch {
+            return false
+          }
+        }
+        return val.length > 0
+      },
+      { message: "Утасны зургийн URL буруу байна" }
+    ).nullable()
+  ),
+  link: z.string().min(1, "Холбоос шаардлагатай").refine(
+    (val) => {
+      // Accept relative URLs starting with / or full URLs
+      if (val.startsWith('/')) return true
+      try {
+        new URL(val)
+        return true
+      } catch {
+        return false
+      }
+    },
+    { message: "Холбоос буруу байна. / эсвэл бүтэн URL оруулна уу" }
+  ),
+  alt_text: z.string().nullable(),
+  placement: z.enum(["hero", "bento", "bento_grid", "product_grid"]),
+  section: z.string().nullable(), // For product_grid
+  grid_size: z.enum(["3x3", "1x1", "2x3"]).default("3x3"), // For bento_grid
+  sort_order: z.number().int().min(0).default(0),
   is_active: z.boolean().default(true),
-  display_order: z.number().int().min(0).default(0),
-  start_date: z.string().datetime().optional(),
-  end_date: z.string().datetime().optional(),
+  dark_text: z.boolean().default(false),
+  starts_at: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined ? null : val),
+    z.string().datetime().nullable()
+  ),
+  ends_at: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined ? null : val),
+    z.string().datetime().nullable()
+  ),
+  metadata: z.record(z.unknown()).nullable(),
 });
 
 export const updateBannerSchema = createBannerSchema.partial();

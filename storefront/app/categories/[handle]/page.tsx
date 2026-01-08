@@ -102,7 +102,7 @@ export default async function CategoryPage({
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
       
-      <main className="flex-1">
+      <main className="flex-1 pt-16">
         {/* Hero Section */}
         <div className="bg-white border-b border-gray-100">
           <div className="container mx-auto px-4 py-12">

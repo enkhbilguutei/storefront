@@ -1,0 +1,693 @@
+"use client";
+
+import Link from "next/link";
+import Image from "next/image";
+import { Search, ChevronDown, ShoppingCart, User, Package, LogOut, Smartphone, Plane, Gamepad2, Glasses, Crown, Menu, X, type LucideIcon } from "lucide-react";
+import { useUIStore, useUserStore, useCartStore } from "@/lib/store";
+import { useState, useEffect, useRef } from "react";
+import { Category } from "@/lib/data/categories";
+import type { Collection } from "@/lib/data/collections";
+import { SearchModal } from "@/components/search/SearchModal";
+import { SearchErrorBoundary } from "@/components/search/SearchErrorBoundary";
+import { signOut } from "next-auth/react";
+
+interface HeaderClientProps {
+  categories: Category[];
+  collections: Collection[];
+  isHomePage?: boolean;
+}
+
+export function HeaderClient({ categories, collections, isHomePage = false }: HeaderClientProps) {
+  const { isMobileMenuOpen, openMobileMenu, closeMobileMenu, openSearch } = useUIStore();
+  const { user, isAuthenticated } = useUserStore();
+  const { items } = useCartStore();
+  const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<Category | null>(null);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [heroBgIsDark, setHeroBgIsDark] = useState(true);
+  const megaMenuRef = useRef<HTMLDivElement>(null);
+  const categoriesRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+  
+  const cartItemCount = items?.length || 0;
+
+  // Category icon mapping
+  const getCategoryIcon = (handle: string) => {
+    const iconMap: Record<string, LucideIcon> = {
+      'apple': Smartphone,
+      'dji': Plane,
+      'gaming': Gamepad2,
+      'eyewear': Glasses,
+      'collectibles': Crown,
+    };
+    return iconMap[handle.toLowerCase()] || Package;
+  };
+
+  // Listen for hero contrast changes
+  useEffect(() => {
+    const handleContrastChange = (event: CustomEvent) => {
+      setHeroBgIsDark(event.detail.isDark);
+    };
+
+    window.addEventListener('hero-contrast-change', handleContrastChange as EventListener);
+    return () => {
+      window.removeEventListener('hero-contrast-change', handleContrastChange as EventListener);
+    };
+  }, []);
+
+  // Handle scroll for header background
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 0);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Close menus when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        megaMenuRef.current && 
+        !megaMenuRef.current.contains(event.target as Node) &&
+        categoriesRef.current &&
+        !categoriesRef.current.contains(event.target as Node)
+      ) {
+        setIsMegaMenuOpen(false);
+        setActiveCategory(null);
+      }
+
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsUserMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleCategoriesEnter = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setIsMegaMenuOpen(true);
+    if (!activeCategory && categories.length > 0) {
+      setActiveCategory(categories[0]);
+    }
+  };
+
+  const handleCategoriesLeave = () => {
+    timeoutRef.current = setTimeout(() => {
+      setIsMegaMenuOpen(false);
+      setActiveCategory(null);
+    }, 150);
+  };
+
+  return (
+    <>
+      <header className={`${
+        isHomePage ? 'fixed' : 'sticky'
+      } top-0 left-0 right-0 z-50 w-full transition-all duration-300 ${
+        isHomePage 
+          ? isScrolled 
+            ? 'bg-white/95 backdrop-blur-md shadow-sm' 
+            : 'bg-transparent'
+          : 'bg-white shadow-sm'
+      }`}>
+        {/* Main Header */}
+        <div className={`transition-colors duration-300 ${
+          isHomePage 
+            ? isScrolled ? 'border-b border-gray-200' : 'border-b border-white/10'
+            : 'border-b border-gray-200'
+        }`}>
+          <div className="container mx-auto px-4">
+            <div className="flex items-center justify-between h-16 lg:h-20">
+              {/* Logo with enhanced adaptive contrast */}
+              <Link href="/" className="flex items-center relative z-10">
+                <Image 
+                  src="/logo.png" 
+                  alt="Alimhan" 
+                  width={160} 
+                  height={64} 
+                  className={`h-14 lg:h-16 w-auto transition-all duration-500 ease-out ${
+                    isHomePage && !isScrolled
+                      ? heroBgIsDark
+                        ? 'drop-shadow-[0_0_1px_rgba(255,255,255,0.3)] [filter:drop-shadow(0_2px_8px_rgba(0,0,0,0.4))_drop-shadow(0_4px_16px_rgba(0,0,0,0.2))] brightness-100 contrast-110' 
+                        : 'drop-shadow-[0_0_2px_rgba(0,0,0,0.4)] [filter:drop-shadow(0_2px_8px_rgba(255,255,255,0.9))_drop-shadow(0_4px_16px_rgba(255,255,255,0.6))] brightness-0 contrast-110 invert'
+                      : 'drop-shadow-sm'
+                  }`}
+                  priority 
+                />
+              </Link>
+
+              {/* Desktop: Categories Megamenu + Search Bar */}
+              <div className="hidden lg:flex flex-1 max-w-3xl mx-8 gap-3 items-center">
+                {/* Categories Mega Menu Trigger */}
+                {categories.length > 0 && (
+                  <button
+                    ref={megaMenuTriggerRef}
+                    onMouseEnter={handleMegaMenuEnter}
+                    onMouseLeave={handleMegaMenuLeave}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-full transition-all duration-500 ease-out whitespace-nowrap ${
+                      isHomePage && !isScrolled
+                        ? heroBgIsDark
+                          ? 'bg-white/95 backdrop-blur-md text-gray-900 border-2 border-white/30 shadow-[0_4px_20px_rgba(0,0,0,0.4),0_8px_32px_rgba(0,0,0,0.2)] hover:shadow-[0_6px_24px_rgba(0,0,0,0.5),0_10px_40px_rgba(0,0,0,0.3)] hover:bg-white hover:scale-105'
+                          : 'bg-gray-900/95 backdrop-blur-md text-white border-2 border-gray-800/50 shadow-[0_4px_20px_rgba(0,0,0,0.3),0_0_0_1px_rgba(255,255,255,0.1)] hover:shadow-[0_6px_24px_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.2)] hover:bg-gray-900 hover:scale-105'
+                        : 'bg-[linear-gradient(135deg,#0b1224,#0f1f50,#102a7a,#0ea5e9)] text-white border-2 border-white/10 shadow-blue-900/20 hover:brightness-110'
+                    }`}
+                  >
+                    <Menu className="h-4 w-4" />
+                    <span className="text-sm font-medium">Ангилал</span>
+                    <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isMegaMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                )}
+
+                {/* Search Bar */}
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder="Утас, ТВ, гэрийн техник хайх..."
+                    onClick={openSearch}
+                    className={`w-full px-4 py-2.5 pl-11 rounded-lg text-sm cursor-pointer transition-all duration-500 ease-out ${
+                      isHomePage && !isScrolled
+                        ? heroBgIsDark
+                          ? 'bg-white/95 backdrop-blur-md border-2 border-white/30 text-gray-900 placeholder:text-gray-600 focus:ring-2 focus:ring-blue-500 shadow-[0_4px_20px_rgba(0,0,0,0.4),0_8px_32px_rgba(0,0,0,0.2)] hover:shadow-[0_6px_24px_rgba(0,0,0,0.5),0_10px_40px_rgba(0,0,0,0.3)] hover:bg-white'
+                          : 'bg-gray-900/95 backdrop-blur-md border-2 border-gray-800/50 text-white placeholder:text-gray-300 focus:ring-2 focus:ring-blue-400 shadow-[0_4px_20px_rgba(0,0,0,0.3),0_0_0_1px_rgba(255,255,255,0.1)] hover:shadow-[0_6px_24px_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.2)] hover:bg-gray-900'
+                        : 'bg-gray-50 border-2 border-gray-200 focus:border-transparent focus:ring-2 focus:ring-blue-500 shadow-sm'
+                    }`}
+                    readOnly
+                  />
+                  <Search className={`absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 transition-all duration-500 ${
+                    isHomePage && !isScrolled
+                      ? heroBgIsDark
+                        ? 'text-gray-500'
+                        : 'text-gray-400'
+                      : 'text-gray-400'
+                  }`} />
+                </div>
+              </div>
+
+              {/* Right Actions */}
+              <div className="flex items-center gap-2 lg:gap-4">
+                {/* Mobile Search */}
+                <button 
+                  onClick={openSearch}
+                  className={`lg:hidden p-2.5 rounded-lg transition-all duration-500 ease-out active:scale-95 ${
+                    isHomePage && !isScrolled 
+                      ? 'hover:bg-white/25 backdrop-blur-xl shadow-[0_2px_12px_rgba(0,0,0,0.3)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.4)] hover:scale-105' 
+                      : 'hover:bg-gray-100'
+                  }`}
+                  aria-label="Хайх"
+                >
+                  <Search className={`h-5.5 w-5.5 transition-all duration-500 ${
+                    isHomePage && !isScrolled 
+                      ? heroBgIsDark
+                        ? 'text-white [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))_drop-shadow(0_0_1px_rgba(255,255,255,0.3))]'
+                        : 'text-gray-900 [filter:drop-shadow(0_2px_4px_rgba(255,255,255,1))_drop-shadow(0_0_1px_rgba(0,0,0,0.5))]'
+                      : 'text-gray-700'
+                  }`} />
+                </button>
+
+                {/* User Menu */}
+                {isAuthenticated && user ? (
+                  <div className="hidden lg:flex items-center gap-2 relative group">
+                    <button className={`flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all ${
+                      isHomePage && !isScrolled 
+                        ? 'hover:bg-white/20 backdrop-blur-md shadow-lg' 
+                        : 'hover:bg-gray-50'
+                    }`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
+                        isHomePage && !isScrolled
+                          ? heroBgIsDark
+                            ? 'bg-white/20 backdrop-blur-md text-white shadow-lg'
+                            : 'bg-gray-900/80 backdrop-blur-md text-white shadow-lg'
+                          : 'bg-gray-900 text-white'
+                      }`}>
+                        {user.firstName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || "У"}
+                      </div>
+                      <div className="flex flex-col items-start">
+                        <span className={`text-[10px] transition-all ${
+                          isHomePage && !isScrolled 
+                            ? heroBgIsDark
+                              ? 'text-white/80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]'
+                              : 'text-gray-800 drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)]'
+                            : 'text-gray-500'
+                        }`}>Сайн байна уу</span>
+                        <span className={`text-sm font-medium transition-all ${
+                          isHomePage && !isScrolled 
+                            ? heroBgIsDark
+                              ? 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]'
+                              : 'text-gray-900 drop-shadow-[0_2px_4px_rgba(255,255,255,0.9)]'
+                            : 'text-gray-900'
+                        }`}>{user.firstName || user.name || "Хэрэглэгч"}</span>
+                      </div>
+                    </button>
+                    
+                    {/* Dropdown */}
+                    <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                      <Link href="/account" className="flex items-center gap-2 px-4 py-2.5 hover:bg-gray-50 text-sm text-gray-700 first:rounded-t-lg">
+                        <User className="h-4 w-4" />
+                        Профайл
+                      </Link>
+                      <Link href="/account/orders" className="flex items-center gap-2 px-4 py-2.5 hover:bg-gray-50 text-sm text-gray-700">
+                        <Package className="h-4 w-4" />
+                        Захиалгууд
+                      </Link>
+                      <button 
+                        onClick={() => signOut({ callbackUrl: "/" })}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-gray-50 text-sm text-red-600 last:rounded-b-lg"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Гарах
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <Link href="/auth/login" className={`hidden lg:flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all ${
+                    isHomePage && !isScrolled 
+                      ? 'hover:bg-white/20 backdrop-blur-md shadow-lg' 
+                      : 'hover:bg-gray-50'
+                  }`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                      isHomePage && !isScrolled 
+                        ? heroBgIsDark
+                          ? 'bg-white/20 backdrop-blur-md shadow-lg'
+                          : 'bg-gray-900/80 backdrop-blur-md shadow-lg'
+                        : 'bg-gray-100'
+                    }`}>
+                      <User className={`h-4 w-4 transition-all ${
+                        isHomePage && !isScrolled 
+                          ? heroBgIsDark
+                            ? 'text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]'
+                            : 'text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]'
+                          : 'text-gray-600'
+                      }`} />
+                    </div>
+                    <div className="flex flex-col items-start">
+                      <span className={`text-[10px] transition-all ${
+                        isHomePage && !isScrolled 
+                          ? heroBgIsDark
+                            ? 'text-white/80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]'
+                            : 'text-gray-800 drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)]'
+                          : 'text-gray-500'
+                      }`}>Сайн байна уу</span>
+                      <span className={`text-sm font-medium transition-all ${
+                        isHomePage && !isScrolled 
+                          ? heroBgIsDark
+                            ? 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]'
+                            : 'text-gray-900 drop-shadow-[0_2px_4px_rgba(255,255,255,0.9)]'
+                          : 'text-gray-900'
+                      }`}>Нэвтрэх</span>
+                    </div>
+                  </Link>
+                )}
+
+                {/* Cart */}
+                <Link href="/cart" className={`relative p-2.5 rounded-lg transition-all duration-500 ease-out active:scale-95 ${
+                  isHomePage && !isScrolled 
+                    ? 'hover:bg-white/25 backdrop-blur-xl shadow-[0_2px_12px_rgba(0,0,0,0.3)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.4)] hover:scale-105' 
+                    : 'hover:bg-gray-100'
+                }`}>
+                  <ShoppingCart className={`h-5.5 w-5.5 lg:h-6 lg:w-6 transition-all duration-500 ${
+                    isHomePage && !isScrolled 
+                      ? heroBgIsDark
+                        ? 'text-white [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))_drop-shadow(0_0_1px_rgba(255,255,255,0.3))]'
+                        : 'text-gray-900 [filter:drop-shadow(0_2px_4px_rgba(255,255,255,1))_drop-shadow(0_0_1px_rgba(0,0,0,0.5))]'
+                      : 'text-gray-700'
+                  }`} />
+                  {cartItemCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-[0_2px_8px_rgba(239,68,68,0.6),0_0_0_2px_white]">
+                      {cartItemCount}
+                    </span>
+                  )}
+                </Link>
+
+                {/* Mobile Menu Toggle */}
+                <button 
+                  onClick={isMobileMenuOpen ? closeMobileMenu : openMobileMenu}
+                  className={`lg:hidden p-2.5 rounded-lg transition-all duration-500 ease-out active:scale-95 ${
+                    isHomePage && !isScrolled 
+                      ? 'hover:bg-white/25 backdrop-blur-xl shadow-[0_2px_12px_rgba(0,0,0,0.3)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.4)] hover:scale-105' 
+                      : 'hover:bg-gray-100'
+                  }`}
+                  aria-label="Цэс"
+                >
+                  {isMobileMenuOpen ? (
+                    <X className={`h-5.5 w-5.5 transition-all duration-500 ${
+                      isHomePage && !isScrolled 
+                        ? heroBgIsDark
+                          ? 'text-white [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))_drop-shadow(0_0_1px_rgba(255,255,255,0.3))]'
+                          : 'text-gray-900 [filter:drop-shadow(0_2px_4px_rgba(255,255,255,1))_drop-shadow(0_0_1px_rgba(0,0,0,0.5))]'
+                        : 'text-gray-700'
+                    }`} />
+                  ) : (
+                    <Menu className={`h-5.5 w-5.5 transition-all duration-500 ${
+                      isHomePage && !isScrolled 
+                        ? heroBgIsDark
+                          ? 'text-white [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))_drop-shadow(0_0_1px_rgba(255,255,255,0.3))]'
+                          : 'text-gray-900 [filter:drop-shadow(0_2px_4px_rgba(255,255,255,1))_drop-shadow(0_0_1px_rgba(0,0,0,0.5))]'
+                        : 'text-gray-700'
+                    }`} />
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Mega Menu Dropdown */}
+        {isMegaMenuOpen && categories.length > 0 && (
+          <div 
+            ref={megaMenuRef}
+            onMouseEnter={handleMegaMenuEnter}
+            onMouseLeave={handleMegaMenuLeave}
+            className="absolute left-0 right-0 top-full z-50 bg-white border-t border-gray-100 shadow-2xl"
+          >
+            <div className="container mx-auto px-4">
+              <div className="flex py-8">
+                {/* Category List */}
+                <div className="w-72 border-r border-gray-100 pr-8">
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 px-3">Ангилал</h3>
+                  <ul className="space-y-1">
+                    {categories.map((category) => {
+                      const CategoryIcon = getCategoryIcon(category.handle);
+                      return (
+                        <li key={category.id}>
+                          <button
+                            onMouseEnter={() => setActiveCategory(category)}
+                            onClick={() => {
+                              setIsMegaMenuOpen(false);
+                              window.location.href = `/categories/${category.handle}`;
+                            }}
+                            className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-all ${
+                              activeCategory?.id === category.id 
+                                ? 'bg-blue-50 text-blue-700' 
+                                : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                            }`}
+                          >
+                            <CategoryIcon className={`h-5 w-5 ${
+                              activeCategory?.id === category.id ? 'text-blue-600' : 'text-gray-500'
+                            }`} />
+                            <span className="text-sm font-medium flex-1">{category.name}</span>
+                            <ChevronRight className="h-4 w-4 opacity-40" />
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+
+                {/* Category Details with Subcategories */}
+                {activeCategory && (
+                  <div className="flex-1 pl-8">
+                    <div className="mb-6">
+                      <div className="flex items-center gap-3 mb-2">
+                        {(() => {
+                          const CategoryIcon = getCategoryIcon(activeCategory.handle);
+                          return <CategoryIcon className="h-7 w-7 text-gray-900" />;
+                        })()}
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-900">{activeCategory.name}</h3>
+                          {activeCategory.description && (
+                            <p className="text-sm text-gray-600 mt-0.5">{activeCategory.description}</p>
+                          )}
+                        </div>
+                      </div>
+                      <Link
+                        href={`/categories/${activeCategory.handle}`}
+                        onClick={() => setIsMegaMenuOpen(false)}
+                        className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors mt-2"
+                      >
+                        Бүх {activeCategory.name} үзэх
+                        <ChevronRight className="h-4 w-4" />
+                      </Link>
+                    </div>
+
+                    {/* Subcategories Grid */}
+                    {activeCategory.category_children && activeCategory.category_children.length > 0 && (
+                      <div>
+                        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Дэд ангилал</h4>
+                        <div className="grid grid-cols-2 gap-3">
+                          {activeCategory.category_children.map((subcat) => (
+                            <Link
+                              key={subcat.id}
+                              href={`/categories/${subcat.handle}`}
+                              onClick={() => setIsMegaMenuOpen(false)}
+                              className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors group"
+                            >
+                              <Package className="h-4 w-4 text-gray-500 group-hover:text-gray-700" />
+                              <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">{subcat.name}</span>
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Subheader: Collections - now inside fixed header */}
+        <div 
+          className={`hidden lg:block transition-all duration-300 ease-in-out border-t ${
+            isHomePage
+              ? isScrolled ? 'border-gray-200' : 'border-white/10'
+              : 'border-gray-200'
+          } ${
+            isSubheaderVisible 
+              ? 'opacity-100 max-h-12' 
+              : 'opacity-0 max-h-0 overflow-hidden pointer-events-none'
+          }`}
+        >
+          <div className="container mx-auto px-4">
+            <div className="flex items-center justify-between h-12">
+              <div className="flex items-center gap-6">
+                <div
+                  className="relative"
+                  onMouseEnter={handleCollectionsMenuEnter}
+                  onMouseLeave={handleCollectionsMenuLeave}
+                >
+                  <button
+                    ref={collectionsMenuTriggerRef}
+                    className={`inline-flex items-center gap-2 px-2 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                      isHomePage && !isScrolled
+                        ? 'text-white hover:bg-white/10 backdrop-blur-sm'
+                        : 'text-gray-800 hover:bg-gray-50'
+                    }`}
+                    aria-haspopup="menu"
+                    aria-expanded={isCollectionsMenuOpen}
+                  >
+                    Цуглуулга
+                    <ChevronDown
+                      className={`h-4 w-4 transition-transform duration-200 ${
+                        isCollectionsMenuOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                {isCollectionsMenuOpen && collections.length > 0 && (
+                  <div
+                    ref={collectionsMenuRef}
+                    className="absolute left-0 top-full mt-2 w-[640px] bg-white border border-gray-200 rounded-xl shadow-2xl p-5"
+                    style={{ zIndex: 100 }}
+                    role="menu"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                          Цуглуулгууд
+                        </p>
+                        <p className="text-sm text-gray-700 mt-1">
+                          Та дуртай бүтээгдэхүүнээ цуглуулгаар нь шүүж үзээрэй.
+                        </p>
+                      </div>
+                      <Link
+                        href="/collections"
+                        onClick={() => setIsCollectionsMenuOpen(false)}
+                        className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+                      >
+                        Бүгдийг үзэх
+                      </Link>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      {collections.map((collection) => (
+                        <Link
+                          key={collection.id}
+                          href={`/collections/${collection.handle}`}
+                          onClick={() => setIsCollectionsMenuOpen(false)}
+                          className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors"
+                          role="menuitem"
+                        >
+                          <span className="text-sm font-medium text-gray-900">
+                            {collection.title}
+                          </span>
+                          <ChevronRight className="h-4 w-4 text-gray-400" />
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <Link href="/products" className={`text-sm font-medium transition-colors ${
+                isHomePage && !isScrolled ? 'text-white hover:text-white/80' : 'text-gray-700 hover:text-gray-900'
+              }`}>
+                Бүтээгдэхүүн
+              </Link>
+            </div>
+
+            <div className={`text-xs ${
+              isHomePage && !isScrolled ? 'text-white/70' : 'text-gray-500'
+            }`}>
+              {collections.length > 0 ? `${collections.length} цуглуулга` : ""}
+            </div>
+          </div>
+        </div>
+      </div>
+      </header>
+
+      {/* Mobile Menu - Full Screen Samsung Style */}
+      <div 
+        className={`fixed inset-0 z-60 lg:hidden transition-all duration-300 ${
+          isMobileMenuOpen ? 'visible' : 'invisible'
+        }`}
+      >
+        <div 
+          className={`absolute inset-0 bg-white transition-opacity duration-300 overflow-y-auto ${
+            isMobileMenuOpen ? 'opacity-100' : 'opacity-0'
+          }`}
+        >
+          {/* Header with Search and Close */}
+          <div className="sticky top-0 bg-white z-10 px-4 pt-4 pb-3">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex-1 relative">
+                <input
+                  type="text"
+                  placeholder="Search"
+                  onClick={() => {
+                    closeMobileMenu();
+                    openSearch();
+                  }}
+                  className="w-full px-4 py-3 pl-11 bg-gray-100 rounded-full text-sm focus:outline-none cursor-pointer"
+                  readOnly
+                />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+              </div>
+              <button 
+                onClick={closeMobileMenu} 
+                className="p-2 hover:bg-gray-100 rounded-full"
+                aria-label="Хаах"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+          </div>
+
+          <div className="px-4 pb-8">
+            {/* Categories Section */}
+            <div className="mb-8">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 px-4">SHOP BY CATEGORY</h3>
+              <div className="space-y-0 border-t border-gray-200">
+                {categories.map((category) => (
+                  <Link
+                    key={category.id}
+                    href={`/categories/${category.handle}`}
+                    onClick={closeMobileMenu}
+                    className="flex items-center justify-between px-4 py-5 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="text-2xl font-semibold text-gray-900">{category.name}</span>
+                    <ChevronRight className="h-5 w-5 text-gray-400" />
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Additional Links */}
+            <div className="space-y-0 border-t border-gray-200 mb-8">
+              <Link
+                href="/collections"
+                onClick={closeMobileMenu}
+                className="flex items-center justify-between px-4 py-5 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                <span className="text-lg font-medium text-gray-900">Цуглуулга</span>
+                <ChevronRight className="h-5 w-5 text-gray-400" />
+              </Link>
+              <Link
+                href="/products"
+                onClick={closeMobileMenu}
+                className="flex items-center justify-between px-4 py-5 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                <span className="text-lg font-medium text-gray-900">Бүх бүтээгдэхүүн</span>
+                <ChevronRight className="h-5 w-5 text-gray-400" />
+              </Link>
+            </div>
+
+            {/* User Section */}
+            <div className="space-y-0 border-t border-gray-200">
+              {isAuthenticated && user ? (
+                <>
+                  <div className="px-4 py-5 border-b border-gray-200">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-12 h-12 rounded-full bg-gray-900 text-white flex items-center justify-center font-medium">
+                        {user.firstName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || "У"}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900">{user.firstName || "Хэрэглэгч"}</p>
+                        <p className="text-sm text-gray-500">{user.email}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <Link
+                    href="/account"
+                    onClick={closeMobileMenu}
+                    className="flex items-center justify-between px-4 py-4 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="text-base text-gray-900">Профайл</span>
+                    <ChevronRight className="h-5 w-5 text-gray-400" />
+                  </Link>
+                  <Link
+                    href="/account/orders"
+                    onClick={closeMobileMenu}
+                    className="flex items-center justify-between px-4 py-4 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="text-base text-gray-900">Захиалгууд</span>
+                    <ChevronRight className="h-5 w-5 text-gray-400" />
+                  </Link>
+                  <button
+                    onClick={() => {
+                      closeMobileMenu();
+                      signOut({ callbackUrl: "/" });
+                    }}
+                    className="w-full flex items-center justify-between px-4 py-4 border-b border-gray-200 hover:bg-gray-50 transition-colors text-left"
+                  >
+                    <span className="text-base text-red-600">Гарах</span>
+                    <LogOut className="h-5 w-5 text-red-400" />
+                  </button>
+                </>
+              ) : (
+                <Link
+                  href="/auth/login"
+                  onClick={closeMobileMenu}
+                  className="flex items-center justify-between px-4 py-5 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+                >
+                  <span className="text-base font-medium text-gray-900">Нэвтрэх / Бүртгүүлэх</span>
+                  <ChevronRight className="h-5 w-5 text-gray-400" />
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <SearchErrorBoundary>
+        <SearchModal />
+      </SearchErrorBoundary>
+    </>
+  );
+}

@@ -35,6 +35,11 @@ export function ReviewForm({ productId, onSuccess }: ReviewFormProps) {
       return
     }
 
+    if (comment.trim().length < 10) {
+      toast.error("Сэтгэгдэл дор хаяж 10 тэмдэгттэй байх ёстой")
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -62,9 +67,9 @@ export function ReviewForm({ productId, onSuccess }: ReviewFormProps) {
           credentials: "include",
           body: JSON.stringify({
             rating,
-            title: title.trim() || undefined,
+            ...(title.trim() && { title: title.trim() }),
             comment: comment.trim(),
-            photos: photos.length > 0 ? photos : undefined,
+            ...(photos.length > 0 && { photos }),
           }),
         }
       )
@@ -76,6 +81,15 @@ export function ReviewForm({ productId, onSuccess }: ReviewFormProps) {
 
       if (!response.ok) {
         const errorBody = await response.json().catch(() => null)
+        
+        // Handle validation errors with detailed messages
+        if (errorBody?.errors && Array.isArray(errorBody.errors)) {
+          const errorMessages = errorBody.errors
+            .map((err: { field: string; message: string }) => err.message)
+            .join(", ")
+          throw new Error(errorMessages)
+        }
+        
         const message = errorBody?.message || "Үнэлгээ илгээхэд алдаа гарлаа. Дахин оролдоно уу."
         throw new Error(message)
       }
@@ -224,7 +238,7 @@ export function ReviewForm({ productId, onSuccess }: ReviewFormProps) {
       {/* Submit Button */}
       <button
         type="submit"
-        disabled={isSubmitting || rating === 0 || !comment.trim()}
+        disabled={isSubmitting || rating === 0 || !comment.trim() || comment.trim().length < 10}
         className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
       >
         {isSubmitting ? (

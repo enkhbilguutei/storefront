@@ -70,7 +70,7 @@ export default function AboutPage() {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
       
-      <main className="flex-1">
+      <main className="flex-1 pt-16">
         {/* Hero Section */}
         <section className="relative bg-linear-to-br from-amber-50 via-orange-50 to-rose-50 overflow-hidden">
           <div className="absolute inset-0">

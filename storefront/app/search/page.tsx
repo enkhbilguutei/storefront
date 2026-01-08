@@ -32,7 +32,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
       
-      <main className="flex-1">
+      <main className="flex-1 pt-16">
         <div className="container mx-auto px-4 py-12">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900">
