@@ -5,7 +5,7 @@ import Image from "next/image";
 import {
   ArrowLeft,
   Loader2,
-
+  ShoppingBag,
   Lock,
   AlertCircle,
   User,
@@ -147,6 +147,8 @@ export default function CheckoutPage() {
 
   // Empty cart
   if (!checkout.cart || !checkout.cart.items?.length) {
+    const accentGradient = "bg-gradient-to-r from-[#0f4ab8] to-[#1d8dd8]";
+    
     return (
       <div className="min-h-screen flex flex-col bg-[#f8f8f8]">
         <main className="flex-1 flex items-center justify-center py-20">

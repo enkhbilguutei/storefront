@@ -1,19 +1,52 @@
 import { z } from "zod";
 
+// Reusable schema fragments
+export const phoneSchema8 = z
+  .string()
+  .length(8, "Утасны дугаар 8 оронтой байх ёстой")
+  .regex(/^\d{8}$/, "Утасны дугаар зөвхөн тоо байх ёстой");
+
+export const phoneSchema8or9 = z
+  .string()
+  .regex(/^\d{8,9}$/, "Утасны дугаар 8-9 оронтой байх ёстой");
+
+export const phoneSchema8or9Optional = z
+  .string()
+  .regex(/^(\d{8,9})?$/, "Утасны дугаар 8-9 оронтой байх ёстой")
+  .optional();
+
+export const emailSchema = z.string().email("И-мэйл хаяг буруу байна");
+
+export const firstNameSchema = z.string().min(1, "Нэр оруулна уу");
+
+export const lastNameSchema = z.string().min(1, "Овог оруулна уу");
+
+export const passwordSchema = z
+  .string()
+  .min(8, "Нууц үг дор хаяж 8 тэмдэгттэй байх ёстой");
+
+// Contact fields (first name, last name, email, phone)
+export const contactFieldsSchema = z.object({
+  firstName: firstNameSchema,
+  lastName: lastNameSchema,
+  email: emailSchema,
+  phone: phoneSchema8,
+});
+
 // Customer schemas
 export const customerSchema = z.object({
-  email: z.string().email("И-мэйл хаяг буруу байна"),
-  password: z.string().min(8, "Нууц үг дор хаяж 8 тэмдэгттэй байх ёстой"),
-  firstName: z.string().min(1, "Нэр оруулна уу").optional(),
-  lastName: z.string().min(1, "Овог оруулна уу").optional(),
-  phone: z.string().regex(/^\d{8,9}$/, "Утасны дугаар 8-9 оронтой байх ёстой").optional(),
+  email: emailSchema,
+  password: passwordSchema,
+  firstName: firstNameSchema.optional(),
+  lastName: lastNameSchema.optional(),
+  phone: phoneSchema8or9Optional,
 });
 
 // Profile update schema (without password)
 export const profileUpdateSchema = z.object({
-  firstName: z.string().min(1, "Нэр оруулна уу"),
-  lastName: z.string().min(1, "Овог оруулна уу"),
-  phone: z.string().regex(/^(\d{8,9})?$/, "Утасны дугаар 8-9 оронтой байх ёстой").optional(),
+  firstName: firstNameSchema,
+  lastName: lastNameSchema,
+  phone: phoneSchema8or9Optional,
 });
 
 export const loginSchema = customerSchema.pick({
@@ -22,8 +55,8 @@ export const loginSchema = customerSchema.pick({
 });
 
 export const registerSchema = customerSchema.extend({
-  firstName: z.string().min(1, "Нэр оруулна уу"),
-  lastName: z.string().min(1, "Овог оруулна уу"),
+  firstName: firstNameSchema,
+  lastName: lastNameSchema,
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Нууц үг таарахгүй байна",
@@ -32,14 +65,14 @@ export const registerSchema = customerSchema.extend({
 
 // Address schemas
 export const addressSchema = z.object({
-  firstName: z.string().min(1, "Нэр оруулна уу"),
-  lastName: z.string().min(1, "Овог оруулна уу"),
+  firstName: firstNameSchema,
+  lastName: lastNameSchema,
   address1: z.string().min(1, "Хаяг оруулна уу"),
   address2: z.string().optional(),
   city: z.string().min(1, "Хот/Аймаг оруулна уу"),
   province: z.string().optional(),
   countryCode: z.string().min(2, "Улс оруулна уу"),
-  phone: z.string().regex(/^\d{8,9}$/, "Утасны дугаар 8-9 оронтой байх ёстой"),
+  phone: phoneSchema8or9,
   company: z.string().optional(),
 });
 
@@ -79,12 +112,7 @@ export const searchSchema = z.object({
 });
 
 // Checkout schemas (Mongolian)
-export const checkoutContactSchema = z.object({
-  firstName: z.string().min(1, "Нэр оруулна уу"),
-  lastName: z.string().min(1, "Овог оруулна уу"),
-  email: z.string().email("И-мэйл хаяг буруу байна"),
-  phone: z.string().length(8, "Утасны дугаар 8 оронтой байх ёстой").regex(/^\d{8}$/, "Утасны дугаар зөвхөн тоо байх ёстой"),
-});
+export const checkoutContactSchema = contactFieldsSchema;
 
 export const checkoutDeliveryMethodSchema = z.enum(["delivery", "pickup"], {
   message: "Хүргэлтийн төрөл сонгоно уу",
@@ -111,10 +139,10 @@ export const checkoutShippingOptionSchema = z.object({
 
 // Full checkout form schema
 export const checkoutFormSchema = z.object({
-  firstName: z.string().min(1, "Нэр оруулна уу"),
-  lastName: z.string().min(1, "Овог оруулна уу"),
-  email: z.string().email("И-мэйл хаяг буруу байна"),
-  phone: z.string().length(8, "Утасны дугаар 8 оронтой байх ёстой").regex(/^\d{8}$/, "Утасны дугаар зөвхөн тоо байх ёстой"),
+  firstName: firstNameSchema,
+  lastName: lastNameSchema,
+  email: emailSchema,
+  phone: phoneSchema8,
   deliveryMethod: checkoutDeliveryMethodSchema,
   shippingAddress: checkoutAddressSchema.optional(),
   shippingOptionId: z.string().optional(),

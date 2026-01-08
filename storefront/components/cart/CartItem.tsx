@@ -5,6 +5,7 @@ import { Minus, Plus, Trash2, Loader2, AlertCircle } from "lucide-react";
 import { useState, useCallback } from "react";
 import { useCartStore } from "@/lib/store";
 import Link from "next/link";
+import { formatPrice } from "@/lib/utils/price";
 
 interface CartItemProps {
   item: {
@@ -33,13 +34,6 @@ export function CartItem({ item, currencyCode, refreshCart }: CartItemProps) {
   const { updateItemQuantity, removeItem } = useCartStore();
 
   const lineTotal = item.unit_price * item.quantity;
-
-  const formatPrice = useCallback((amount: number) => {
-    return new Intl.NumberFormat("mn-MN", {
-      style: "currency",
-      currency: currencyCode,
-    }).format(amount);
-  }, [currencyCode]);
 
   const handleUpdateQuantity = async (newQuantity: number) => {
     if (newQuantity < 1 || isUpdating) return;
@@ -156,11 +150,11 @@ export function CartItem({ item, currencyCode, refreshCart }: CartItemProps) {
             <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-6">
               <div className="text-right">
                 <p className="text-xs text-gray-500">Нэгж үнэ</p>
-                <p className="text-sm font-semibold text-gray-900">{formatPrice(item.unit_price)}</p>
+                <p className="text-sm font-semibold text-gray-900">{formatPrice(item.unit_price, currencyCode)}</p>
               </div>
               <div className="text-right">
                 <p className="text-xs text-gray-500">Нийт</p>
-                <p className="text-lg font-bold text-gray-900">{formatPrice(lineTotal)}</p>
+                <p className="text-lg font-bold text-gray-900">{formatPrice(lineTotal, currencyCode)}</p>
               </div>
             </div>
           </div>
@@ -176,7 +170,7 @@ export function CartItem({ item, currencyCode, refreshCart }: CartItemProps) {
             </button>
             <div className="text-right">
               <p className="text-xs text-gray-500">Нийт</p>
-              <p className="text-base font-bold text-gray-900">{formatPrice(lineTotal)}</p>
+              <p className="text-base font-bold text-gray-900">{formatPrice(lineTotal, currencyCode)}</p>
             </div>
           </div>
         </div>

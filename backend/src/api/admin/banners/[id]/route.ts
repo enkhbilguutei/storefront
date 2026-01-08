@@ -1,6 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { BANNER_MODULE } from "../../../../modules/banner"
 import type BannerModuleService from "../../../../modules/banner/service"
+import { validateBody, updateBannerSchema } from "../../../validations"
 
 /**
  * GET /admin/banners/:id
@@ -45,65 +46,54 @@ export async function PUT(
     const bannerService = req.scope.resolve<BannerModuleService>(BANNER_MODULE)
     const { id } = req.params
     
-    const {
-      title,
-      subtitle,
-      description,
-      image_url,
-      mobile_image_url,
-      link,
-      alt_text,
-      placement,
-      grid_size,
-      sort_order,
-      is_active,
-      dark_text,
-      starts_at,
-      ends_at,
-      metadata,
-    } = req.body as Record<string, unknown>
+    // Validate request body
+    const validationResult = validateBody(updateBannerSchema, req.body)
+    if (!validationResult.success) {
+      res.status(400).json({
+        message: "Validation failed",
+        errors: validationResult.errors,
+      })
+      return
+    }
+
+    const bannerData = validationResult.data as Record<string, unknown>
     
     // Build update data - only include provided fields
     const updateData: Record<string, unknown> = {}
     
     // For nullable text fields, convert empty strings to null
-    if (title !== undefined) {
-      updateData.title = title === "" ? null : title
+    if (bannerData.title !== undefined) {
+      updateData.title = (bannerData.title as string) === "" ? null : bannerData.title
     }
-    if (subtitle !== undefined) {
-      updateData.subtitle = subtitle === "" ? null : subtitle
+    if (bannerData.subtitle !== undefined) {
+      updateData.subtitle = (bannerData.subtitle as string) === "" ? null : bannerData.subtitle
     }
-    if (description !== undefined) {
-      updateData.description = description === "" ? null : description
+    if (bannerData.description !== undefined) {
+      updateData.description = (bannerData.description as string) === "" ? null : bannerData.description
     }
-    if (alt_text !== undefined) {
-      updateData.alt_text = alt_text === "" ? null : alt_text
+    if (bannerData.alt_text !== undefined) {
+      updateData.alt_text = (bannerData.alt_text as string) === "" ? null : bannerData.alt_text
     }
-    if (mobile_image_url !== undefined) {
-      updateData.mobile_image_url = mobile_image_url === "" ? null : mobile_image_url
+    if (bannerData.mobile_image_url !== undefined) {
+      updateData.mobile_image_url = (bannerData.mobile_image_url as string) === "" ? null : bannerData.mobile_image_url
     }
     
     // Required fields
-    if (image_url !== undefined) updateData.image_url = image_url
-    if (link !== undefined) updateData.link = link
-    if (placement !== undefined) updateData.placement = placement
-    if (grid_size !== undefined) updateData.grid_size = grid_size
-    
-    // Numeric and boolean fields
-    if (sort_order !== undefined) updateData.sort_order = sort_order
-    if (is_active !== undefined) updateData.is_active = is_active
-    if (dark_text !== undefined) updateData.dark_text = dark_text
-    
-    // Date fields
-    if (starts_at !== undefined) {
-      updateData.starts_at = starts_at ? new Date(starts_at as string) : null
+    if (bannerData.image_url !== undefined) updateData.image_url = bannerData.image_url
+    if (bannerData.link !== undefined) updateData.link = bannerData.link
+    if (bannerData.placement !== undefined) updateData.placement = bannerData.placement
+    if (bannerData.section !== undefined) updateData.section = bannerData.section
+    if (bannerData.grid_size !== undefined) updateData.grid_size = bannerData.grid_size
+    if (bannerData.sort_order !== undefined) updateData.sort_order = bannerData.sort_order
+    if (bannerData.is_active !== undefined) updateData.is_active = bannerData.is_active
+    if (bannerData.dark_text !== undefined) updateData.dark_text = bannerData.dark_text
+    if (bannerData.starts_at !== undefined) {
+      updateData.starts_at = bannerData.starts_at ? new Date(bannerData.starts_at as string) : null
     }
-    if (ends_at !== undefined) {
-      updateData.ends_at = ends_at ? new Date(ends_at as string) : null
+    if (bannerData.ends_at !== undefined) {
+      updateData.ends_at = bannerData.ends_at ? new Date(bannerData.ends_at as string) : null
     }
-    
-    // Metadata
-    if (metadata !== undefined) updateData.metadata = metadata
+    if (bannerData.metadata !== undefined) updateData.metadata = bannerData.metadata
     
     const [banner] = await bannerService.updateBanners([{
       id,

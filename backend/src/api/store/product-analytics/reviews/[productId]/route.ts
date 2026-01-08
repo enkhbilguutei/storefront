@@ -1,4 +1,5 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { validateBody, createReviewSchema, formatValidationErrors } from "../../../../validations"
 
 // GET /store/product-analytics/reviews/:productId
 export async function GET(
@@ -43,7 +44,7 @@ export async function GET(
       if (mine?.[0]) {
         const existsInApproved = approvedReviews.some((r: any) => r.id === mine[0].id)
         if (!existsInApproved) {
-          myReview = mine[0]
+          myReview = mine[0] as any
         }
       }
     }
@@ -63,32 +64,35 @@ export async function GET(
 
 // POST /store/product-analytics/reviews/:productId
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
-  const productId = req.params.productId
-  const { rating, title, comment, photos } = req.body as { 
-    rating: number; 
-    title: string; 
-    comment: string; 
-    photos?: string[];
+  const productId = req.params.productId;
+  
+  if (!productId) {
+    return res.status(400).json({ message: "productId is required" });
   }
 
-  if (!productId || !rating || !comment) {
+  const validation = validateBody(createReviewSchema, req.body);
+  
+  if (!validation.success) {
     return res.status(400).json({ 
-      message: "productId, rating, and comment are required" 
-    })
+      message: "Validation failed",
+      errors: formatValidationErrors(validation.errors)
+    });
   }
 
+  const { rating, title, comment, photos } = validation.data;
+  
   if (rating < 1 || rating > 5) {
-    return res.status(400).json({ message: "Rating must be between 1 and 5" })
+    return res.status(400).json({ message: "Rating must be between 1 and 5" });
   }
 
   try {
-    const analyticsService = req.scope.resolve("product_analytics")
-    const customerService = req.scope.resolve("customer")
+    const analyticsService = req.scope.resolve("product_analytics");
+    const customerService = req.scope.resolve("customer");
 
     // Get customer info from context (set by auth middleware)
-    const customer_id = (req as any).auth?.actor_id || (req as any).auth_context?.actor_id
+    const customer_id = (req as any).auth?.actor_id || (req as any).auth_context?.actor_id;
     if (!customer_id) {
-      return res.status(401).json({ message: "Authentication required" })
+      return res.status(401).json({ message: "Authentication required" });
     }
 
     const customer = await customerService.retrieveCustomer(customer_id)

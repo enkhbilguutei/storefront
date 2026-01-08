@@ -1,6 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { BANNER_MODULE } from "../../../modules/banner"
 import type BannerModuleService from "../../../modules/banner/service"
+import { validateBody, createBannerSchema } from "../../validations"
 
 /**
  * GET /admin/banners
@@ -59,50 +60,35 @@ export async function POST(
   try {
     const bannerService = req.scope.resolve<BannerModuleService>(BANNER_MODULE)
     
-    const {
-      title,
-      subtitle,
-      description,
-      image_url,
-      mobile_image_url,
-      link,
-      alt_text,
-      placement,
-      section,
-      grid_size,
-      sort_order = 0,
-      is_active = true,
-      dark_text = false,
-      starts_at,
-      ends_at,
-      metadata,
-    } = req.body as Record<string, unknown>
-    
-    // Validate required fields (title is optional per model)
-    if (!image_url || !link || !placement) {
+    // Validate request body
+    const validationResult = validateBody(createBannerSchema, req.body)
+    if (!validationResult.success) {
       res.status(400).json({
-        message: "Missing required fields: image_url, link, placement",
+        message: "Validation failed",
+        errors: validationResult.errors,
       })
       return
     }
+
+    const bannerData = validationResult.data as Record<string, unknown>
     
     const banner = await bannerService.createBanners({
-      title: title as string,
-      subtitle: subtitle as string | null,
-      description: description as string | null,
-      image_url: image_url as string,
-      mobile_image_url: mobile_image_url as string | null,
-      link: link as string,
-      alt_text: alt_text as string | null,
-      placement: placement as string,
-      section: section as string | null,
-      grid_size: grid_size as string,
-      sort_order: sort_order as number,
-      is_active: is_active as boolean,
-      dark_text: dark_text as boolean,
-      starts_at: starts_at ? new Date(starts_at as string) : null,
-      ends_at: ends_at ? new Date(ends_at as string) : null,
-      metadata: metadata as Record<string, unknown> | null,
+      title: bannerData.title as string,
+      subtitle: bannerData.subtitle as string | null,
+      description: bannerData.description as string | null,
+      image_url: bannerData.image_url as string,
+      mobile_image_url: bannerData.mobile_image_url as string | null,
+      link: bannerData.link as string,
+      alt_text: bannerData.alt_text as string | null,
+      placement: bannerData.placement as string,
+      section: bannerData.section as string | null,
+      grid_size: (bannerData.grid_size as string) || "3x3",
+      sort_order: (bannerData.sort_order as number) || 0,
+      is_active: (bannerData.is_active as boolean) ?? true,
+      dark_text: (bannerData.dark_text as boolean) ?? false,
+      starts_at: bannerData.starts_at ? new Date(bannerData.starts_at as string) : null,
+      ends_at: bannerData.ends_at ? new Date(bannerData.ends_at as string) : null,
+      metadata: (bannerData.metadata as Record<string, unknown>) || null,
     })
     
     res.status(201).json({ banner })

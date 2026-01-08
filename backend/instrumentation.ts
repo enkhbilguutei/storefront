@@ -1,3 +1,9 @@
+// Environment validation
+import validateEnvironment from "./src/scripts/validate-env"
+
+// Run environment validation on startup
+validateEnvironment({})
+
 // Uncomment this file to enable instrumentation and observability using OpenTelemetry
 // Refer to the docs for installation instructions: https://docs.medusajs.com/learn/debugging-and-testing/instrumentation
 

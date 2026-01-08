@@ -1,6 +1,7 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
 import { Modules } from "@medusajs/framework/utils";
 import jwt from "jsonwebtoken";
+import { validateBody, oauthSchema, formatValidationErrors } from "../../../validations";
 
 /**
  * POST /auth/customer/oauth
@@ -12,20 +13,17 @@ export async function POST(
   req: MedusaRequest,
   res: MedusaResponse
 ) {
-  const { email, name, provider } = req.body as {
-    email: string;
-    name?: string;
-    provider: string;
-  };
-
-  if (!email || !provider) {
-    return res.status(400).json({ message: "Email and provider are required" });
+  const validation = validateBody(oauthSchema, req.body);
+  
+  if (!validation.success) {
+    return res.status(400).json({ 
+      message: "Validation failed",
+      errors: formatValidationErrors(validation.errors)
+    });
   }
 
-  // Only allow specific OAuth providers
-  if (!["google", "github", "facebook"].includes(provider)) {
-    return res.status(400).json({ message: "Invalid OAuth provider" });
-  }
+  const { email, provider } = validation.data;
+  const name = (req.body as any).name;
 
   try {
     const customerModuleService = req.scope.resolve(Modules.CUSTOMER);

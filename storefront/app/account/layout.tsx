@@ -2,6 +2,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MobileAccountHeader } from "@/components/account/MobileAccountHeader";
 import { AccountLayoutClient } from "./AccountLayoutClient";
+import { AccountErrorBoundary } from "@/components/account/AccountErrorBoundary";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -21,9 +22,11 @@ export default function AccountLayout({
         <Header />
       </div>
       <MobileAccountHeader />
-      <AccountLayoutClient>
-        {children}
-      </AccountLayoutClient>
+      <AccountErrorBoundary>
+        <AccountLayoutClient>
+          {children}
+        </AccountLayoutClient>
+      </AccountErrorBoundary>
       <Footer />
     </div>
   );

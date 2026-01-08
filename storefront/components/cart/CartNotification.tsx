@@ -6,6 +6,7 @@ import { CloudinaryImage } from "@/components/Cloudinary";
 import Link from "next/link";
 import { X, Check, ShoppingBag } from "lucide-react";
 import { AnimatedCounter } from "@/components/animations/MotionComponents";
+import { formatPrice } from "@/lib/utils/price";
 
 // Simple visibility store to avoid setState in effects
 const createVisibilityStore = () => {
@@ -98,14 +99,6 @@ export function CartNotification() {
   const displayItem = lastAddedItem 
     ? items.find(item => item.variantId === lastAddedItem.variantId) || lastAddedItem 
     : null;
-
-  const formatPrice = (amount: number) => {
-    return new Intl.NumberFormat("mn-MN", {
-      style: "decimal",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
 
   // Calculate totals from items array, but ensure lastAddedItem is included
   // This handles the case where the store hasn't fully synced yet
@@ -223,7 +216,7 @@ export function CartNotification() {
                 
                 <div className="flex items-baseline gap-2 mt-2">
                   <span className="text-[15px] font-semibold text-[#1d1d1f]">
-                    ₮{formatPrice(displayItem.unitPrice)}
+                    {formatPrice(displayItem.unitPrice, "mnt")}
                   </span>
                   {displayItem.quantity > 1 && (
                     <span className="text-[13px] text-[#86868b]">
@@ -241,7 +234,7 @@ export function CartNotification() {
               Сагсанд <AnimatedCounter value={totalItems} className="inline-block font-semibold text-[#1d1d1f]" /> бараа
             </span>
             <span className="text-[15px] font-semibold text-[#1d1d1f]">
-              ₮{formatPrice(totalPrice)}
+              {formatPrice(totalPrice, "mnt")}
             </span>
           </div>
           

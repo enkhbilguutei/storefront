@@ -78,7 +78,9 @@ class LoyaltyModuleService extends MedusaService({
     const newTotalEarned = account.total_earned + points
 
     // Calculate new tier based on total earned
+    const oldTier = account.tier
     const newTier = this.calculateTier(newTotalEarned)
+    const tierUpgraded = newTier !== oldTier
 
     await this.updateLoyaltyAccounts({
       id: account.id,
@@ -87,9 +89,40 @@ class LoyaltyModuleService extends MedusaService({
       tier: newTier,
     })
 
+    // Send tier upgrade notification if tier changed
+    if (tierUpgraded) {
+      try {
+        const emailService = (this as any).container.resolve("emailNotificationService")
+        const customerService = (this as any).container.resolve("customer")
+        
+        // Get customer details for email
+        const customer = await customerService.retrieve(customerId)
+        
+        // Get benefits for new tier
+        const tierConfig = (LoyaltyTiers as any)[newTier]
+        const benefits = [
+          `${tierConfig.discountPercent}% хөнгөлөлт`,
+          `${tierConfig.pointsMultiplier}x оноо үржүүлэгч`,
+          ...(tierConfig.benefits || []),
+        ]
+        
+        await emailService.sendTierUpgrade({
+          email: customer.email,
+          customerName: `${customer.first_name || ""} ${customer.last_name || ""}`.trim() || "Харилцагч",
+          oldTier,
+          newTier,
+          newBenefits: benefits,
+          pointsBalance: newBalance,
+        })
+      } catch (error) {
+        // Log error but don't fail the transaction
+        console.error("Failed to send tier upgrade email:", error)
+      }
+    }
+
     return {
       account: await this.retrieveLoyaltyAccount(account.id),
-      tierUpgraded: newTier !== account.tier,
+      tierUpgraded,
     }
   }
 

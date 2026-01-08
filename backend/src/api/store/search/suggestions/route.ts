@@ -2,6 +2,7 @@ import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
 import { Modules } from "@medusajs/framework/utils";
 import MeilisearchService from "../../../../modules/meilisearch/service";
 import { MEILISEARCH_MODULE } from "../../../../modules/meilisearch";
+import { validateQuery, suggestionQuerySchema, formatValidationErrors } from "../../../validations";
 
 interface SuggestionQuery {
   q?: string;
@@ -9,7 +10,16 @@ interface SuggestionQuery {
 }
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
-  const { q = "", limit = "6" } = req.query as SuggestionQuery;
+  const validation = validateQuery(suggestionQuerySchema, req.query);
+  
+  if (!validation.success) {
+    return res.status(400).json({ 
+      message: "Validation failed",
+      errors: formatValidationErrors(validation.errors)
+    });
+  }
+
+  const { q, limit } = validation.data;
   const trimmed = q.trim();
   const take = Math.min(Math.max(parseInt(limit, 10) || 6, 1), 15);
 

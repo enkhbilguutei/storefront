@@ -59,11 +59,12 @@ type InjectedDependencies = {
   // Medusa injects container dependencies here
 };
 
+// Import MeiliSearch types
+import type { Index, MeiliSearch as MeiliSearchClient } from "meilisearch" with { "resolution-mode": "import" };
+
 export default class MeilisearchService {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private client_: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private productsIndex_: any;
+  private client_: MeiliSearchClient | null = null;
+  private productsIndex_: Index<ProductDocument> | null = null;
   private config_: MeilisearchConfig;
   private initialized_: boolean = false;
 
@@ -78,7 +79,7 @@ export default class MeilisearchService {
   /**
    * Lazily initialize the MeiliSearch client
    */
-  private async getClient() {
+  private async getClient(): Promise<MeiliSearchClient> {
     if (!this.client_) {
       const { MeiliSearch } = await import("meilisearch");
       this.client_ = new MeiliSearch({
@@ -92,10 +93,10 @@ export default class MeilisearchService {
   /**
    * Get the products index
    */
-  private async getProductsIndex() {
+  private async getProductsIndex(): Promise<Index<ProductDocument>> {
     if (!this.productsIndex_) {
       const client = await this.getClient();
-      this.productsIndex_ = client.index(PRODUCTS_INDEX);
+      this.productsIndex_ = client.index<ProductDocument>(PRODUCTS_INDEX);
     }
     return this.productsIndex_;
   }

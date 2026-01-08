@@ -2,16 +2,22 @@ import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
 import { Modules } from "@medusajs/framework/utils";
 import { createCustomerAccountWorkflow } from "@medusajs/core-flows";
 import jwt from "jsonwebtoken";
+import { validateBody, registerSchema, formatValidationErrors } from "../../../../validations";
 
 export async function POST(
   req: MedusaRequest,
   res: MedusaResponse
 ) {
-  const { email, password, first_name, last_name } = req.body as any;
-
-  if (!email || !password) {
-    return res.status(400).json({ message: "Email and password are required" });
+  const validation = validateBody(registerSchema, req.body);
+  
+  if (!validation.success) {
+    return res.status(400).json({ 
+      message: "Validation failed",
+      errors: formatValidationErrors(validation.errors)
+    });
   }
+
+  const { email, password, first_name, last_name } = validation.data;
 
   const authModuleService = req.scope.resolve(Modules.AUTH);
   

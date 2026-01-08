@@ -4,6 +4,7 @@ import { OrderPlacedEmail } from "../../emails/OrderPlaced";
 import { OrderConfirmedEmail } from "../../emails/OrderConfirmed";
 import { OrderShippedEmail } from "../../emails/OrderShipped";
 import { AbandonedCartEmail } from "../../emails/AbandonedCart";
+import { TierUpgradeEmail } from "../../emails/TierUpgrade";
 import { Logger } from "@medusajs/framework/types";
 
 type InjectedDependencies = {
@@ -196,6 +197,54 @@ export default class EmailNotificationService {
       this.logger.info(`Abandoned cart email sent to ${email} for cart ${cart.id}. ID: ${data?.id}`);
     } catch (error) {
       this.logger.error(`Error sending abandoned cart email: ${error}`);
+    }
+  }
+
+  async sendTierUpgrade(data: {
+    email: string;
+    customerName: string;
+    oldTier: string;
+    newTier: string;
+    newBenefits: string[];
+    pointsBalance: number;
+  }) {
+    try {
+      const { email, customerName, oldTier, newTier, newBenefits, pointsBalance } = data;
+
+      const tierTranslations: Record<string, string> = {
+        BRONZE: "Хүрэл",
+        SILVER: "Мөнгө",
+        GOLD: "Алт",
+        PLATINUM: "Цагаан алт",
+      };
+
+      const newTierMn = tierTranslations[newTier] || newTier;
+
+      const emailHtml = await render(
+        TierUpgradeEmail({
+          customerName,
+          oldTier,
+          newTier,
+          newBenefits,
+          pointsBalance,
+        })
+      );
+
+      const { data: responseData, error } = await this.resend.emails.send({
+        from: this.emailFrom,
+        to: [email],
+        subject: `Баяр хүргэе! Та ${newTierMn} зэрэгт шилжлээ 🎉`,
+        html: emailHtml,
+      });
+
+      if (error) {
+        this.logger.error(`Failed to send tier upgrade email: ${error.message}`);
+        return;
+      }
+
+      this.logger.info(`Tier upgrade email sent to ${email} from ${oldTier} to ${newTier}. ID: ${responseData?.id}`);
+    } catch (error) {
+      this.logger.error(`Error sending tier upgrade email: ${error}`);
     }
   }
 }

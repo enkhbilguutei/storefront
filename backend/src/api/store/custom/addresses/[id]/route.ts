@@ -1,7 +1,8 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
-import { Modules } from "@medusajs/framework/utils";
+import { Modules, ContainerRegistrationKeys } from "@medusajs/framework/utils";
 import { ICustomerModuleService } from "@medusajs/framework/types";
 import { AuthenticatedMedusaRequest } from "../../../../../types/api";
+import { validateBody, updateAddressSchema, formatValidationErrors } from "../../../../validations";
 
 interface UpdateAddressBody {
   first_name?: string;
@@ -24,11 +25,20 @@ export async function POST(
     return res.status(401).json({ message: "Unauthorized" });
   }
 
+  const validation = validateBody(updateAddressSchema, req.body);
+  
+  if (!validation.success) {
+    return res.status(400).json({ 
+      message: "Validation failed",
+      errors: formatValidationErrors(validation.errors)
+    });
+  }
+
   const customerModuleService: ICustomerModuleService = req.scope.resolve(Modules.CUSTOMER);
   const addressId = req.params.id;
   
   try {
-    const { first_name, last_name, phone, address_1, address_2, city, province, country_code } = req.body as UpdateAddressBody;
+    const { first_name, last_name, phone, address_1, address_2, city, province, country_code } = validation.data;
 
     // Update address
     await customerModuleService.updateCustomerAddresses(addressId, {

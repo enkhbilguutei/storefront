@@ -2,6 +2,8 @@ import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
 import MeilisearchService from "../../../modules/meilisearch/service";
 import { MEILISEARCH_MODULE } from "../../../modules/meilisearch";
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils";
+import { validateQuery, searchQuerySchema, formatValidationErrors } from "../../validations";
+import { rateLimiters } from "../../middlewares/rate-limit";
 
 interface SearchQuery {
   q?: string;
@@ -137,12 +139,27 @@ export async function GET(
   req: MedusaRequest,
   res: MedusaResponse
 ) {
-  const query = req.query as SearchQuery;
-  const q = (query.q as string) || "";
-  const limit = (query.limit as string) || "12";
-  const offset = (query.offset as string) || "0";
-  const filter = query.filter as string | undefined;
-  const sort = query.sort as string | undefined;
+  // Apply rate limiting
+  const rateLimitResult = await rateLimiters.search(req, res);
+  if (rateLimitResult) {
+    // Rate limit response already sent
+    return;
+  }
+
+  const validation = validateQuery(searchQuerySchema, req.query);
+  
+  if (!validation.success) {
+    return res.status(400).json({ 
+      message: "Validation failed",
+      errors: formatValidationErrors(validation.errors)
+    });
+  }
+
+  const query = validation.data;
+  const q = query.q || "";
+  const limit = query.limit;
+  const offset = query.offset;
+  const sort = query.sort;
 
   const limitNum = parseInt(limit, 10);
   const offsetNum = parseInt(offset, 10);
@@ -153,16 +170,11 @@ export async function GET(
     const searchParams: {
       limit: number;
       offset: number;
-      filter?: string;
       sort?: string[];
     } = {
       limit: limitNum,
       offset: offsetNum,
     };
-
-    if (filter) {
-      searchParams.filter = filter;
-    }
 
     if (sort) {
       searchParams.sort = [sort];

@@ -2,6 +2,7 @@
 
 import { User, Mail, Phone, Check, ChevronDown, ChevronUp, LogIn } from "lucide-react";
 import Link from "next/link";
+import { sanitizePhoneNumber } from "@/lib/utils/phone";
 
 interface ContactStepProps {
   firstName: string;
@@ -36,16 +37,8 @@ export function ContactStep({
   onToggle,
   errors,
 }: ContactStepProps) {
-  // Format phone number for display (8 digits)
-  const formatPhoneNumber = (value: string) => {
-    // Remove non-digits
-    const digits = value.replace(/\D/g, "");
-    // Limit to 8 digits
-    return digits.slice(0, 8);
-  };
-
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhoneNumber(e.target.value);
+    const formatted = sanitizePhoneNumber(e.target.value);
     onPhoneChange(formatted);
   };
 

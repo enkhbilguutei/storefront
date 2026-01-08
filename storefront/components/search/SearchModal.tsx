@@ -82,7 +82,7 @@ export function SearchModal() {
           }
         }
       } catch (error) {
-        console.error("Failed to fetch popular searches:", error);
+        // Silently fail - not critical
       }
     };
 
@@ -171,11 +171,9 @@ export function SearchModal() {
         const data = await response.json();
         setResults(data);
       } else {
-        console.error("Search request failed:", response.statusText);
         toast.error("Хайлт хийхэд алдаа гарлаа. Дахин оролдоно уу.");
       }
     } catch (error) {
-      console.error("Search error:", error);
       toast.error("Хайлт хийхэд алдаа гарлаа. Дахин оролдоно уу.");
     } finally {
       setIsLoading(false);
@@ -207,7 +205,7 @@ export function SearchModal() {
         setSuggestions(data.suggestions || []);
       }
     } catch (error) {
-      console.error("Suggestion error:", error);
+      // Silently fail for suggestions
     } finally {
       setIsSuggesting(false);
     }

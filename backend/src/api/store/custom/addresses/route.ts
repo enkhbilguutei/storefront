@@ -1,7 +1,8 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
-import { Modules } from "@medusajs/framework/utils";
+import { Modules, ContainerRegistrationKeys } from "@medusajs/framework/utils";
 import { ICustomerModuleService } from "@medusajs/framework/types";
 import { AuthenticatedMedusaRequest } from "../../../../types/api";
+import { validateBody, createAddressSchema, formatValidationErrors } from "../../../validations";
 
 interface CreateAddressBody {
   first_name: string;
@@ -33,6 +34,8 @@ export async function GET(
     
     return res.json({ addresses: customer.addresses || [] });
   } catch (error) {
+    const logger = req.scope.resolve(ContainerRegistrationKeys.LOGGER);
+    logger.error("Error fetching addresses:", error);
     console.error("Error fetching addresses:", error);
     return res.status(500).json({ message: "Failed to fetch addresses" });
   }
@@ -48,10 +51,19 @@ export async function POST(
     return res.status(401).json({ message: "Unauthorized" });
   }
 
+  const validation = validateBody(createAddressSchema, req.body);
+  
+  if (!validation.success) {
+    return res.status(400).json({ 
+      message: "Validation failed",
+      errors: formatValidationErrors(validation.errors)
+    });
+  }
+
   const customerModuleService: ICustomerModuleService = req.scope.resolve(Modules.CUSTOMER);
   
   try {
-    const { first_name, last_name, phone, address_1, address_2, city, province, country_code } = req.body as CreateAddressBody;
+    const { first_name, last_name, phone, address_1, address_2, city, province, country_code } = validation.data;
 
     // Create address for customer
     const address = await customerModuleService.createCustomerAddresses({
@@ -68,6 +80,8 @@ export async function POST(
     
     return res.json({ address });
   } catch (error) {
+    const logger = req.scope.resolve(ContainerRegistrationKeys.LOGGER);
+    logger.error("Error creating address:", error);
     console.error("Error creating address:", error);
     return res.status(500).json({ 
       message: error instanceof Error ? error.message : "Failed to create address" 

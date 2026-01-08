@@ -1,7 +1,8 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
-import { Modules } from "@medusajs/framework/utils";
+import { Modules, ContainerRegistrationKeys } from "@medusajs/framework/utils";
 import { ICustomerModuleService } from "@medusajs/framework/types";
 import { AuthenticatedMedusaRequest } from "../../../../types/api";
+import { validateBody, updateProfileSchema, formatValidationErrors } from "../../../validations";
 
 export async function GET(
   req: MedusaRequest,
@@ -31,25 +32,26 @@ export async function POST(
   res: MedusaResponse
 ) {
   const authContext = (req as AuthenticatedMedusaRequest).auth_context;
-  
-  console.log("[POST /store/custom/me] Auth context:", authContext);
-  console.log("[POST /store/custom/me] Body:", req.body);
+  const logger = req.scope.resolve(ContainerRegistrationKeys.LOGGER);
   
   if (!authContext?.actor_id) {
-    console.error("[POST /store/custom/me] No actor_id in auth_context");
+    logger.error("[POST /store/custom/me] No actor_id in auth_context");
     return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  const validation = validateBody(updateProfileSchema, req.body);
+  
+  if (!validation.success) {
+    return res.status(400).json({ 
+      message: "Validation failed",
+      errors: formatValidationErrors(validation.errors)
+    });
   }
 
   const customerModuleService: ICustomerModuleService = req.scope.resolve(Modules.CUSTOMER);
   
   try {
-    const { first_name, last_name, phone } = req.body as {
-      first_name?: string;
-      last_name?: string;
-      phone?: string;
-    };
-
-    console.log("[POST /store/custom/me] Updating customer:", authContext.actor_id, { first_name, last_name, phone });
+    const { first_name, last_name, phone } = validation.data;
 
     // Update the customer
     await customerModuleService.updateCustomers(authContext.actor_id, {
@@ -57,17 +59,15 @@ export async function POST(
       last_name,
       phone,
     });
-    
-    // Retrieve the updated customer
+
+    // Fetch updated customer
     const customer = await customerModuleService.retrieveCustomer(authContext.actor_id, {
       relations: ["addresses"]
     });
     
-    console.log("[POST /store/custom/me] Update successful");
-    
     return res.json({ customer });
   } catch (error) {
-    console.error("[POST /store/custom/me] Error updating customer:", error);
+    logger.error("[POST /store/custom/me] Error updating customer:", error);
     return res.status(500).json({ 
       message: error instanceof Error ? error.message : "Failed to update customer" 
     });

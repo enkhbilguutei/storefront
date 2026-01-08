@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { MapPin, Plus, Trash2, Edit2, Loader2, Check, Home, Building2 } from "lucide-react";
 import { z } from "zod";
+import { sanitizePhoneNumber } from "@/lib/utils/phone";
 
 // Metadata: Хаягууд | Миний бүртгэл (set in parent layout)
 
@@ -318,7 +319,7 @@ export default function AddressesPage() {
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, '').slice(0, 8);
+                  const value = sanitizePhoneNumber(e.target.value);
                   setFormData({ ...formData, phone: value });
                 }}
                 maxLength={8}

@@ -1,6 +1,8 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
 import { WISHLIST_MODULE } from "../../../modules/wishlist";
 import WishlistService from "../../../modules/wishlist/service";
+import { validateBody, addToWishlistSchema, formatValidationErrors } from "../../validations";
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils";
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const wishlistService: WishlistService = req.scope.resolve(WISHLIST_MODULE);
@@ -24,16 +26,25 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 }
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
+  const wishlistService: WishlistService = req.scope.resolve(WISHLIST_MODULE);
+  
   try {
-    const wishlistService: WishlistService = req.scope.resolve(WISHLIST_MODULE);
-    
     const customerId = (req as any).auth_context?.actor_id;
     if (!customerId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const { product_id, variant_id } = req.body as any;
+    const validation = validateBody(addToWishlistSchema, req.body);
+    
+    if (!validation.success) {
+      return res.status(400).json({ 
+        message: "Validation failed",
+        errors: formatValidationErrors(validation.errors)
+      });
+    }
 
+    const { product_id, variant_id } = validation.data;
+    
     if (!product_id) {
       return res.status(400).json({ message: "Product ID is required" });
     }

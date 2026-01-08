@@ -7,6 +7,9 @@ import { z } from "zod";
 import Link from "next/link";
 import { Check, Loader2, Pencil, Mail, Phone, User, Shield, ChevronRight, Package, Clock } from "lucide-react";
 import { profileUpdateSchema } from "@/lib/validations";
+import { sanitizePhoneNumber } from "@/lib/utils/phone";
+import { formatRelativeDate } from "@/lib/utils/date";
+import { formatPrice } from "@/lib/utils/price";
 
 // Metadata is set in parent layout
 
@@ -323,7 +326,7 @@ export default function AccountPage() {
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, '').slice(0, 8);
+                    const value = sanitizePhoneNumber(e.target.value);
                     setFormData({ ...formData, phone: value });
                   }}
                   maxLength={8}

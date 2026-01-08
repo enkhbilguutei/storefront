@@ -1,6 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import type QPayService from "../../../../modules/qpay/service"
 import { QPAY_MODULE } from "../../../../modules/qpay"
+import { validateBody, createQPayInvoiceSchema, formatValidationErrors } from "../../../validations"
 
 /**
  * POST /store/qpay/create-invoice
@@ -23,35 +24,26 @@ export async function POST(
       return
     }
 
+    const validation = validateBody(createQPayInvoiceSchema, req.body);
+  
+    if (!validation.success) {
+      res.status(400).json({ 
+        error: "Validation failed",
+        errors: formatValidationErrors(validation.errors)
+      });
+      return
+    }
+
     const { 
       order_id, 
       amount, 
       description,
-      customer_name,
       customer_email,
-      customer_phone,
-      line_items 
-    } = req.body as {
-      order_id: string
-      amount: number
-      description?: string
-      customer_name?: string
-      customer_email?: string
-      customer_phone?: string
-      line_items?: Array<{
-        description: string
-        quantity: number
-        unit_price: number
-      }>
-    }
-
-    if (!order_id || !amount) {
-      res.status(400).json({
-        error: "order_id and amount are required",
-        code: "INVALID_REQUEST",
-      })
-      return
-    }
+      customer_phone
+    } = validation.data;
+    
+    const customer_name = (req.body as any).customer_name;
+    const line_items = (req.body as any).line_items;
 
     const invoice = await qpayService.createInvoice({
       orderId: order_id,

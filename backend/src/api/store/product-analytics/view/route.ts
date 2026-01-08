@@ -1,13 +1,19 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { validateBody, trackViewSchema, formatValidationErrors } from "../../../validations"
 
 // POST /store/product-analytics/view
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
-  const { product_id } = req.body as { product_id: string }
-
-  if (!product_id) {
-    return res.status(400).json({ message: "product_id is required" })
+  const validation = validateBody(trackViewSchema, req.body);
+  
+  if (!validation.success) {
+    return res.status(400).json({ 
+      message: "Validation failed",
+      errors: formatValidationErrors(validation.errors)
+    });
   }
+
+  const { product_id } = validation.data;
 
   try {
     const analyticsService = req.scope.resolve("product_analytics")

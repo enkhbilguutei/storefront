@@ -1,16 +1,30 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
 import { Modules } from "@medusajs/framework/utils";
 import jwt from "jsonwebtoken";
+import { validateBody, emailPasswordSchema, formatValidationErrors } from "../../../validations";
+import { rateLimiters } from "../../../middlewares/rate-limit";
 
 export async function POST(
   req: MedusaRequest,
   res: MedusaResponse
 ) {
-  const { email, password } = req.body as any;
-
-  if (!email || !password) {
-    return res.status(400).json({ message: "Email and password are required" });
+  // Apply strict rate limiting for login attempts
+  const rateLimitResult = await rateLimiters.strict(req, res);
+  if (rateLimitResult) {
+    // Rate limit response already sent
+    return;
   }
+
+  const validation = validateBody(emailPasswordSchema, req.body);
+  
+  if (!validation.success) {
+    return res.status(400).json({ 
+      message: "Validation failed",
+      errors: formatValidationErrors(validation.errors)
+    });
+  }
+
+  const { email, password } = validation.data;
 
   const authModuleService = req.scope.resolve(Modules.AUTH);
   

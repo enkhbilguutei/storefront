@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { CheckoutErrorBoundary } from "@/components/checkout/CheckoutErrorBoundary";
 
 export const metadata: Metadata = {
   title: "Төлбөр тооцоо",
@@ -11,5 +12,9 @@ export default function CheckoutLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return (
+    <CheckoutErrorBoundary>
+      {children}
+    </CheckoutErrorBoundary>
+  );
 }

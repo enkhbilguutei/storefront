@@ -1,7 +1,9 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import type QPayService from "../../../../modules/qpay/service"
 import { QPAY_MODULE } from "../../../../modules/qpay"
 import type { QPayCallbackPayload } from "../../../../modules/qpay/types"
+import { validateBody, qpayCallbackSchema, formatValidationErrors } from "../../../validations"
 
 /**
  * POST /store/qpay/callback
@@ -35,15 +37,9 @@ export async function POST(
       qpay_payment_id,
     })
 
-    // Verify the callback
-    if (!qpayService.verifyCallback(payment_id, qpay_payment_id)) {
-      console.error("[QPay Callback] Verification failed")
-      res.status(400).json({ error: "Invalid callback" })
-      return
-    }
-
     // Get payment status from QPay
     const paymentStatus = await qpayService.getPaymentStatus(payment_id)
+    const logger = req.scope.resolve(ContainerRegistrationKeys.LOGGER)
 
     console.log("[QPay Callback] Payment status:", {
       status: paymentStatus.payment_status,
@@ -59,7 +55,7 @@ export async function POST(
       // 2. Mark payment as captured
       // 3. Update order status
       
-      console.log(`[QPay Callback] Payment PAID for order ${orderId}`)
+      logger.info(`[QPay Callback] Payment PAID for order ${orderId}`)
       
       // For now, just log and return success
       // In production, implement order status update
@@ -73,7 +69,7 @@ export async function POST(
     }
 
     if (paymentStatus.payment_status === "PARTIAL") {
-      console.log(`[QPay Callback] Partial payment for order ${orderId}`)
+      logger.info(`[QPay Callback] Partial payment for order ${orderId}`)
       res.json({
         success: true,
         message: "Partial payment recorded",

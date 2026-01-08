@@ -8,6 +8,7 @@ import { useState, useEffect, useRef } from "react";
 import { Category } from "@/lib/data/categories";
 import type { Collection } from "@/lib/data/collections";
 import { SearchModal } from "@/components/search/SearchModal";
+import { SearchErrorBoundary } from "@/components/search/SearchErrorBoundary";
 import { signOut } from "next-auth/react";
 
 interface HeaderClientProps {
@@ -534,7 +535,9 @@ export function HeaderClient({ categories, collections }: HeaderClientProps) {
         </div>
       </div>
 
-      <SearchModal />
+      <SearchErrorBoundary>
+        <SearchModal />
+      </SearchErrorBoundary>
     </>
   );
 }

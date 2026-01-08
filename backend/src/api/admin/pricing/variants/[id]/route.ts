@@ -1,6 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { Modules } from "@medusajs/framework/utils"
 import type { IPricingModuleService, IProductModuleService } from "@medusajs/framework/types"
+import { validateBody, updatePriceSchema } from "../../../../validations"
 
 /**
  * POST /admin/pricing/variants/:id
@@ -14,10 +15,18 @@ export async function POST(
 ): Promise<void> {
   try {
     const variantId = req.params.id
-    const { amount, currency_code = "mnt" } = req.body as { 
-      amount: number
-      currency_code?: string 
+    
+    // Validate request body
+    const validationResult = validateBody(updatePriceSchema, req.body)
+    if (!validationResult.success) {
+      res.status(400).json({
+        message: "Validation failed",
+        errors: validationResult.errors,
+      })
+      return
     }
+
+    const { amount, currency_code = "mnt" } = validationResult.data
 
     const productService: IProductModuleService = req.scope.resolve(Modules.PRODUCT)
     const pricingService: IPricingModuleService = req.scope.resolve(Modules.PRICING)

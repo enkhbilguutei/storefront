@@ -38,6 +38,7 @@ export const BannerConfig: Record<BannerPlacementType, {
   recommended: { width: number; height: number }
   mobileRecommended: { width: number; height: number }
   description: string
+  gridSizes?: Record<string, { aspectRatio: string; recommended: { width: number; height: number }; label: string }>
 }> = {
   hero: {
     label: "Үндсэн слайд",

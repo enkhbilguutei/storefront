@@ -6,6 +6,7 @@ import { Star, Upload, X } from "lucide-react"
 import { toast } from "@/lib/toast"
 import { CloudinaryImage } from "@/components/Cloudinary"
 import { API_KEY, API_URL } from "@/lib/config/api"
+import type { ExtendedSession } from "@/lib/auth"
 
 interface ReviewFormProps {
   productId: string
@@ -13,7 +14,7 @@ interface ReviewFormProps {
 }
 
 export function ReviewForm({ productId, onSuccess }: ReviewFormProps) {
-  const { data: session } = useSession()
+  const { data: session } = useSession() as { data: ExtendedSession | null }
   const [rating, setRating] = useState(0)
   const [hoverRating, setHoverRating] = useState(0)
   const [title, setTitle] = useState("")

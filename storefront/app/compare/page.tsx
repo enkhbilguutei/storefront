@@ -1,5 +1,6 @@
 "use client";
 
+import type { Metadata } from "next";
 import { useComparisonStore } from "@/lib/store/comparison-store";
 import { HeaderClient } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
