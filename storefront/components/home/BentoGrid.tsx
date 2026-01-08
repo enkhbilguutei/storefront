@@ -74,15 +74,15 @@ export function BentoGrid({ banners }: BentoGridProps) {
 
   return (
     <section className="w-full py-8 md:py-12">
-      <div className="container max-w-7xl mx-auto px-4">
-        {/* Desktop: 6-column × 3-row grid | Mobile: Stack vertically */}
-        <div className="flex flex-col gap-3 md:grid md:grid-cols-6 md:gap-4" style={{ gridAutoRows: '200px' }}>
+      <div className="w-full md:container md:max-w-7xl md:mx-auto md:px-4">
+        {/* Desktop: 6-column × 3-row grid | Mobile: Stack vertically edge-to-edge */}
+        <div className="flex flex-col gap-2 md:grid md:grid-cols-6 md:gap-4" style={{ gridAutoRows: '200px' }}>
           
           {/* Position 1: Large left banner (3×3) */}
           <Link
             href={largeLeft.link}
-            className="md:col-span-3 md:row-span-3 group relative overflow-hidden rounded-xl bg-neutral-100
-              transition-all duration-300 hover:scale-[1.02] hover:shadow-xl w-full aspect-[16/9] md:aspect-auto md:h-full"
+            className="md:col-span-3 md:row-span-3 group relative overflow-hidden md:rounded-xl bg-neutral-100
+              transition-all duration-300 md:hover:scale-[1.02] md:hover:shadow-xl w-full aspect-[16/9] md:aspect-auto md:h-full"
           >
             <div className="relative w-full h-full">
               <div className="hidden md:block absolute inset-0">
@@ -108,8 +108,8 @@ export function BentoGrid({ banners }: BentoGridProps) {
           {/* Position 2: Small middle top (1×1) */}
           <Link
             href={smallMiddle[0].link}
-            className="md:col-span-1 md:row-span-1 group relative overflow-hidden rounded-xl bg-neutral-100
-              transition-all duration-300 hover:scale-[1.02] hover:shadow-xl w-full aspect-[16/9] md:aspect-auto md:h-full"
+            className="md:col-span-1 md:row-span-1 group relative overflow-hidden md:rounded-xl bg-neutral-100
+              transition-all duration-300 md:hover:scale-[1.02] md:hover:shadow-xl w-full aspect-[16/9] md:aspect-auto md:h-full"
           >
             <div className="relative w-full h-full">
               <div className="hidden md:block absolute inset-0">
@@ -135,8 +135,8 @@ export function BentoGrid({ banners }: BentoGridProps) {
           {/* Position 5: Tall right banner (2×3) - spans all 3 rows */}
           <Link
             href={tallRight.link}
-            className="md:col-span-2 md:row-span-3 group relative overflow-hidden rounded-xl bg-neutral-100
-              transition-all duration-300 hover:scale-[1.02] hover:shadow-xl w-full aspect-[16/9] md:aspect-auto md:h-full"
+            className="md:col-span-2 md:row-span-3 group relative overflow-hidden md:rounded-xl bg-neutral-100
+              transition-all duration-300 md:hover:scale-[1.02] md:hover:shadow-xl w-full aspect-[16/9] md:aspect-auto md:h-full"
           >
             <div className="relative w-full h-full">
               <div className="hidden md:block absolute inset-0">
@@ -162,8 +162,8 @@ export function BentoGrid({ banners }: BentoGridProps) {
           {/* Position 3: Small middle center (1×1) */}
           <Link
             href={smallMiddle[1].link}
-            className="md:col-span-1 md:row-span-1 group relative overflow-hidden rounded-xl bg-neutral-100
-              transition-all duration-300 hover:scale-[1.02] hover:shadow-xl w-full aspect-[16/9] md:aspect-auto md:h-full"
+            className="md:col-span-1 md:row-span-1 group relative overflow-hidden md:rounded-xl bg-neutral-100
+              transition-all duration-300 md:hover:scale-[1.02] md:hover:shadow-xl w-full aspect-[16/9] md:aspect-auto md:h-full"
           >
             <div className="relative w-full h-full">
               <div className="hidden md:block absolute inset-0">
@@ -189,8 +189,8 @@ export function BentoGrid({ banners }: BentoGridProps) {
           {/* Position 4: Small middle bottom (1×1) */}
           <Link
             href={smallMiddle[2].link}
-            className="md:col-span-1 md:row-span-1 group relative overflow-hidden rounded-xl bg-neutral-100
-              transition-all duration-300 hover:scale-[1.02] hover:shadow-xl w-full aspect-[16/9] md:aspect-auto md:h-full"
+            className="md:col-span-1 md:row-span-1 group relative overflow-hidden md:rounded-xl bg-neutral-100
+              transition-all duration-300 md:hover:scale-[1.02] md:hover:shadow-xl w-full aspect-[16/9] md:aspect-auto md:h-full"
           >
             <div className="relative w-full h-full">
               <div className="hidden md:block absolute inset-0">

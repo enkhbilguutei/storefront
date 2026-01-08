@@ -8,7 +8,7 @@ export async function Hero() {
   const banners = await getHeroBanners()
 
   return (
-    <section className="w-full bg-white">
+    <section className="w-full bg-black relative">
       <HeroCarousel banners={banners} />
     </section>
   )

@@ -152,7 +152,7 @@ export function ProductCarouselSection({ title, subtitle, products, tabs, viewAl
                 >
                   {products.map((product) => (
                     <SwiperSlide key={product.id}>
-                      <ProductCard {...product} />
+                      <ProductCard productId={product.id} {...product} />
                     </SwiperSlide>
                   ))}
                 </Swiper>
@@ -196,7 +196,7 @@ export function ProductCarouselSection({ title, subtitle, products, tabs, viewAl
             >
               {products.map((product) => (
                 <SwiperSlide key={product.id}>
-                  <ProductCard {...product} />
+                  <ProductCard productId={product.id} {...product} />
                 </SwiperSlide>
               ))}
             </Swiper>

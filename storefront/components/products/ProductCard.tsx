@@ -102,7 +102,7 @@ export function ProductCard({
     try {
       const { cartId, setCartId, syncCart, addItem } = useCartStore.getState();
       
-      await addToCart({
+      const success = await addToCart({
         variantId: id,
         quantity: 1,
         productInfo: {
@@ -118,8 +118,14 @@ export function ProductCard({
         addItem,
         openCartNotification,
       });
+      
+      // addToCart already shows toast messages, no need to show success here
+      if (!success) {
+        console.error('Failed to add item to cart');
+      }
     } catch (error) {
       console.error('Failed to add item to cart:', error);
+      // Error toast is already shown in addToCart function
     } finally {
       setIsAdding(false);
     }

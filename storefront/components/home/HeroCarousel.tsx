@@ -34,7 +34,7 @@ export function HeroCarousel({ banners }: HeroCarouselProps) {
       }}
       navigation={false}
       modules={[Autoplay, Pagination]}
-      className="w-full h-[400px] md:h-[500px]"
+      className="w-full h-[100vh] md:h-[100vh]"
     >
       {banners.map((banner, index) => (
         <SwiperSlide key={banner.id} className="relative bg-black">

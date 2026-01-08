@@ -16,6 +16,19 @@ export function NavigationEvents() {
   useEffect(() => {
     const handleAnchorClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
+      
+      // Don't trigger progress bar if clicking on buttons, inputs, or interactive elements
+      if (
+        target.closest("button") ||
+        target.closest("input") ||
+        target.closest("select") ||
+        target.closest("textarea") ||
+        target.tagName === "BUTTON" ||
+        target.tagName === "INPUT"
+      ) {
+        return;
+      }
+      
       const anchor = target.closest("a");
       
       if (anchor) {

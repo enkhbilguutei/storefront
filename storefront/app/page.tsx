@@ -36,9 +36,10 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <Header />
+      <Header isHomePage={true} />
       
       <main className="flex-1">
+        {/* Hero section spans full viewport, header overlays on top */}
         <Hero />
         
         

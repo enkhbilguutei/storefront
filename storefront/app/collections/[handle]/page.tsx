@@ -128,8 +128,8 @@ export default async function CollectionPage({
 
         <div className="container mx-auto px-4 py-8 md:py-12">
           <div className="flex gap-8">
-            {/* Left Sidebar - Filters */}
-            <aside className="w-64 shrink-0">
+            {/* Left Sidebar - Filters (Hidden on mobile) */}
+            <aside className="hidden lg:block w-64 shrink-0">
               <ProductFiltersSidebar 
                 categories={allCategories}
                 pageType="collection"
@@ -138,8 +138,16 @@ export default async function CollectionPage({
 
             {/* Main Content */}
             <div className="flex-1 min-w-0">
+              {/* Mobile Filter Sidebar */}
+              <div className="lg:hidden mb-6">
+                <ProductFiltersSidebar 
+                  categories={allCategories}
+                  pageType="collection"
+                />
+              </div>
+
               {sortedProducts.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                   {sortedProducts.map((product) => {
                 const firstVariant = product.variants?.[0]
                 const calculatedPrice = firstVariant?.calculated_price

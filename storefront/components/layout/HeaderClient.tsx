@@ -14,9 +14,10 @@ import { signOut } from "next-auth/react";
 interface HeaderClientProps {
   categories: Category[];
   collections: Collection[];
+  isHomePage?: boolean;
 }
 
-export function HeaderClient({ categories, collections }: HeaderClientProps) {
+export function HeaderClient({ categories, collections, isHomePage = false }: HeaderClientProps) {
   const { isMobileMenuOpen, openMobileMenu, closeMobileMenu, openSearch } = useUIStore();
   const { user, isAuthenticated } = useUserStore();
   const { items } = useCartStore();
@@ -31,6 +32,7 @@ export function HeaderClient({ categories, collections }: HeaderClientProps) {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const collectionsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastScrollY = useRef(0);
+  const [isScrolled, setIsScrolled] = useState(false);
   
   const cartItemCount = items?.length || 0;
 
@@ -46,11 +48,12 @@ export function HeaderClient({ categories, collections }: HeaderClientProps) {
     return iconMap[handle.toLowerCase()] || Package;
   };
 
-  // Handle subheader visibility on scroll
+  // Handle subheader visibility and header background on scroll
   useEffect(() => {
     // Ensure page starts at top on mount
     window.scrollTo(0, 0);
     setIsSubheaderVisible(true);
+    setIsScrolled(false);
 
     let timeoutId: NodeJS.Timeout;
     
@@ -60,6 +63,9 @@ export function HeaderClient({ categories, collections }: HeaderClientProps) {
       timeoutId = setTimeout(() => {
         const currentScrollY = window.scrollY;
         const scrollThreshold = 100;
+        
+        // Toggle header background when scrolling past 50px
+        setIsScrolled(currentScrollY > 50);
         
         if (currentScrollY > scrollThreshold) {
           setIsSubheaderVisible(false);
@@ -136,19 +142,26 @@ export function HeaderClient({ categories, collections }: HeaderClientProps) {
 
   return (
     <>
-      {/* Top bar - Promotional banner (non-sticky) */}
-      <div className="bg-[#f5f5f7] text-[#1d1d1f] text-center py-2 text-xs">
-        <p>Шинэ бүтээгдэхүүн! iPhone 16 Pro худалдаанд гарлаа. <Link href="/categories/iphone" className="text-blue-600 hover:underline ml-1">Дэлгэрэнгүй →</Link></p>
-      </div>
-
-      <header className="sticky top-0 z-50 w-full bg-white shadow-sm">
+      <header className={`${
+        isHomePage ? 'fixed' : 'sticky'
+      } top-0 left-0 right-0 z-50 w-full transition-all duration-300 ${
+        isHomePage 
+          ? isScrolled 
+            ? 'bg-white/95 backdrop-blur-md shadow-sm' 
+            : 'bg-transparent'
+          : 'bg-white shadow-sm'
+      }`}>
         {/* Main Header */}
-        <div className="bg-white border-b border-gray-200">
+        <div className={`transition-colors duration-300 ${
+          isHomePage 
+            ? isScrolled ? 'border-b border-gray-200' : 'border-b border-white/10'
+            : 'border-b border-gray-200'
+        }`}>
           <div className="container mx-auto px-4">
             <div className="flex items-center justify-between h-16 lg:h-20">
               {/* Logo */}
-              <Link href="/" className="flex items-center">
-                <Image src="/logo.png" alt="Alimhan" width={160} height={64} className="h-14 lg:h-16 w-auto" priority />
+              <Link href="/" className="flex items-center relative z-10">
+                <Image src="/logo.png" alt="Alimhan" width={160} height={64} className="h-14 lg:h-16 w-auto drop-shadow-lg" priority />
               </Link>
 
               {/* Desktop: Categories Megamenu + Search Bar */}
@@ -159,7 +172,11 @@ export function HeaderClient({ categories, collections }: HeaderClientProps) {
                     ref={megaMenuTriggerRef}
                     onMouseEnter={handleMegaMenuEnter}
                     onMouseLeave={handleMegaMenuLeave}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-full transition-all whitespace-nowrap text-white shadow-lg shadow-blue-900/20 border border-white/10 bg-[linear-gradient(135deg,#0b1224,#0f1f50,#102a7a,#0ea5e9)] hover:brightness-105"
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-full transition-all whitespace-nowrap shadow-lg border ${
+                      isHomePage && !isScrolled
+                        ? 'bg-white/90 backdrop-blur-sm text-gray-900 border-white/20 shadow-black/10'
+                        : 'bg-[linear-gradient(135deg,#0b1224,#0f1f50,#102a7a,#0ea5e9)] text-white border-white/10 shadow-blue-900/20'
+                    } hover:brightness-105`}
                   >
                     <Menu className="h-4 w-4" />
                     <span className="text-sm font-medium">Ангилал</span>
@@ -173,7 +190,11 @@ export function HeaderClient({ categories, collections }: HeaderClientProps) {
                     type="text"
                     placeholder="Утас, ТВ, гэрийн техник хайх..."
                     onClick={openSearch}
-                    className="w-full px-4 py-2.5 pl-11 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm cursor-pointer"
+                    className={`w-full px-4 py-2.5 pl-11 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm cursor-pointer transition-colors ${
+                      isHomePage && !isScrolled
+                        ? 'bg-white/90 backdrop-blur-sm border border-white/20 text-gray-900 placeholder:text-gray-600'
+                        : 'bg-gray-50 border border-gray-200 focus:border-transparent'
+                    }`}
                     readOnly
                   />
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -185,22 +206,32 @@ export function HeaderClient({ categories, collections }: HeaderClientProps) {
                 {/* Mobile Search */}
                 <button 
                   onClick={openSearch}
-                  className="lg:hidden p-2.5 hover:bg-gray-100 rounded-lg transition-colors active:scale-95"
+                  className={`lg:hidden p-2.5 rounded-lg transition-colors active:scale-95 ${
+                    isHomePage && !isScrolled ? 'hover:bg-white/10 backdrop-blur-sm' : 'hover:bg-gray-100'
+                  }`}
                   aria-label="Хайх"
                 >
-                  <Search className="h-5.5 w-5.5 text-gray-700" />
+                  <Search className={`h-5.5 w-5.5 ${
+                    isHomePage && !isScrolled ? 'text-white drop-shadow-lg' : 'text-gray-700'
+                  }`} />
                 </button>
 
                 {/* User Menu */}
                 {isAuthenticated && user ? (
                   <div className="hidden lg:flex items-center gap-2 relative group">
-                    <button className="flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors">
+                    <button className={`flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors ${
+                      isHomePage && !isScrolled ? 'hover:bg-white/10 backdrop-blur-sm' : 'hover:bg-gray-50'
+                    }`}>
                       <div className="w-8 h-8 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-medium">
                         {user.firstName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || "У"}
                       </div>
                       <div className="flex flex-col items-start">
-                        <span className="text-[10px] text-gray-500">Сайн байна уу</span>
-                        <span className="text-sm font-medium text-gray-900">{user.firstName || user.name || "Хэрэглэгч"}</span>
+                        <span className={`text-[10px] ${
+                          isHomePage && !isScrolled ? 'text-white/70' : 'text-gray-500'
+                        }`}>Сайн байна уу</span>
+                        <span className={`text-sm font-medium ${
+                          isHomePage && !isScrolled ? 'text-white drop-shadow-lg' : 'text-gray-900'
+                        }`}>{user.firstName || user.name || "Хэрэглэгч"}</span>
                       </div>
                     </button>
                     
@@ -224,20 +255,34 @@ export function HeaderClient({ categories, collections }: HeaderClientProps) {
                     </div>
                   </div>
                 ) : (
-                  <Link href="/auth/login" className="hidden lg:flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors">
-                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-                      <User className="h-4 w-4 text-gray-600" />
+                  <Link href="/auth/login" className={`hidden lg:flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors ${
+                    isHomePage && !isScrolled ? 'hover:bg-white/10 backdrop-blur-sm' : 'hover:bg-gray-50'
+                  }`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      isHomePage && !isScrolled ? 'bg-white/20 backdrop-blur-sm' : 'bg-gray-100'
+                    }`}>
+                      <User className={`h-4 w-4 ${
+                        isHomePage && !isScrolled ? 'text-white' : 'text-gray-600'
+                      }`} />
                     </div>
                     <div className="flex flex-col items-start">
-                      <span className="text-[10px] text-gray-500">Сайн байна уу</span>
-                      <span className="text-sm font-medium text-gray-900">Нэвтрэх</span>
+                      <span className={`text-[10px] ${
+                        isHomePage && !isScrolled ? 'text-white/70' : 'text-gray-500'
+                      }`}>Сайн байна уу</span>
+                      <span className={`text-sm font-medium ${
+                        isHomePage && !isScrolled ? 'text-white drop-shadow-lg' : 'text-gray-900'
+                      }`}>Нэвтрэх</span>
                     </div>
                   </Link>
                 )}
 
                 {/* Cart */}
-                <Link href="/cart" className="relative p-2.5 hover:bg-gray-100 rounded-lg transition-colors active:scale-95">
-                  <ShoppingCart className="h-5.5 w-5.5 lg:h-6 lg:w-6 text-gray-700" />
+                <Link href="/cart" className={`relative p-2.5 rounded-lg transition-colors active:scale-95 ${
+                  isHomePage && !isScrolled ? 'hover:bg-white/10 backdrop-blur-sm' : 'hover:bg-gray-100'
+                }`}>
+                  <ShoppingCart className={`h-5.5 w-5.5 lg:h-6 lg:w-6 ${
+                    isHomePage && !isScrolled ? 'text-white drop-shadow-lg' : 'text-gray-700'
+                  }`} />
                   {cartItemCount > 0 && (
                     <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-sm">
                       {cartItemCount}
@@ -248,10 +293,20 @@ export function HeaderClient({ categories, collections }: HeaderClientProps) {
                 {/* Mobile Menu Toggle */}
                 <button 
                   onClick={isMobileMenuOpen ? closeMobileMenu : openMobileMenu}
-                  className="lg:hidden p-2.5 hover:bg-gray-100 rounded-lg transition-colors active:scale-95"
+                  className={`lg:hidden p-2.5 rounded-lg transition-colors active:scale-95 ${
+                    isHomePage && !isScrolled ? 'hover:bg-white/10 backdrop-blur-sm' : 'hover:bg-gray-100'
+                  }`}
                   aria-label="Цэс"
                 >
-                  {isMobileMenuOpen ? <X className="h-5.5 w-5.5" /> : <Menu className="h-5.5 w-5.5" />}
+                  {isMobileMenuOpen ? (
+                    <X className={`h-5.5 w-5.5 ${
+                      isHomePage && !isScrolled ? 'text-white drop-shadow-lg' : 'text-gray-700'
+                    }`} />
+                  ) : (
+                    <Menu className={`h-5.5 w-5.5 ${
+                      isHomePage && !isScrolled ? 'text-white drop-shadow-lg' : 'text-gray-700'
+                    }`} />
+                  )}
                 </button>
               </div>
             </div>
@@ -351,37 +406,44 @@ export function HeaderClient({ categories, collections }: HeaderClientProps) {
             </div>
           </div>
         )}
-      </header>
 
-      {/* Subheader: Collections (non-sticky, hides on scroll) */}
-      <div 
-        className={`hidden lg:block bg-white border-b border-gray-100 z-40 transition-all duration-300 ease-in-out ${
-          isSubheaderVisible 
-            ? 'relative opacity-100 translate-y-0' 
-            : 'absolute opacity-0 -translate-y-full pointer-events-none'
-        }`}
-      >
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-12">
-            <div className="flex items-center gap-6">
-              <div
-                className="relative"
-                onMouseEnter={handleCollectionsMenuEnter}
-                onMouseLeave={handleCollectionsMenuLeave}
-              >
-                <button
-                  ref={collectionsMenuTriggerRef}
-                  className="inline-flex items-center gap-2 px-2 py-1.5 rounded-md text-sm font-medium text-gray-800 hover:bg-gray-50 transition-colors"
-                  aria-haspopup="menu"
-                  aria-expanded={isCollectionsMenuOpen}
+        {/* Subheader: Collections - now inside fixed header */}
+        <div 
+          className={`hidden lg:block transition-all duration-300 ease-in-out border-t ${
+            isHomePage
+              ? isScrolled ? 'border-gray-200' : 'border-white/10'
+              : 'border-gray-200'
+          } ${
+            isSubheaderVisible 
+              ? 'opacity-100 max-h-12' 
+              : 'opacity-0 max-h-0 overflow-hidden pointer-events-none'
+          }`}
+        >
+          <div className="container mx-auto px-4">
+            <div className="flex items-center justify-between h-12">
+              <div className="flex items-center gap-6">
+                <div
+                  className="relative"
+                  onMouseEnter={handleCollectionsMenuEnter}
+                  onMouseLeave={handleCollectionsMenuLeave}
                 >
-                  Цуглуулга
-                  <ChevronDown
-                    className={`h-4 w-4 transition-transform duration-200 ${
-                      isCollectionsMenuOpen ? "rotate-180" : ""
+                  <button
+                    ref={collectionsMenuTriggerRef}
+                    className={`inline-flex items-center gap-2 px-2 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                      isHomePage && !isScrolled
+                        ? 'text-white hover:bg-white/10 backdrop-blur-sm'
+                        : 'text-gray-800 hover:bg-gray-50'
                     }`}
-                  />
-                </button>
+                    aria-haspopup="menu"
+                    aria-expanded={isCollectionsMenuOpen}
+                  >
+                    Цуглуулга
+                    <ChevronDown
+                      className={`h-4 w-4 transition-transform duration-200 ${
+                        isCollectionsMenuOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
 
                 {isCollectionsMenuOpen && collections.length > 0 && (
                   <div
@@ -428,108 +490,151 @@ export function HeaderClient({ categories, collections }: HeaderClientProps) {
                 )}
               </div>
 
-              <Link href="/products" className="text-sm font-medium text-gray-700 hover:text-gray-900">
+              <Link href="/products" className={`text-sm font-medium transition-colors ${
+                isHomePage && !isScrolled ? 'text-white hover:text-white/80' : 'text-gray-700 hover:text-gray-900'
+              }`}>
                 Бүтээгдэхүүн
               </Link>
             </div>
 
-            <div className="text-xs text-gray-500">
+            <div className={`text-xs ${
+              isHomePage && !isScrolled ? 'text-white/70' : 'text-gray-500'
+            }`}>
               {collections.length > 0 ? `${collections.length} цуглуулга` : ""}
             </div>
           </div>
         </div>
       </div>
+      </header>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu - Full Screen Samsung Style */}
       <div 
         className={`fixed inset-0 z-60 lg:hidden transition-all duration-300 ${
           isMobileMenuOpen ? 'visible' : 'invisible'
         }`}
       >
         <div 
-          className={`absolute inset-0 bg-black/50 transition-opacity duration-300 ${
+          className={`absolute inset-0 bg-white transition-opacity duration-300 overflow-y-auto ${
             isMobileMenuOpen ? 'opacity-100' : 'opacity-0'
           }`}
-          onClick={closeMobileMenu}
-        />
-        
-        <div 
-          className={`absolute top-0 left-0 bottom-0 w-[85vw] max-w-sm bg-white shadow-2xl transition-transform duration-300 ease-out overflow-y-auto ${
-            isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
         >
-          <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between z-10">
-            <span className="text-xl font-bold">Цэс</span>
-            <button onClick={closeMobileMenu} className="p-2 hover:bg-gray-100 rounded-lg">
-              <X className="h-5 w-5" />
-            </button>
+          {/* Header with Search and Close */}
+          <div className="sticky top-0 bg-white z-10 px-4 pt-4 pb-3">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex-1 relative">
+                <input
+                  type="text"
+                  placeholder="Search"
+                  onClick={() => {
+                    closeMobileMenu();
+                    openSearch();
+                  }}
+                  className="w-full px-4 py-3 pl-11 bg-gray-100 rounded-full text-sm focus:outline-none cursor-pointer"
+                  readOnly
+                />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+              </div>
+              <button 
+                onClick={closeMobileMenu} 
+                className="p-2 hover:bg-gray-100 rounded-full"
+                aria-label="Хаах"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
           </div>
 
-          <div className="p-4">
-            {/* User Section */}
-            {isAuthenticated && user ? (
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-full bg-gray-900 text-white flex items-center justify-center font-medium text-sm">
-                    {user.firstName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || "У"}
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">{user.firstName || "Хэрэглэгч"}</p>
-                    <p className="text-sm text-gray-500">{user.email}</p>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Link href="/account" onClick={closeMobileMenu} className="block px-3 py-2 text-sm text-gray-700 hover:bg-white rounded-md">
-                    Профайл
-                  </Link>
-                  <Link href="/account/orders" onClick={closeMobileMenu} className="block px-3 py-2 text-sm text-gray-700 hover:bg-white rounded-md">
-                    Захиалгууд
-                  </Link>
-                  <button 
-                    onClick={() => {
-                      closeMobileMenu();
-                      signOut({ callbackUrl: "/" });
-                    }}
-                    className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md"
-                  >
-                    Гарах
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <Link href="/auth/login" onClick={closeMobileMenu} className="block mb-6 p-4 bg-blue-600 text-white rounded-lg text-center font-medium hover:bg-blue-700 transition-colors">
-                Нэвтрэх / Бүртгүүлэх
-              </Link>
-            )}
-
-            {/* Categories */}
-            <div className="mb-6">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Ангилал</h3>
-              <div className="space-y-1">
+          <div className="px-4 pb-8">
+            {/* Categories Section */}
+            <div className="mb-8">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 px-4">SHOP BY CATEGORY</h3>
+              <div className="space-y-0 border-t border-gray-200">
                 {categories.map((category) => (
                   <Link
                     key={category.id}
                     href={`/categories/${category.handle}`}
                     onClick={closeMobileMenu}
-                    className="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-md"
+                    className="flex items-center justify-between px-4 py-5 border-b border-gray-200 hover:bg-gray-50 transition-colors"
                   >
-                    {category.name}
+                    <span className="text-2xl font-semibold text-gray-900">{category.name}</span>
+                    <ChevronRight className="h-5 w-5 text-gray-400" />
                   </Link>
                 ))}
               </div>
             </div>
 
-            {/* Quick Links */}
-            <div>
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Холбоосууд</h3>
-              <div className="space-y-1">
-                <Link href="/stores" onClick={closeMobileMenu} className="block px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md">
-                  Дэлгүүр хайх
+            {/* Additional Links */}
+            <div className="space-y-0 border-t border-gray-200 mb-8">
+              <Link
+                href="/collections"
+                onClick={closeMobileMenu}
+                className="flex items-center justify-between px-4 py-5 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                <span className="text-lg font-medium text-gray-900">Цуглуулга</span>
+                <ChevronRight className="h-5 w-5 text-gray-400" />
+              </Link>
+              <Link
+                href="/products"
+                onClick={closeMobileMenu}
+                className="flex items-center justify-between px-4 py-5 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                <span className="text-lg font-medium text-gray-900">Бүх бүтээгдэхүүн</span>
+                <ChevronRight className="h-5 w-5 text-gray-400" />
+              </Link>
+            </div>
+
+            {/* User Section */}
+            <div className="space-y-0 border-t border-gray-200">
+              {isAuthenticated && user ? (
+                <>
+                  <div className="px-4 py-5 border-b border-gray-200">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-12 h-12 rounded-full bg-gray-900 text-white flex items-center justify-center font-medium">
+                        {user.firstName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || "У"}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900">{user.firstName || "Хэрэглэгч"}</p>
+                        <p className="text-sm text-gray-500">{user.email}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <Link
+                    href="/account"
+                    onClick={closeMobileMenu}
+                    className="flex items-center justify-between px-4 py-4 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="text-base text-gray-900">Профайл</span>
+                    <ChevronRight className="h-5 w-5 text-gray-400" />
+                  </Link>
+                  <Link
+                    href="/account/orders"
+                    onClick={closeMobileMenu}
+                    className="flex items-center justify-between px-4 py-4 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="text-base text-gray-900">Захиалгууд</span>
+                    <ChevronRight className="h-5 w-5 text-gray-400" />
+                  </Link>
+                  <button
+                    onClick={() => {
+                      closeMobileMenu();
+                      signOut({ callbackUrl: "/" });
+                    }}
+                    className="w-full flex items-center justify-between px-4 py-4 border-b border-gray-200 hover:bg-gray-50 transition-colors text-left"
+                  >
+                    <span className="text-base text-red-600">Гарах</span>
+                    <LogOut className="h-5 w-5 text-red-400" />
+                  </button>
+                </>
+              ) : (
+                <Link
+                  href="/auth/login"
+                  onClick={closeMobileMenu}
+                  className="flex items-center justify-between px-4 py-5 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+                >
+                  <span className="text-base font-medium text-gray-900">Нэвтрэх / Бүртгүүлэх</span>
+                  <ChevronRight className="h-5 w-5 text-gray-400" />
                 </Link>
-                <Link href="/help" onClick={closeMobileMenu} className="block px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md">
-                  Тусламж
-                </Link>
-              </div>
+              )}
             </div>
           </div>
         </div>

@@ -135,8 +135,8 @@ export default async function CategoryPage({
 
         <div className="container mx-auto px-4 py-8">
           <div className="flex gap-8">
-            {/* Left Sidebar - Filters */}
-            <aside className="w-64 shrink-0">
+            {/* Left Sidebar - Filters (Hidden on mobile) */}
+            <aside className="hidden lg:block w-64 shrink-0">
               <ProductFiltersSidebar 
                 categories={allCategories.filter(c => c.id !== category.id)}
                 pageType="category"
@@ -145,6 +145,14 @@ export default async function CategoryPage({
 
             {/* Main Content */}
             <div className="flex-1 min-w-0">
+              {/* Mobile Filter Sidebar */}
+              <div className="lg:hidden mb-6">
+                <ProductFiltersSidebar 
+                  categories={allCategories.filter(c => c.id !== category.id)}
+                  pageType="category"
+                />
+              </div>
+
               <div className="mb-6">
                 <p className="text-[#86868b] text-[15px]">
                   {sortedProducts.length} бүтээгдэхүүн
@@ -153,7 +161,7 @@ export default async function CategoryPage({
 
               {/* Product Grid */}
               {sortedProducts.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {sortedProducts.map((product) => {
                 return (
                   <ProductCard

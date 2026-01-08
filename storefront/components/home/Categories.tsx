@@ -13,25 +13,25 @@ export async function Categories() {
   return (
     <section className="py-10 md:py-12 bg-[#f5f5f7]">
       <div className="container mx-auto px-4">
-        <div className="flex overflow-x-auto pb-4 gap-8 md:gap-12 no-scrollbar snap-x justify-start md:justify-center">
+        <div className="flex overflow-x-auto pb-4 gap-6 md:gap-8 no-scrollbar snap-x justify-start md:justify-center">
           {categories.map((category) => {
             const imageUrl = getCategoryImage(category.handle);
             return (
               <Link
                 key={category.id}
                 href={`/categories/${category.handle}`}
-                className="flex flex-col items-center min-w-24 md:min-w-28 group snap-start"
+                className="flex flex-col items-center min-w-28 md:min-w-36 group snap-start"
               >
-                <div className="relative w-20 h-20 md:w-28 md:h-28 mb-3 flex items-center justify-center bg-transparent transition-transform duration-200 group-hover:-translate-y-0.5">
+                <div className="relative w-24 h-24 md:w-36 md:h-36 mb-3 flex items-center justify-center bg-transparent transition-transform duration-200 group-hover:-translate-y-0.5">
                   <Image
                     src={imageUrl}
                     alt={category.name}
-                    width={112}
-                    height={112}
+                    width={144}
+                    height={144}
                     className="w-[88%] h-[88%] object-contain"
                   />
                 </div>
-                <span className="text-xs md:text-sm font-medium text-foreground/80 group-hover:text-foreground transition-colors text-center">
+                <span className="text-sm md:text-base font-medium text-foreground/80 group-hover:text-foreground transition-colors text-center">
                   {category.name}
                 </span>
               </Link>
